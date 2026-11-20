@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>HostDeck.Import.MRemoteNG</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HostDeck.Core\HostDeck.Core.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- GCM mit 16-Byte-Nonce, Serpent/Twofish, EAX/CCM: von System.Security.Cryptography nicht abgedeckt -->
+    <PackageReference Include="BouncyCastle.Cryptography" />
+    <!-- Nur für confCons.xml mit KeyProtection="Dpapi" (neuere mRemoteNG-Builds), funktioniert nur unter Windows -->
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="HostDeck.Tests" />
+  </ItemGroup>
+</Project>

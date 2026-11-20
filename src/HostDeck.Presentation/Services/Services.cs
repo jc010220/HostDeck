@@ -69,6 +69,8 @@ public sealed class AppSettings
     public bool TerminalHighlighting { get; set; } = true;
     public bool SftpFollowsTerminal { get; set; } = true;
     public int TerminalFontSize { get; set; } = 14;
+    /// <summary>Zuletzt geöffnete Verbindungen (neueste zuerst) für Schnellsuche und Start.</summary>
+    public List<Guid> RecentConnections { get; set; } = [];
 }
 
 public interface ISettingsStore

@@ -92,6 +92,15 @@
                     </StackPanel>
                 </ToggleButton>
 
+                <ui:Button DockPanel.Dock="Right" Click="OnPaletteButton" ToolTip="Schnellsuche  (Strg+K)" Margin="0,0,8,0">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="{x:Static app:Icons.Search}" Margin="0,0,6,0" />
+                        <TextBlock Text="Suchen …" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <Border Margin="10,0,0,0" Padding="5,0" CornerRadius="3" BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                            <TextBlock Text="Strg+K" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                        </Border>
+                    </StackPanel>
+                </ui:Button>
                 <ui:Button DockPanel.Dock="Right" ToolTip="Sicherheit" Click="OnSecurityMenu">
                     <ui:SymbolIcon Symbol="{x:Static app:Icons.Lock}" />
                     <ui:Button.ContextMenu>

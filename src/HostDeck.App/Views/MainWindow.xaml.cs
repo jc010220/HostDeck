@@ -41,6 +41,7 @@ public partial class MainWindow : FluentWindow
     {
         switch (key)
         {
+            case "ctrl+shift+k" or "ctrl+shift+p": ShowPalette(); break;
             case "ctrl+tab": _vm.Workspace.SelectNextTab(); break;
             case "ctrl+shift+tab": _vm.Workspace.SelectNextTab(backwards: true); break;
             case "ctrl+shift+w": _vm.Workspace.Close(_vm.Workspace.ActiveTab); break;
@@ -53,6 +54,13 @@ public partial class MainWindow : FluentWindow
             case "ctrl+alt+3": _vm.Workspace.SetLayout(WorkspaceLayout.TwoRows); break;
             case "ctrl+alt+4": _vm.Workspace.SetLayout(WorkspaceLayout.Grid); break;
         }
+    }
+
+    /// <summary>Schnellsuche öffnen (Strg+K; im Terminal Strg+Umschalt+K, da Strg+K dort „Zeile löschen“ ist).</summary>
+    public void ShowPalette()
+    {
+        if (OwnedWindows.OfType<CommandPaletteWindow>().Any()) return;
+        new CommandPaletteWindow(_vm, this).Show();
     }
 
     // ---- SFTP-Seitenleiste ---------------------------------------------------------------------------
@@ -98,6 +106,8 @@ public partial class MainWindow : FluentWindow
         void Bind(Key key, ModifierKeys modifiers, Action action) =>
             InputBindings.Add(new KeyBinding(new RelayCommand(action), key, modifiers));
 
+        Bind(Key.K, ModifierKeys.Control, ShowPalette);
+        Bind(Key.P, ModifierKeys.Control | ModifierKeys.Shift, ShowPalette);
         Bind(Key.F, ModifierKeys.Control, () => { SearchBox.Focus(); SearchBox.SelectAll(); });
         Bind(Key.L, ModifierKeys.Control, () => QuickConnectBox.Focus());
         Bind(Key.O, ModifierKeys.Control, () => _vm.ImportMRemoteNGCommand.Execute(null));
@@ -204,6 +214,8 @@ public partial class MainWindow : FluentWindow
             MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
         if (result == MessageBoxResult.Yes) _vm.DeleteCommand.Execute(item);
     }
+
+    private void OnPaletteButton(object sender, RoutedEventArgs e) => ShowPalette();
 
     private void OnSecurityMenu(object sender, RoutedEventArgs e)
     {

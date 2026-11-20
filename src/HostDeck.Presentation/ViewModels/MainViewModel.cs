@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using HostDeck.Core.Model;
 using HostDeck.Import.MRemoteNG;
 using HostDeck.Presentation.QuickConnect;
+using HostDeck.Presentation.Search;
 using HostDeck.Presentation.Services;
 
 namespace HostDeck.Presentation.ViewModels;
@@ -52,6 +53,7 @@ public sealed partial class MainViewModel : ObservableObject
     private SessionTabViewModel CreateTab(ConnectionNode connection, CredentialVault vault, bool transient)
     {
         var tab = new SessionTabViewModel(connection, vault, transient);
+        if (!transient) RememberRecent(connection.Id);
         if (tab.Protocol is ProtocolKind.Ssh2 or ProtocolKind.Ssh1)
         {
             tab.Terminal = new TerminalSessionViewModel(tab, _store, _dialogs, Settings, RouteTerminalInput);
@@ -80,6 +82,78 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     public SessionTreeViewModel SessionTree { get; } = new();
+
+    // ---- Schnellsuche (Strg+K) ------------------------------------------------------------------------
+
+    private CommandPaletteViewModel? _palette;
+
+    public CommandPaletteViewModel Palette => _palette ??= new CommandPaletteViewModel(
+        () => SessionTree.Tree,
+        () => Settings.RecentConnections,
+        () => Settings.QuickConnectDefaultProtocol,
+        [
+            ("Layout: ein Bereich", "single layout 1", () => Workspace.SetLayout(WorkspaceLayout.Single)),
+            ("Layout: zwei nebeneinander", "split vertical columns 2", () => Workspace.SetLayout(WorkspaceLayout.TwoColumns)),
+            ("Layout: zwei untereinander", "split horizontal rows 2", () => Workspace.SetLayout(WorkspaceLayout.TwoRows)),
+            ("Layout: 4er-Grid", "grid quad 4", () => Workspace.SetLayout(WorkspaceLayout.Grid)),
+            ("Multi-Execution umschalten", "multiexec broadcast", () => IsMultiExecutionEnabled = !IsMultiExecutionEnabled),
+            ("mRemoteNG-Datei importieren", "import confcons", () => ImportMRemoteNGCommand.Execute(null)),
+            ("Als mRemoteNG-Datei exportieren", "export confcons", () => ExportMRemoteNGCommand.Execute(null)),
+            ("Hell/Dunkel umschalten", "theme dark light dunkel hell", () => ToggleThemeCommand.Execute(null)),
+            ("Neue Verbindung", "new connection add", () => NewConnectionCommand.Execute(null)),
+            ("Neuer Ordner", "new folder add", () => NewFolderCommand.Execute(null)),
+            ("Master-Passwort ändern", "password security sicherheit", () => ChangeMasterPasswordCommand.Execute(null)),
+            ("Alle Tabs schließen", "close all tabs", CloseAllTabs),
+        ]);
+
+    /// <summary>Treffer ausführen. <paramref name="split"/>: in einem neuen Split-Bereich öffnen (Strg+Enter).</summary>
+    public void ExecutePaletteItem(PaletteItem? item, bool split = false)
+    {
+        if (item is null) return;
+        PaneViewModel? pane = null;
+        if (split && item.Kind != PaletteItemKind.Action)
+        {
+            if (Workspace.Layout == WorkspaceLayout.Single) Workspace.SetLayout(WorkspaceLayout.TwoColumns);
+            pane = Workspace.Panes.FirstOrDefault(p => p.IsEmpty) ?? Workspace.Panes.FirstOrDefault(p => p != Workspace.ActivePane);
+        }
+
+        switch (item.Kind)
+        {
+            case PaletteItemKind.Connection:
+                Workspace.Open(CreateTab(item.Connection!, SessionTree.Tree.Vault, transient: false), pane);
+                if (SessionTree.FindByNode(item.Connection!) is { } treeItem) RevealInTree(treeItem);
+                StatusText = $"Geöffnet: {item.Connection!.Path}";
+                break;
+            case PaletteItemKind.QuickConnect:
+                Workspace.Open(CreateTab(item.QuickConnect!.ToConnection(), new CredentialVault(), transient: true), pane);
+                StatusText = $"Quick-Connect: {item.QuickConnect.Protocol} → {item.QuickConnect.Host}:{item.QuickConnect.EffectivePort}";
+                break;
+            case PaletteItemKind.Action:
+                item.Action!();
+                break;
+        }
+    }
+
+    /// <summary>Eintrag im Baum sichtbar machen (Ordner aufklappen, auswählen).</summary>
+    public void RevealInTree(TreeItemViewModel item)
+    {
+        for (var p = item.Parent; p is not null; p = p.Parent) p.IsExpanded = true;
+        item.IsSelected = true;
+    }
+
+    private void RememberRecent(Guid id)
+    {
+        var recent = Settings.RecentConnections;
+        recent.Remove(id);
+        recent.Insert(0, id);
+        if (recent.Count > 30) recent.RemoveRange(30, recent.Count - 30);
+        SaveSettings();
+    }
+
+    private void CloseAllTabs()
+    {
+        foreach (var tab in Workspace.AllTabs.ToList()) Workspace.Close(tab);
+    }
     public WorkspaceViewModel Workspace { get; } = new();
     public AppSettings Settings { get; }
     public IReadOnlyList<string> QuickConnectHistory => Settings.QuickConnectHistory;

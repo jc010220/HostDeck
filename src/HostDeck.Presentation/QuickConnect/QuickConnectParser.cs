@@ -1,0 +1,128 @@
+using System.Globalization;
+using System.Text.RegularExpressions;
+using HostDeck.Core.Model;
+
+namespace HostDeck.Presentation.QuickConnect;
+
+/// <summary>Ergebnis einer Quick-Connect-Eingabe.</summary>
+public sealed record QuickConnectTarget(ProtocolKind Protocol, string Host, int? Port, string? Username, string? Domain)
+{
+    public int EffectivePort => Port ?? ProtocolDefaults.DefaultPort(Protocol);
+
+    public string DisplayName => Username is { Length: > 0 } u ? $"{u}@{Host}" : Host;
+
+    /// <summary>Erzeugt eine temporäre (nicht gespeicherte) Verbindung.</summary>
+    public ConnectionNode ToConnection()
+    {
+        var node = new ConnectionNode(DisplayName) { Hostname = Host };
+        node.Settings.Protocol = Protocol;
+        node.Settings.Port = Port;
+        if (Username is not null) node.Settings.Username = Username;
+        if (Domain is not null) node.Settings.Domain = Domain;
+        return node;
+    }
+}
+
+/// <summary>
+/// Versteht MobaXterm-/Shell-artige Eingaben:
+/// <list type="bullet">
+/// <item><c>ssh admin@10.0.0.1</c>, <c>ssh -p 2222 admin@host</c>, <c>ssh -l admin host</c>, <c>admin@host:2222</c></item>
+/// <item><c>rdp server01</c>, <c>mstsc /v:server01:3390</c>, <c>rdp://CORP\admin@server01</c></item>
+/// <item><c>telnet switch01 2323</c>, <c>vnc host:5901</c>, <c>https://portal</c></item>
+/// <item><c>server01</c> / <c>10.0.0.1</c> ⇒ Standardprotokoll</item>
+/// </list>
+/// </summary>
+public static partial class QuickConnectParser
+{
+    private static readonly Dictionary<string, ProtocolKind> Schemes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["ssh"] = ProtocolKind.Ssh2,
+        ["sftp"] = ProtocolKind.Ssh2,
+        ["rdp"] = ProtocolKind.Rdp,
+        ["mstsc"] = ProtocolKind.Rdp,
+        ["telnet"] = ProtocolKind.Telnet,
+        ["vnc"] = ProtocolKind.Vnc,
+        ["http"] = ProtocolKind.Http,
+        ["https"] = ProtocolKind.Https,
+        ["rlogin"] = ProtocolKind.Rlogin,
+        ["raw"] = ProtocolKind.Raw,
+    };
+
+    [GeneratedRegex(@"^(?<scheme>[a-z]+)://(?<rest>.+)$", RegexOptions.IgnoreCase)]
+    private static partial Regex UrlRegex();
+
+    // [user@]host[:port] – host darf [IPv6] in eckigen Klammern sein
+    [GeneratedRegex(@"^(?:(?<user>[^@\s]+)@)?(?<host>\[[0-9a-fA-F:.]+\]|[^\s:/@\[\]]+)(?::(?<port>\d{1,5}))?/?$")]
+    private static partial Regex TargetRegex();
+
+    public static bool TryParse(string? input, ProtocolKind defaultProtocol, out QuickConnectTarget? target)
+    {
+        target = null;
+        if (string.IsNullOrWhiteSpace(input)) return false;
+        var text = input.Trim();
+
+        // 1) URL-Form: scheme://[user@]host[:port]
+        if (UrlRegex().Match(text) is { Success: true } url && Schemes.TryGetValue(url.Groups["scheme"].Value, out var urlProtocol))
+            return TryParseTarget(url.Groups["rest"].Value, urlProtocol, null, null, out target);
+
+        var tokens = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var protocol = defaultProtocol;
+        var index = 0;
+        if (Schemes.TryGetValue(tokens[0], out var commandProtocol))
+        {
+            protocol = commandProtocol;
+            index = 1;
+        }
+
+        // 2) Optionen (ssh -p 2222 -l user, mstsc /v:host)
+        int? port = null;
+        string? user = null;
+        string? hostToken = null;
+        for (; index < tokens.Length; index++)
+        {
+            var token = tokens[index];
+            if (token is "-p" or "-P" && index + 1 < tokens.Length && TryPort(tokens[index + 1], out var p)) { port = p; index++; }
+            else if (token == "-l" && index + 1 < tokens.Length) { user = tokens[++index]; }
+            else if (token.StartsWith("/v:", StringComparison.OrdinalIgnoreCase)) { hostToken = token[3..]; }
+            else if (token.StartsWith('-') || token.StartsWith('/')) { /* unbekannte Option ignorieren */ }
+            else if (hostToken is null) { hostToken = token; }
+            else if (port is null && TryPort(token, out var trailingPort)) { port = trailingPort; } // "telnet host 23"
+            else return false;
+        }
+
+        return hostToken is not null && TryParseTarget(hostToken, protocol, port, user, out target);
+    }
+
+    private static bool TryParseTarget(string text, ProtocolKind protocol, int? port, string? user, out QuickConnectTarget? target)
+    {
+        target = null;
+        var m = TargetRegex().Match(text);
+        if (!m.Success) return false;
+
+        var host = m.Groups["host"].Value.Trim('[', ']');
+        if (m.Groups["port"].Success)
+        {
+            if (!TryPort(m.Groups["port"].Value, out var p)) return false;
+            port = p;
+        }
+
+        string? domain = null;
+        if (m.Groups["user"].Success)
+        {
+            user = Uri.UnescapeDataString(m.Groups["user"].Value);
+            // CORP\admin  bzw.  CORP;admin (URL-Schreibweise von rdp://)
+            var sep = user.IndexOfAny(['\\', ';']);
+            if (sep > 0)
+            {
+                domain = user[..sep];
+                user = user[(sep + 1)..];
+            }
+        }
+
+        target = new QuickConnectTarget(protocol, host, port, user, domain);
+        return true;
+    }
+
+    private static bool TryPort(string s, out int port)
+        => int.TryParse(s, NumberStyles.None, CultureInfo.InvariantCulture, out port) && port is > 0 and <= 65535;
+}

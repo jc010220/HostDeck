@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>HostDeck.Presentation</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\HostDeck.Core\HostDeck.Core.csproj" />
+    <ProjectReference Include="..\HostDeck.Import.MRemoteNG\HostDeck.Import.MRemoteNG.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="HostDeck.Tests" />
+  </ItemGroup>
+</Project>

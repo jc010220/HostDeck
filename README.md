@@ -2,7 +2,7 @@
 
 Moderne, schnelle Alternative zu mRemoteNG mit MobaXterm-artiger Bedienung (WPF, .NET 10).
 
-**Stand:** Phase 1 (Architektur und Datenmodell) und Phase 2 (mRemoteNG-Import/Export inkl. Passwort-Entschlüsselung) sind fertig. Architektur siehe [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+**Stand:** Phase 1 (Architektur, Datenmodell), Phase 2 (mRemoteNG-Import/Export inkl. Passwort-Entschlüsselung) und Phase 3 (UI-Grundgerüst: Seitenleiste, Quick-Connect, Tabs, Split-Screen) sind fertig. Die Protokoll-Engines (RDP, SSH/SFTP) folgen in Phase 4. Architektur siehe [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Bauen und Testen
 
@@ -10,7 +10,19 @@ Moderne, schnelle Alternative zu mRemoteNG mit MobaXterm-artiger Bedienung (WPF,
 dotnet test
 ```
 
-Voraussetzung: .NET SDK 10.0.100+. Core und Import sind plattformneutral (`net10.0`) und auch unter Linux-CI testbar.
+Voraussetzung: .NET SDK 10.0.100+. Alles außer `HostDeck.App` ist plattformneutral (`net10.0`) und auch unter Linux testbar.
+
+App starten (Windows 10/11):
+
+```bash
+dotnet run --project src/HostDeck.App
+```
+
+Eigenständige EXE ohne installiertes .NET:
+
+```bash
+dotnet publish src/HostDeck.App -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish
+```
 
 ## mRemoteNG-Import verwenden
 

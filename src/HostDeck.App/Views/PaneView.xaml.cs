@@ -1,0 +1,107 @@
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Media;
+using HostDeck.Presentation.ViewModels;
+
+namespace HostDeck.App.Views;
+
+public partial class PaneView : UserControl
+{
+    private Point _dragStart;
+    private SessionTabViewModel? _dragTab;
+
+    public PaneView()
+    {
+        InitializeComponent();
+        PreviewMouseDown += (_, _) => Activate();
+        GotKeyboardFocus += (_, _) => Activate();
+        DragOver += OnDragOver;
+        Drop += OnDrop;
+    }
+
+    public WorkspaceViewModel? Workspace { get; set; }
+    public Action<TreeItemViewModel, PaneViewModel>? OpenTreeItem { get; set; }
+    private PaneViewModel Pane => (PaneViewModel)DataContext;
+
+    private void Activate()
+    {
+        if (Workspace is not null && DataContext is PaneViewModel pane) Workspace.ActivePane = pane;
+    }
+
+    private static SessionTabViewModel? TabOf(object sender) => (sender as FrameworkElement)?.DataContext as SessionTabViewModel;
+
+    private void OnCloseButton(object sender, RoutedEventArgs e)
+    {
+        Workspace?.Close(TabOf(sender));
+        e.Handled = true;
+    }
+
+    private void OnCloseMenu(object sender, RoutedEventArgs e) => Workspace?.Close(TabOf(sender));
+
+    private void OnSaveMenu(object sender, RoutedEventArgs e)
+    {
+        if (Window.GetWindow(this)?.DataContext is MainViewModel main)
+            main.SaveTransientSessionCommand.Execute(TabOf(sender));
+    }
+
+    // ---- Tab ziehen (zwischen Bereichen verschieben), Mittelklick schließt -------------------------
+
+    private void OnTabStripMouseDown(object sender, MouseButtonEventArgs e)
+    {
+        _dragStart = e.GetPosition(this);
+        _dragTab = ItemAt(e.OriginalSource as DependencyObject)?.DataContext as SessionTabViewModel;
+    }
+
+    private void OnTabStripMouseUp(object sender, MouseButtonEventArgs e)
+    {
+        if (e.ChangedButton == MouseButton.Middle && ItemAt(e.OriginalSource as DependencyObject)?.DataContext is SessionTabViewModel tab)
+        {
+            Workspace?.Close(tab);
+            e.Handled = true;
+        }
+        _dragTab = null;
+    }
+
+    private void OnTabStripMouseMove(object sender, MouseEventArgs e)
+    {
+        if (e.LeftButton != MouseButtonState.Pressed || _dragTab is null) return;
+        var delta = e.GetPosition(this) - _dragStart;
+        if (Math.Abs(delta.X) < SystemParameters.MinimumHorizontalDragDistance * 2 &&
+            Math.Abs(delta.Y) < SystemParameters.MinimumVerticalDragDistance * 2) return;
+        var tab = _dragTab;
+        _dragTab = null;
+        DragDrop.DoDragDrop(this, new DataObject(typeof(SessionTabViewModel), tab), DragDropEffects.Move);
+    }
+
+    private void OnDragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = e.Data.GetDataPresent(typeof(SessionTabViewModel)) ? DragDropEffects.Move
+            : e.Data.GetData(typeof(TreeItemViewModel)) is TreeItemViewModel { IsFolder: false } ? DragDropEffects.Link
+            : e.Data.GetData(typeof(TreeItemViewModel)) is TreeItemViewModel { IsFolder: true } ? DragDropEffects.Link
+            : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void OnDrop(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetData(typeof(SessionTabViewModel)) is SessionTabViewModel tab)
+        {
+            var index = ItemAt(e.OriginalSource as DependencyObject)?.DataContext is SessionTabViewModel over && over != tab
+                ? Pane.Tabs.IndexOf(over) : (int?)null;
+            Workspace?.MoveTab(tab, Pane, index);
+        }
+        else if (e.Data.GetData(typeof(TreeItemViewModel)) is TreeItemViewModel item)
+        {
+            OpenTreeItem?.Invoke(item, Pane);
+        }
+        e.Handled = true;
+    }
+
+    private static ListBoxItem? ItemAt(DependencyObject? source)
+    {
+        while (source is not null and not ListBoxItem)
+            source = source is Visual ? VisualTreeHelper.GetParent(source) : LogicalTreeHelper.GetParent(source);
+        return source as ListBoxItem;
+    }
+}

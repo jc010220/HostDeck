@@ -8,7 +8,7 @@ Ziel: mRemoteNG-kompatible Verbindungsverwaltung mit MobaXterm-artiger Bedienung
 |---|---|---|
 | Runtime | **.NET 10 (LTS, Support bis Nov. 2028)** | .NET 8 ist seit 10.11.2026 aus dem Support, .NET 9 bereits davor. |
 | UI | **WPF + WPF-UI 4.x (Fluent, Mica, Dark Mode)** | Vektorbasiert, Per-Monitor-V2-DPI. Ausgereiftes Hosting für ActiveX (`WindowsFormsHost`) und WebView2. |
-| Docking/Tabs/Split | **AvalonDock 5** | Tabs, Andocken, 2er-/4er-Grid, abreißbare Fenster. |
+| Tabs/Split | **Eigenes Pane-Grid** (1 / 2 nebeneinander / 2 untereinander / 4er-Grid, `GridSplitter`) | Ursprünglich AvalonDock geplant – verworfen: Umhängen von HWND-Inhalten (RDP-ActiveX, WebView2) beim Docken ist fehleranfällig. Das eigene Modell ist einfacher und vollständig unit-testbar. |
 | MVVM/DI | CommunityToolkit.Mvvm, Microsoft.Extensions.Hosting | Source Generators, testbare ViewModels. |
 | RDP | Nativer ActiveX `MsRdpClient` (mstscax.dll) per selbst erzeugtem Interop (`aximp`) | Volle Performance, Zwischenablage, Audio, Laufwerke, Smartcards, RD Gateway. |
 | SSH/SFTP | **SSH.NET** + **xterm.js in WebView2** | xterm.js ist die ausgereifteste Terminal-Emulation (VS Code nutzt sie), GPU-Rendering, Addons für Suche und Links. |
@@ -27,11 +27,12 @@ HostDeck.slnx
 ├─ src/
 │  ├─ HostDeck.Core                 net10.0   Datenmodell, Vererbung, Vault          ✅ Phase 1
 │  ├─ HostDeck.Import.MRemoteNG     net10.0   confCons.xml Import/Export + Krypto    ✅ Phase 2
+│  ├─ HostDeck.Presentation         net10.0   ViewModels, Quick-Connect-Parser, Settings ✅ Phase 3
 │  ├─ HostDeck.Storage              net10.0   SQLCipher-Repository, Master-Passwort    Phase 2b
 │  ├─ HostDeck.Protocols.Abstractions net10.0 ISessionHost, IProtocolEngine           Phase 4
 │  ├─ HostDeck.Protocols.Ssh        net10.0   SSH.NET, SFTP, CWD-Tracking (OSC 7)      Phase 4
 │  ├─ HostDeck.Protocols.Rdp        net10.0-windows  MsRdpClient-Interop               Phase 4
-│  └─ HostDeck.App                  net10.0-windows  WPF-Shell, AvalonDock, WPF-UI     Phase 3
+│  └─ HostDeck.App                  net10.0-windows  WPF-Shell, WPF-UI (Fluent/Mica)   ✅ Phase 3
 └─ tests/
    └─ HostDeck.Tests                xUnit v3 (Microsoft.Testing.Platform)
 ```
@@ -94,3 +95,36 @@ ConnectionSettings  (alle Felder nullable)
 * XML wird ohne DTD und ohne externe Entities geparst (XXE-Schutz, getestet).
 * Klartext-Passwörter existieren nur im Arbeitsspeicher. Die Persistenz (Phase 2b) erfolgt ausschließlich in der SQLCipher-DB, deren Schlüssel per Argon2id aus dem Master-Passwort abgeleitet wird.
 * Abgeleitete Schlüssel werden nach Gebrauch genullt (`CryptographicOperations.ZeroMemory`).
+
+## 6. UI-Schicht (Phase 3)
+
+```
+MainWindow (FluentWindow, Mica, PerMonitorV2-DPI)
+├─ Toolbar: Import/Export · Neu · Layout 1/2/2/4 · Multi-Exec · Theme
+├─ Seitenleiste: Quick-Connect (mit Verlauf) · Suche (Strg+F) · TreeView (Drag & Drop)
+├─ SplitWorkspace (Grid + GridSplitter)
+│   └─ PaneView × 1–4  (eigene Tab-Leiste; Inhalte aller Tabs bleiben geladen)
+└─ Statusleiste
+```
+
+* **MVVM:** Die gesamte Logik (Filter, Verschieben, Layout, Tabs, Quick-Connect, Import-Ablauf) steckt in
+  `HostDeck.Presentation` (plattformneutral, getestet). Code-behind enthält nur Eingabe- und Drag-and-Drop-Verdrahtung.
+* **Sessions überleben Tab-Wechsel und Layoutwechsel:** kein `TabControl` (zerstört den Inhalt nicht
+  ausgewählter Tabs), PaneViews werden pro Bereich wiederverwendet. Voraussetzung für RDP/SSH in Phase 4.
+* **Persistenz bis Phase 2b:** Beim Start wird die zuletzt importierte `confCons.xml` erneut geladen.
+  Änderungen im Baum (Verschieben, Neu, Löschen) gehen bis dahin beim Beenden verloren – Export ist möglich.
+
+### Tastenkürzel
+
+| Taste | Aktion |
+|---|---|
+| Strg+F / Esc / ↓ / Enter | Suchen / Filter leeren / in Treffer springen / ersten Treffer öffnen |
+| Strg+L | Quick-Connect |
+| Strg+O | mRemoteNG importieren |
+| Strg+N / Strg+Umschalt+N | Neue Verbindung / Neuer Ordner |
+| Enter / Doppelklick / Entf | Verbinden / Verbinden / Löschen (im Baum) |
+| Strg+W, Mittelklick | Tab schließen |
+| Strg+Tab / Strg+Umschalt+Tab | Nächster / vorheriger Tab |
+| Strg+Alt+1…4 | Layout: 1 / 2 nebeneinander / 2 untereinander / 4er-Grid |
+| Strg+Alt+→ | Nächster Bereich |
+| Strg+Umschalt+M | Multi-Execution an/aus |

@@ -4,6 +4,7 @@ using HostDeck.Core.Model;
 using HostDeck.Import.MRemoteNG;
 using HostDeck.Presentation.QuickConnect;
 using HostDeck.Presentation.Search;
+using HostDeck.Presentation.Snippets;
 using HostDeck.Presentation.Services;
 
 namespace HostDeck.Presentation.ViewModels;
@@ -26,6 +27,7 @@ public sealed partial class MainViewModel : ObservableObject
         _currentTheme = Settings.Theme;
         _isDeviceUnlockEnabled = store.HasDeviceUnlock;
         SessionTree.Changed += (_, _) => Persist();
+        FocusedWorkspace = Workspace;
         Workspace.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(WorkspaceViewModel.ActiveTab)) UpdateActiveSftp();
@@ -54,7 +56,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         var tab = new SessionTabViewModel(connection, vault, transient);
         if (!transient) RememberRecent(connection.Id);
-        if (tab.Protocol is ProtocolKind.Ssh2 or ProtocolKind.Ssh1)
+        if (tab.Protocol is ProtocolKind.Ssh2 or ProtocolKind.Ssh1 or ProtocolKind.Telnet or ProtocolKind.Raw)
         {
             tab.Terminal = new TerminalSessionViewModel(tab, _store, _dialogs, Settings, RouteTerminalInput);
             _ = tab.Terminal.ConnectAsync();
@@ -77,11 +79,91 @@ public sealed partial class MainViewModel : ObservableObject
             source.Send(data);
             return;
         }
-        foreach (var terminal in Workspace.AllTabs.Where(t => t.IsMultiExecutionTarget).Select(t => t.Terminal).OfType<TerminalSessionViewModel>())
+        foreach (var terminal in AllTabs.Where(t => t.IsMultiExecutionTarget).Select(t => t.Terminal).OfType<TerminalSessionViewModel>())
             if (terminal.IsConnected) terminal.Send(data);
     }
 
     public SessionTreeViewModel SessionTree { get; } = new();
+
+    // ---- Abgelöste Fenster (zweiter Monitor) ----------------------------------------------------------
+
+    /// <summary>Arbeitsbereiche in eigenen Fenstern (Tab „in neuem Fenster“).</summary>
+    public System.Collections.ObjectModel.ObservableCollection<WorkspaceViewModel> DetachedWorkspaces { get; } = [];
+
+    /// <summary>Die View erzeugt dafür ein Fenster.</summary>
+    public event Action<WorkspaceViewModel>? DetachedWindowRequested;
+
+    public IEnumerable<WorkspaceViewModel> AllWorkspaces => DetachedWorkspaces.Prepend(Workspace);
+    public IEnumerable<SessionTabViewModel> AllTabs => AllWorkspaces.SelectMany(w => w.AllTabs);
+
+    /// <summary>Workspace des zuletzt aktiven Fensters (für Snippets/Schnellsuche).</summary>
+    public WorkspaceViewModel FocusedWorkspace { get; set; } = null!;
+
+    /// <summary>Tab in ein neues Fenster verschieben (ohne die Session zu schließen).</summary>
+    public WorkspaceViewModel DetachTab(SessionTabViewModel tab)
+    {
+        var source = AllWorkspaces.First(w => w.AllTabs.Contains(tab));
+        var target = new WorkspaceViewModel();
+        source.Detach(tab);
+        target.Open(tab);
+        DetachedWorkspaces.Add(target);
+        DetachedWindowRequested?.Invoke(target);
+        return target;
+    }
+
+    /// <summary>Tab aus einem anderen Fenster hierher holen (Drag &amp; Drop zwischen Fenstern).</summary>
+    public void MoveTabToWorkspace(SessionTabViewModel tab, WorkspaceViewModel target, PaneViewModel? pane = null)
+    {
+        var source = AllWorkspaces.FirstOrDefault(w => w.AllTabs.Contains(tab));
+        if (source is null) return;
+        if (source == target)
+        {
+            if (pane is not null) target.MoveTab(tab, pane);
+            return;
+        }
+        source.Detach(tab);
+        target.Open(tab, pane);
+    }
+
+    /// <summary>Zusatzfenster wird geschlossen: Sessions zurück ins Hauptfenster statt sie zu beenden.</summary>
+    public void CloseDetachedWorkspace(WorkspaceViewModel workspace)
+    {
+        foreach (var tab in workspace.AllTabs.ToList())
+        {
+            workspace.Detach(tab);
+            Workspace.Open(tab);
+        }
+        DetachedWorkspaces.Remove(workspace);
+        if (FocusedWorkspace == workspace) FocusedWorkspace = Workspace;
+    }
+
+    // ---- Snippets / Makros ----------------------------------------------------------------------------
+
+    private SnippetsViewModel? _snippets;
+
+    public SnippetsViewModel Snippets => _snippets ??= new SnippetsViewModel(
+        new DocumentSnippetStore(_store),
+        (title, message) => _dialogs.Prompt(title, message),
+        SendToTerminals);
+
+    /// <summary>An das aktive Terminal senden – bei aktivem Multi-Exec an alle markierten Terminals.</summary>
+    public void SendToTerminals(string text)
+    {
+        var active = FocusedWorkspace.ActiveTab?.Terminal;
+        if (active is { IsConnected: true })
+        {
+            RouteTerminalInput(active, text);
+        }
+        else if (IsMultiExecutionEnabled)
+        {
+            foreach (var t in AllTabs.Where(t => t.IsMultiExecutionTarget).Select(t => t.Terminal).OfType<TerminalSessionViewModel>())
+                if (t.IsConnected) t.Send(text);
+        }
+        else
+        {
+            StatusText = "Kein verbundenes Terminal aktiv – Snippet nicht gesendet.";
+        }
+    }
 
     // ---- Schnellsuche (Strg+K) ------------------------------------------------------------------------
 
@@ -165,19 +247,19 @@ public sealed partial class MainViewModel : ObservableObject
         PaneViewModel? pane = null;
         if (split && item.Kind != PaletteItemKind.Action)
         {
-            if (Workspace.Layout == WorkspaceLayout.Single) Workspace.SetLayout(WorkspaceLayout.TwoColumns);
-            pane = Workspace.Panes.FirstOrDefault(p => p.IsEmpty) ?? Workspace.Panes.FirstOrDefault(p => p != Workspace.ActivePane);
+            if (FocusedWorkspace.Layout == WorkspaceLayout.Single) FocusedWorkspace.SetLayout(WorkspaceLayout.TwoColumns);
+            pane = FocusedWorkspace.Panes.FirstOrDefault(p => p.IsEmpty) ?? FocusedWorkspace.Panes.FirstOrDefault(p => p != FocusedWorkspace.ActivePane);
         }
 
         switch (item.Kind)
         {
             case PaletteItemKind.Connection:
-                Workspace.Open(CreateTab(item.Connection!, SessionTree.Tree.Vault, transient: false), pane);
+                FocusedWorkspace.Open(CreateTab(item.Connection!, SessionTree.Tree.Vault, transient: false), pane);
                 if (SessionTree.FindByNode(item.Connection!) is { } treeItem) RevealInTree(treeItem);
                 StatusText = $"Geöffnet: {item.Connection!.Path}";
                 break;
             case PaletteItemKind.QuickConnect:
-                Workspace.Open(CreateTab(item.QuickConnect!.ToConnection(), new CredentialVault(), transient: true), pane);
+                FocusedWorkspace.Open(CreateTab(item.QuickConnect!.ToConnection(), new CredentialVault(), transient: true), pane);
                 StatusText = $"Quick-Connect: {item.QuickConnect.Protocol} → {item.QuickConnect.Host}:{item.QuickConnect.EffectivePort}";
                 break;
             case PaletteItemKind.Action:
@@ -204,7 +286,8 @@ public sealed partial class MainViewModel : ObservableObject
 
     private void CloseAllTabs()
     {
-        foreach (var tab in Workspace.AllTabs.ToList()) Workspace.Close(tab);
+        foreach (var ws in AllWorkspaces.ToList())
+            foreach (var tab in ws.AllTabs.ToList()) ws.Close(tab);
     }
     public WorkspaceViewModel Workspace { get; } = new();
     public AppSettings Settings { get; }
@@ -321,7 +404,8 @@ public sealed partial class MainViewModel : ObservableObject
     {
         if (item.Node is ConnectionNode connection)
         {
-            Workspace.Open(CreateTab(connection, SessionTree.Tree.Vault, transient: false), pane);
+            var owner = AllWorkspaces.FirstOrDefault(w => w.Panes.Contains(pane)) ?? Workspace;
+            owner.Open(CreateTab(connection, SessionTree.Tree.Vault, transient: false), pane);
             StatusText = $"Geöffnet: {connection.Path}";
         }
         else

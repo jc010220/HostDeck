@@ -20,7 +20,7 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
     private readonly AppSettings _settings;
     private readonly Action<TerminalSessionViewModel, string> _routeInput;
     private readonly SynchronizationContext? _ui = SynchronizationContext.Current;
-    private SshTerminalSession? _session;
+    private ITerminalBackend? _session;
     private uint _columns = 120, _rows = 32;
 
     public TerminalSessionViewModel(SessionTabViewModel tab, IConnectionStore knownHosts, IDialogService dialogs,
@@ -79,22 +79,19 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
 
     public bool IsConnected => _session?.IsConnected == true;
 
+    public bool IsSsh => _tab.Protocol is ProtocolKind.Ssh2 or ProtocolKind.Ssh1;
+
     [RelayCommand]
     public async Task ConnectAsync()
     {
         if (_tab.State is SessionState.Connecting or SessionState.Connected) return;
         await DisposeSessionAsync();
+        if (IsSsh) await ConnectSshAsync();
+        else await ConnectTelnetAsync(raw: _tab.Protocol == ProtocolKind.Raw);
+    }
 
-        var endpoint = BuildEndpoint();
-        SetState(SessionState.Connecting);
-        WriteStatus($"Verbinde mit {endpoint.Username}@{endpoint.Host}:{endpoint.Port} …");
-
-        var session = new SshTerminalSession(endpoint, _knownHosts, new SshSessionOptions
-        {
-            Columns = _columns,
-            Rows = _rows,
-            Highlighting = _settings.TerminalHighlighting,
-        });
+    private void Wire(ITerminalBackend session)
+    {
         session.Output += Publish;
         session.WorkingDirectoryChanged += dir => OnUi(() =>
         {
@@ -107,6 +104,46 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
             SetState(SessionState.Disconnected);
             WriteStatus("Verbindung beendet" + (reason is null ? "." : $": {reason}") + " – Enter oder Doppelklick auf den Tab verbindet neu.");
         });
+    }
+
+    private async Task ConnectTelnetAsync(bool raw)
+    {
+        var host = _tab.Connection.Hostname;
+        var port = _tab.Settings.Port ?? (raw ? 23 : 23);
+        SetState(SessionState.Connecting);
+        WriteStatus($"Verbinde ({(raw ? "Raw-TCP" : "Telnet")}) mit {host}:{port} …" + (raw ? "" : "  (unverschlüsselt!)"));
+        var session = new TelnetSession(host, port, raw, _tab.Credentials.Username, _tab.Credentials.Password)
+        {
+            HighlightingEnabled = _settings.TerminalHighlighting,
+        };
+        Wire(session);
+        try
+        {
+            await session.ConnectAsync(_columns, _rows);
+            _session = session;
+            SetState(SessionState.Connected);
+        }
+        catch (Exception ex) when (ex is System.Net.Sockets.SocketException or TimeoutException or OperationCanceledException or IOException)
+        {
+            await session.DisposeAsync();
+            SetState(SessionState.Failed);
+            WriteStatus($"Verbindung fehlgeschlagen: {Describe(ex)}");
+        }
+    }
+
+    private async Task ConnectSshAsync()
+    {
+        var endpoint = BuildEndpoint();
+        SetState(SessionState.Connecting);
+        WriteStatus($"Verbinde mit {endpoint.Username}@{endpoint.Host}:{endpoint.Port} …");
+
+        var session = new SshTerminalSession(endpoint, _knownHosts, new SshSessionOptions
+        {
+            Columns = _columns,
+            Rows = _rows,
+            Highlighting = _settings.TerminalHighlighting,
+        });
+        Wire(session);
 
         try
         {

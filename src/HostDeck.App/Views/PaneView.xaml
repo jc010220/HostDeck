@@ -61,6 +61,7 @@
                                 <ContextMenu>
                                     <MenuItem Header="Vollbild" Click="OnFullScreenMenu"
                                               Visibility="{Binding HasRdp, Converter={StaticResource BoolToVisibility}}" />
+                                    <MenuItem Header="In neuem Fenster öffnen" Click="OnDetachMenu" />
                                     <MenuItem Header="Neu verbinden" Click="OnReconnectMenu"
                                               Visibility="{Binding HasEngine, Converter={StaticResource BoolToVisibility}}" />
                                     <MenuItem Header="Empfängt Multi-Exec-Eingaben" IsCheckable="True" IsChecked="{Binding IsMultiExecutionTarget}"

@@ -284,6 +284,9 @@ public class MainViewModelTests
             if (currentPassword != CurrentPassword) throw new UnauthorizedAccessException();
             CurrentPassword = newPassword;
         }
+        public readonly Dictionary<string, string> Documents = new();
+        public string? ReadDocument(string name) => Documents.GetValueOrDefault(name);
+        public void WriteDocument(string name, string json) => Documents[name] = json;
         public readonly ConcurrentDictionary<string, string> HostKeys = new();
         public string? Find(string host, int port, string keyType) => HostKeys.GetValueOrDefault($"{host}:{port}:{keyType}");
         public void Remember(string host, int port, string keyType, string fingerprint) => HostKeys[$"{host}:{port}:{keyType}"] = fingerprint;

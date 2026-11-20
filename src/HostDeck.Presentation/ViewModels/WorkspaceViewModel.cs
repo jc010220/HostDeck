@@ -203,6 +203,19 @@ public sealed partial class WorkspaceViewModel : ObservableObject
         NotifyTabsChanged();
     }
 
+    /// <summary>Tab aus diesem Workspace entfernen, ohne die Session zu beenden (Wechsel in ein anderes Fenster).</summary>
+    public void Detach(SessionTabViewModel tab)
+    {
+        var pane = Panes.FirstOrDefault(p => p.Tabs.Contains(tab));
+        if (pane is null) return;
+        var index = pane.Tabs.IndexOf(tab);
+        pane.Tabs.RemoveAt(index);
+        if (pane.SelectedTab == tab) pane.SelectedTab = pane.Tabs.Count == 0 ? null : pane.Tabs[Math.Min(index, pane.Tabs.Count - 1)];
+        tab.IsSelected = pane.SelectedTab == tab;
+        pane.NotifyEmptyChanged();
+        NotifyTabsChanged();
+    }
+
     public void MoveTab(SessionTabViewModel tab, PaneViewModel target, int? index = null)
     {
         var source = Panes.FirstOrDefault(p => p.Tabs.Contains(tab));

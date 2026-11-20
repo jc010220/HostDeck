@@ -29,6 +29,17 @@ public partial class MainWindow : FluentWindow
         TerminalView.CurrentTheme = () => Wpf.Ui.Appearance.ApplicationThemeManager.GetAppTheme() == Wpf.Ui.Appearance.ApplicationTheme.Light ? "light" : "dark";
         TerminalView.ShortcutHandler = OnTerminalShortcut;
 
+        viewModel.DetachedWindowRequested += workspace =>
+        {
+            var window = new SessionWindow(viewModel, workspace);
+            window.Show();
+        };
+        Activated += (_, _) => viewModel.FocusedWorkspace = viewModel.Workspace;
+        Closing += (_, _) =>
+        {
+            foreach (var w in Application.Current.Windows.OfType<SessionWindow>().ToList()) w.Close();
+        };
+
         viewModel.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(MainViewModel.CurrentTheme))
@@ -41,10 +52,10 @@ public partial class MainWindow : FluentWindow
     {
         switch (key)
         {
-            case "ctrl+shift+k" or "ctrl+shift+p": ShowPalette(); break;
-            case "ctrl+tab": _vm.Workspace.SelectNextTab(); break;
-            case "ctrl+shift+tab": _vm.Workspace.SelectNextTab(backwards: true); break;
-            case "ctrl+shift+w": _vm.Workspace.Close(_vm.Workspace.ActiveTab); break;
+            case "ctrl+shift+k" or "ctrl+shift+p": ShowPalette(Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive) ?? this); break;
+            case "ctrl+tab": _vm.FocusedWorkspace.SelectNextTab(); break;
+            case "ctrl+shift+tab": _vm.FocusedWorkspace.SelectNextTab(backwards: true); break;
+            case "ctrl+shift+w": _vm.FocusedWorkspace.Close(_vm.FocusedWorkspace.ActiveTab); break;
             case "ctrl+shift+m": _vm.ToggleMultiExecutionCommand.Execute(null); break;
             case "ctrl+shift+l": QuickConnectBox.Focus(); break;
             case "ctrl+f": SidebarTabs.SelectedIndex = 0; SearchBox.Focus(); break;
@@ -57,10 +68,42 @@ public partial class MainWindow : FluentWindow
     }
 
     /// <summary>Schnellsuche öffnen (Strg+K; im Terminal Strg+Umschalt+K, da Strg+K dort „Zeile löschen“ ist).</summary>
-    public void ShowPalette()
+    public void ShowPalette() => ShowPalette(this);
+
+    public void ShowPalette(Window owner)
     {
-        if (OwnedWindows.OfType<CommandPaletteWindow>().Any()) return;
-        new CommandPaletteWindow(_vm, this).Show();
+        if (Application.Current.Windows.OfType<CommandPaletteWindow>().Any()) return;
+        new CommandPaletteWindow(_vm, owner).Show();
+    }
+
+    // ---- Snippets ------------------------------------------------------------------------------------
+
+    private void OnSnippetRun(object sender, MouseButtonEventArgs e) => _vm.Snippets.Run(SnippetList.SelectedItem as HostDeck.Presentation.Snippets.Snippet);
+
+    private void OnSnippetKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter) { _vm.Snippets.Run(SnippetList.SelectedItem as HostDeck.Presentation.Snippets.Snippet); e.Handled = true; }
+        if (e.Key == Key.Delete) { OnSnippetDelete(sender, e); e.Handled = true; }
+    }
+
+    private void OnSnippetAdd(object sender, RoutedEventArgs e)
+    {
+        var snippet = new HostDeck.Presentation.Snippets.Snippet();
+        if (new SnippetDialog(snippet) { Owner = this }.ShowDialog() == true)
+            _vm.Snippets.Add(snippet.Name, snippet.Command, snippet.Category, snippet.Execute);
+    }
+
+    private void OnSnippetEdit(object sender, RoutedEventArgs e)
+    {
+        if (SnippetList.SelectedItem is HostDeck.Presentation.Snippets.Snippet s && new SnippetDialog(s) { Owner = this }.ShowDialog() == true)
+            _vm.Snippets.Save();
+    }
+
+    private void OnSnippetDelete(object sender, RoutedEventArgs e)
+    {
+        if (SnippetList.SelectedItem is HostDeck.Presentation.Snippets.Snippet s &&
+            System.Windows.MessageBox.Show(this, $"Snippet „{s.Name}“ löschen?", "Snippets", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+            _vm.Snippets.Remove(s);
     }
 
     // ---- SFTP-Seitenleiste ---------------------------------------------------------------------------

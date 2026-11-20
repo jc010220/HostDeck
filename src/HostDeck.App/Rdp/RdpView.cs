@@ -44,7 +44,18 @@ public sealed class RdpView : Grid
         _resizeTimer.Tick += (_, _) => { _resizeTimer.Stop(); UpdateResolution(); };
         _panel.SizeChanged += (_, _) => { if (_connected) { _resizeTimer.Stop(); _resizeTimer.Start(); } };
         DataContextChanged += (_, _) => Attach();
-        Loaded += (_, _) => { if (_vm is not null && _host is null && _vm.Tab.State == SessionState.Disconnected && !_everConnected) Connect(); };
+        // Auto-Verbinden beim ersten Anzeigen – auch nach Verschieben in ein anderes Fenster. Hintergrund-Priorität,
+        // damit die alte Ansicht (Unloaded) ihr Control vorher abbaut.
+        Loaded += (_, _) => Dispatcher.BeginInvoke(DispatcherPriority.Background, () =>
+        {
+            if (_vm is not null && _host is null && !_everConnected && IsLoaded && _vm.Tab.State != SessionState.Failed) Connect();
+        });
+        Unloaded += (_, _) => Dispatcher.BeginInvoke(DispatcherPriority.Background, () =>
+        {
+            if (IsLoaded || _host is null) return;
+            Teardown();               // ActiveX nicht verwaist weiterlaufen lassen
+            _vm?.ReportMoved();
+        });
         IsVisibleChanged += (_, _) => { if (IsVisible && _connected) _host?.Focus(); };
     }
 

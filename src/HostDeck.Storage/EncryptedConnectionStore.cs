@@ -302,6 +302,18 @@ public sealed class EncryptedConnectionStore : IDisposable
         }
     }
 
+    // ---- Beliebige verschlüsselte Dokumente (z. B. Snippets) ---------------------------------------------
+
+    /// <summary>JSON-Dokument im verschlüsselten Speicher lesen (Tabelle meta, Schlüssel "doc:…").</summary>
+    public string? ReadDocument(string name) => ReadMeta(Connection, "doc:" + name);
+
+    public void WriteDocument(string name, string json)
+    {
+        using var tx = Connection.BeginTransaction();
+        WriteMeta(Connection, tx, "doc:" + name, json);
+        tx.Commit();
+    }
+
     // ---- Bekannte SSH-Host-Keys --------------------------------------------------------------------
 
     public string? FindHostKey(string host, int port, string keyType)

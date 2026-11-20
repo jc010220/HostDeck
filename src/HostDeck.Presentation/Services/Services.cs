@@ -47,6 +47,10 @@ public interface IConnectionStore : IKnownHosts
     ConnectionTree Load();
     void Save(ConnectionTree tree);
 
+    /// <summary>Weitere verschlüsselte Dokumente (Snippets …); <c>null</c> = nicht vorhanden.</summary>
+    string? ReadDocument(string name);
+    void WriteDocument(string name, string json);
+
     bool HasDeviceUnlock { get; }
     bool DeviceUnlockSupported { get; }
     void SetDeviceUnlock(bool enabled);

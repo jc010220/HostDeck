@@ -106,7 +106,7 @@ internal static class SshConnectionFactory
 /// <summary>
 /// Interaktive SSH-Terminal-Session (PTY). Ausgabe als UTF-8-String (für xterm.js), Eingabe als String.
 /// </summary>
-public sealed class SshTerminalSession : IAsyncDisposable
+public sealed class SshTerminalSession : ITerminalBackend
 {
     // Setzt einen Prompt-Hook, der das Verzeichnis per OSC 7 meldet (bash: PROMPT_COMMAND, zsh: precmd).
     // Führendes Leerzeichen ⇒ bei HISTCONTROL=ignorespace nicht in der History.

@@ -276,6 +276,41 @@
                         </DockPanel>
                     </Grid>
                 </TabItem>
+                <!-- ===== Snippets / Makros ===== -->
+                <TabItem Header="Snippets">
+                    <DockPanel DataContext="{Binding Snippets}">
+                        <ui:TextBox DockPanel.Dock="Top" Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Snippets filtern …" Margin="0,0,0,6" />
+                        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,6,0,0">
+                            <ui:Button Click="OnSnippetAdd" Appearance="Transparent" Padding="6,4" ToolTip="Neues Snippet">
+                                <ui:SymbolIcon Symbol="{x:Static app:Icons.Add}" />
+                            </ui:Button>
+                            <ui:Button Click="OnSnippetEdit" Appearance="Transparent" Padding="6,4" ToolTip="Bearbeiten">
+                                <ui:SymbolIcon Symbol="{x:Static app:Icons.Edit}" />
+                            </ui:Button>
+                            <ui:Button Click="OnSnippetDelete" Appearance="Transparent" Padding="6,4" ToolTip="Löschen">
+                                <ui:SymbolIcon Symbol="{x:Static app:Icons.Delete}" />
+                            </ui:Button>
+                            <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" FontSize="11" TextWrapping="Wrap" MaxWidth="170"
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" Text="Doppelklick sendet an das aktive Terminal (Multi-Exec: an alle)" />
+                        </StackPanel>
+                        <ListBox x:Name="SnippetList" ItemsSource="{Binding Visible}" SelectedItem="{Binding Selected}"
+                                 MouseDoubleClick="OnSnippetRun" KeyDown="OnSnippetKeyDown" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel Margin="0,2" ToolTip="{Binding Command}">
+                                        <DockPanel>
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding Category}" FontSize="10" Margin="6,0,0,0"
+                                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                        </DockPanel>
+                                        <TextBlock Text="{Binding Command}" FontFamily="{StaticResource MonoFont}" FontSize="11" TextTrimming="CharacterEllipsis"
+                                                   Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </DockPanel>
+                </TabItem>
               </TabControl>
             </Border>
 

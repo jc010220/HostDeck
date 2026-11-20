@@ -31,6 +31,9 @@ public sealed class TerminalView : Border
     public TerminalView()
     {
         DataContextChanged += (_, _) => _ = InitializeAsync();
+        // Tab in anderes Fenster/anderen Bereich verschoben ⇒ diese Ansicht wird nicht mehr gebraucht.
+        // (Die Session läuft weiter; die neue Ansicht bekommt den Verlauf per Subscribe nachgeliefert.)
+        Unloaded += (_, _) => Dispatcher.BeginInvoke(DispatcherPriority.Background, () => { if (!IsLoaded) ReleaseView(); });
         IsVisibleChanged += (_, _) => { if (IsVisible) Post(new { t = "focus" }); };
     }
 
@@ -177,7 +180,9 @@ public sealed class TerminalView : Border
             core.PostWebMessageAsJson(JsonSerializer.Serialize(message));
     }
 
-    private void OnTabClosed(object? sender, EventArgs e)
+    private void OnTabClosed(object? sender, EventArgs e) => ReleaseView();
+
+    private void ReleaseView()
     {
         _subscription?.Dispose();
         _subscription = null;

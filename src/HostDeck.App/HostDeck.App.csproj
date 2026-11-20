@@ -4,6 +4,10 @@
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
     <UseWPF>true</UseWPF>
+    <!-- Für das RDP-ActiveX-Control (AxHost) -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <!-- WFO0003 gilt für reine WinForms-Apps; in WPF wird PerMonitorV2 korrekt über app.manifest gesetzt -->
+    <NoWarn>$(NoWarn);WFO0003</NoWarn>
     <RootNamespace>HostDeck.App</RootNamespace>
     <AssemblyName>HostDeck</AssemblyName>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -17,6 +21,12 @@
   <ItemGroup>
     <ProjectReference Include="..\HostDeck.Presentation\HostDeck.Presentation.csproj" />
     <ProjectReference Include="..\HostDeck.Storage\HostDeck.Storage.csproj" />
+    <ProjectReference Include="..\HostDeck.Protocols.Rdp\HostDeck.Protocols.Rdp.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- WinForms nur gezielt im RDP-Code verwenden, keine globalen Namenskonflikte mit WPF -->
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="WPF-UI" />

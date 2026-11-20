@@ -41,8 +41,12 @@ public partial class PaneView : UserControl
 
     private void OnReconnectMenu(object sender, RoutedEventArgs e)
     {
-        if (TabOf(sender)?.Terminal is { } terminal) _ = terminal.ConnectAsync();
+        var tab = TabOf(sender);
+        if (tab?.Terminal is { } terminal) _ = terminal.ConnectAsync();
+        tab?.Rdp?.ConnectCommand.Execute(null);
     }
+
+    private void OnFullScreenMenu(object sender, RoutedEventArgs e) => TabOf(sender)?.Rdp?.FullScreenCommand.Execute(null);
 
     private void OnSaveMenu(object sender, RoutedEventArgs e)
     {

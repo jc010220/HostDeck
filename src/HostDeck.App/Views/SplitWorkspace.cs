@@ -52,10 +52,22 @@ public sealed class SplitWorkspace : Grid
 
     private void Rebuild()
     {
-        Children.Clear();
+        // Nur Trenner und weggefallene Bereiche entfernen. Bestehende PaneViews bleiben im visuellen Baum,
+        // sonst würden eingebettete HWNDs (RDP-ActiveX, WebView2) zerstört und Sessions getrennt.
+        foreach (var splitter in Children.OfType<GridSplitter>().ToList()) Children.Remove(splitter);
         RowDefinitions.Clear();
         ColumnDefinitions.Clear();
-        if (Workspace is not { } ws) return;
+        if (Workspace is not { } ws)
+        {
+            Children.Clear();
+            return;
+        }
+
+        foreach (var stale in _views.Where(kv => !ws.Panes.Contains(kv.Key)).ToList())
+        {
+            Children.Remove(stale.Value);
+            _views.Remove(stale.Key);
+        }
 
         int rows = ws.Rows, cols = ws.Columns;
         for (var r = 0; r < rows; r++)
@@ -77,19 +89,16 @@ public sealed class SplitWorkspace : Grid
                 view = new PaneView { DataContext = pane, Workspace = ws };
                 view.OpenTreeItem = (item, p) => OpenInPane?.Invoke(item, p);
                 _views[pane] = view;
+                Children.Add(view);
             }
             SetRow(view, i / cols * 2);
             SetColumn(view, i % cols * 2);
-            Children.Add(view);
         }
 
         for (var r = 0; r < rows - 1; r++)
             Children.Add(Splitter(row: r * 2 + 1, column: 0, rowSpan: 1, columnSpan: ColumnDefinitions.Count, horizontal: true));
         for (var c = 0; c < cols - 1; c++)
             Children.Add(Splitter(row: 0, column: c * 2 + 1, rowSpan: RowDefinitions.Count, columnSpan: 1, horizontal: false));
-
-        foreach (var stale in _views.Keys.Except(ws.Panes).ToList())
-            _views.Remove(stale);
     }
 
     private static GridSplitter Splitter(int row, int column, int rowSpan, int columnSpan, bool horizontal)

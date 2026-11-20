@@ -4,6 +4,7 @@
              xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
              xmlns:app="clr-namespace:HostDeck.App"
              xmlns:views="clr-namespace:HostDeck.App.Views"
+             xmlns:rdp="clr-namespace:HostDeck.App.Rdp"
              AllowDrop="True">
     <Border x:Name="Frame" Margin="2" CornerRadius="6" BorderThickness="1"
             Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
@@ -58,6 +59,8 @@
                         <Setter Property="ContextMenu">
                             <Setter.Value>
                                 <ContextMenu>
+                                    <MenuItem Header="Vollbild" Click="OnFullScreenMenu"
+                                              Visibility="{Binding HasRdp, Converter={StaticResource BoolToVisibility}}" />
                                     <MenuItem Header="Neu verbinden" Click="OnReconnectMenu"
                                               Visibility="{Binding HasEngine, Converter={StaticResource BoolToVisibility}}" />
                                     <MenuItem Header="Empfängt Multi-Exec-Eingaben" IsCheckable="True" IsChecked="{Binding IsMultiExecutionTarget}"
@@ -118,7 +121,8 @@
                     <DataTemplate>
                         <Grid>
                             <views:SessionPlaceholderView Visibility="{Binding HasEngine, Converter={StaticResource InverseBoolToVisibility}}" />
-                            <views:TerminalView Visibility="{Binding HasEngine, Converter={StaticResource BoolToVisibility}}" Margin="0,2,0,0" />
+                            <views:TerminalView Visibility="{Binding HasTerminal, Converter={StaticResource BoolToVisibility}}" Margin="0,2,0,0" />
+                            <rdp:RdpView Visibility="{Binding HasRdp, Converter={StaticResource BoolToVisibility}}" Margin="0,2,0,0" />
                         </Grid>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

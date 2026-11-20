@@ -96,7 +96,8 @@ public sealed class ConnectionSettings
             UseRestrictedAdmin = false,
             UseRemoteCredentialGuard = false,
             UseRedirectionServerName = false,
-            AuthenticationLevel = RdpAuthenticationLevel.NoAuth,
+            // Sicherer als mRemoteNG (NoAuth): bei ungültigem Server-Zertifikat warnen
+            AuthenticationLevel = RdpAuthenticationLevel.WarnOnFailedAuth,
             LoadBalanceInfo = "",
             Version = RdpVersion.Highest,
             ColorDepth = RdpColorDepth.Colors16Bit,

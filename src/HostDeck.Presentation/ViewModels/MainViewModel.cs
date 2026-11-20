@@ -57,6 +57,10 @@ public sealed partial class MainViewModel : ObservableObject
             tab.Terminal = new TerminalSessionViewModel(tab, _store, _dialogs, Settings, RouteTerminalInput);
             _ = tab.Terminal.ConnectAsync();
         }
+        else if (tab.Protocol == ProtocolKind.Rdp)
+        {
+            tab.Rdp = new RdpSessionViewModel(tab); // verbindet, sobald die View ihr Fenster-Handle hat
+        }
         return tab;
     }
 

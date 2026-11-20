@@ -31,7 +31,7 @@ HostDeck.slnx
 │  ├─ HostDeck.Storage              net10.0   Verschlüsselte DB, Master-Passwort       ✅ Phase 2b
 │  ├─ HostDeck.Protocols.Abstractions net10.0 ISessionHost, IProtocolEngine           Phase 4
 │  ├─ HostDeck.Protocols.Ssh        net10.0   SSH.NET, SFTP, CWD-Tracking (OSC 7)      ✅ Phase 4a
-│  ├─ HostDeck.Protocols.Rdp        net10.0-windows  MsRdpClient-Interop               Phase 4
+│  ├─ HostDeck.Protocols.Rdp        net10.0   RdpPlan (Einstellungen → RDP-Client)    ✅ Phase 4b
 │  └─ HostDeck.App                  net10.0-windows  WPF-Shell, WPF-UI (Fluent/Mica)   ✅ Phase 3
 └─ tests/
    └─ HostDeck.Tests                xUnit v3 (Microsoft.Testing.Platform)
@@ -175,3 +175,32 @@ SftpSession ── eigene Verbindung, gleicher (bereits bestätigter) Host-Key
   Strg+Umschalt+M, Strg+Umschalt+L, Strg+Alt+1…4.
 * **Integrationstests** laufen gegen einen echten OpenSSH-Server, wenn `HOSTDECK_TEST_SSH`, `HOSTDECK_TEST_SSH_USER`,
   `HOSTDECK_TEST_SSH_PASSWORD` (optional `HOSTDECK_TEST_SSH_KEYFILE`) gesetzt sind.
+
+## 9. RDP (Phase 4b)
+
+Wie mRemoteNG wird der **native Windows-RDP-Client** (ActiveX `MsRdpClient11…7NotSafeForScripting` aus `mstscax.dll`)
+eingebettet – ohne Drittanbieter-Paket und ohne `COMReference` (die nur mit Visual-Studio-MSBuild baut):
+
+* `HostDeck.Protocols.Rdp` (plattformneutral, getestet): `RdpPlanBuilder` übersetzt die vererbten Einstellungen in
+  einen `RdpPlan` (Eigenschaften je Objekt, NonScriptable-Flags, Laufwerke, DPI).
+* `HostDeck.App/Rdp`: eigene COM-Definitionen. CLSIDs, IIDs, DISPIDs und die vtable-Reihenfolge von
+  `IMsRdpClientNonScriptable5` wurden gegen die aus der Typbibliothek erzeugten Interop-Metadaten geprüft.
+  Settings-Objekte (dual) werden per IDispatch über den Namen gesetzt – robust über Windows-Versionen.
+
+**Sicherheitsvoreinstellungen** (strenger als mRemoteNG):
+
+| Einstellung | HostDeck | mRemoteNG-Standard |
+|---|---|---|
+| Server-Authentifizierung | warnen bei ungültigem Zertifikat | ohne Prüfung verbinden |
+| NLA / CredSSP | an | an |
+| Passwort | nur über `IMsTscNonScriptable.ClearTextPassword`, nie in .rdp-Dateien | gleich |
+| Kein Passwort gespeichert | sicherer Windows-Anmeldedialog (CredUI) | Fehlschlag/Prompt |
+| Restricted Admin / Remote Credential Guard | unterstützt (Extended Properties) | unterstützt |
+| Laufwerke/Drucker/Ports | aus, solange nicht konfiguriert | aus |
+
+**Komfort:** Auflösung folgt der Tab-Größe live (`UpdateSessionDisplaySettings`, Fallback Smart Sizing),
+DPI-Skalierung wird an den Server übergeben (`DesktopScaleFactor`/`DeviceScaleFactor`), Auto-Reconnect,
+verständliche Trennungsgründe über `GetErrorDescription`. Layoutwechsel im Split-Screen lassen die Ansichten im
+visuellen Baum, damit RDP-Sitzungen dabei nicht getrennt werden.
+
+**Hinweis:** Importierte mRemoteNG-Verbindungen behalten ihren expliziten Wert (oft `NoAuth`).

@@ -53,9 +53,25 @@ public sealed partial class SessionTabViewModel : ObservableObject
     public event EventHandler? Closed;
     internal void RaiseClosed() => Closed?.Invoke(this, EventArgs.Empty);
 
+    /// <summary>RDP-Engine (Phase 4b); bei anderen Protokollen null.</summary>
+    [ObservableProperty] private RdpSessionViewModel? _rdp;
+
     /// <summary>Für die View: Platzhalter nur, solange keine Engine existiert.</summary>
-    public bool HasEngine => Terminal is not null;
-    partial void OnTerminalChanged(TerminalSessionViewModel? value) => OnPropertyChanged(nameof(HasEngine));
+    public bool HasEngine => Terminal is not null || Rdp is not null;
+    public bool HasTerminal => Terminal is not null;
+    public bool HasRdp => Rdp is not null;
+
+    partial void OnTerminalChanged(TerminalSessionViewModel? value)
+    {
+        OnPropertyChanged(nameof(HasEngine));
+        OnPropertyChanged(nameof(HasTerminal));
+    }
+
+    partial void OnRdpChanged(RdpSessionViewModel? value)
+    {
+        OnPropertyChanged(nameof(HasEngine));
+        OnPropertyChanged(nameof(HasRdp));
+    }
 }
 
 /// <summary>Ein Bereich im Split-Screen mit eigener Tab-Leiste.</summary>

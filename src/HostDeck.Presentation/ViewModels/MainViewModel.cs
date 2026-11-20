@@ -25,6 +25,54 @@ public sealed partial class MainViewModel : ObservableObject
         _currentTheme = Settings.Theme;
         _isDeviceUnlockEnabled = store.HasDeviceUnlock;
         SessionTree.Changed += (_, _) => Persist();
+        Workspace.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(WorkspaceViewModel.ActiveTab)) UpdateActiveSftp();
+        };
+    }
+
+    /// <summary>SFTP-Browser des aktiven SSH-Tabs (Seitenleiste „SFTP“).</summary>
+    [ObservableProperty] private SftpBrowserViewModel? _activeSftp;
+    private TerminalSessionViewModel? _sftpSource;
+
+    private void UpdateActiveSftp()
+    {
+        if (_sftpSource is not null) _sftpSource.PropertyChanged -= OnTerminalPropertyChanged;
+        _sftpSource = Workspace.ActiveTab?.Terminal;
+        if (_sftpSource is not null) _sftpSource.PropertyChanged += OnTerminalPropertyChanged;
+        ActiveSftp = _sftpSource?.Sftp;
+    }
+
+    private void OnTerminalPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(TerminalSessionViewModel.Sftp)) ActiveSftp = _sftpSource?.Sftp;
+    }
+
+    /// <summary>Tab erzeugen; SSH-Tabs bekommen eine Terminal-Engine und verbinden sofort.</summary>
+    private SessionTabViewModel CreateTab(ConnectionNode connection, CredentialVault vault, bool transient)
+    {
+        var tab = new SessionTabViewModel(connection, vault, transient);
+        if (tab.Protocol is ProtocolKind.Ssh2 or ProtocolKind.Ssh1)
+        {
+            tab.Terminal = new TerminalSessionViewModel(tab, _store, _dialogs, Settings, RouteTerminalInput);
+            _ = tab.Terminal.ConnectAsync();
+        }
+        return tab;
+    }
+
+    /// <summary>
+    /// Multi-Execution: Eingaben einer markierten Session gehen an alle verbundenen, markierten
+    /// Terminal-Tabs (MobaXterm „MultiExec“); sonst nur an die eigene Session.
+    /// </summary>
+    internal void RouteTerminalInput(TerminalSessionViewModel source, string data)
+    {
+        if (!IsMultiExecutionEnabled || !source.Tab.IsMultiExecutionTarget)
+        {
+            source.Send(data);
+            return;
+        }
+        foreach (var terminal in Workspace.AllTabs.Where(t => t.IsMultiExecutionTarget).Select(t => t.Terminal).OfType<TerminalSessionViewModel>())
+            if (terminal.IsConnected) terminal.Send(data);
     }
 
     public SessionTreeViewModel SessionTree { get; } = new();
@@ -122,7 +170,7 @@ public sealed partial class MainViewModel : ObservableObject
         switch (item?.Node)
         {
             case ConnectionNode connection:
-                Workspace.Open(new SessionTabViewModel(connection, SessionTree.Tree.Vault, isTransient: false));
+                Workspace.Open(CreateTab(connection, SessionTree.Tree.Vault, transient: false));
                 StatusText = $"Geöffnet: {connection.Path}";
                 break;
             case FolderNode:
@@ -136,7 +184,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         if (item.Node is ConnectionNode connection)
         {
-            Workspace.Open(new SessionTabViewModel(connection, SessionTree.Tree.Vault, isTransient: false), pane);
+            Workspace.Open(CreateTab(connection, SessionTree.Tree.Vault, transient: false), pane);
             StatusText = $"Geöffnet: {connection.Path}";
         }
         else
@@ -151,7 +199,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         if (folder?.Node is not FolderNode f) return;
         var tabs = f.Descendants().OfType<ConnectionNode>()
-            .Select(c => new SessionTabViewModel(c, SessionTree.Tree.Vault, isTransient: false)).ToList();
+            .Select(c => CreateTab(c, SessionTree.Tree.Vault, transient: false)).ToList();
         Workspace.OpenTiled(tabs);
         StatusText = $"{tabs.Count} Sessions aus „{f.Name}“ geöffnet";
     }
@@ -172,12 +220,12 @@ public sealed partial class MainViewModel : ObservableObject
 
         if (existing is not null)
         {
-            Workspace.Open(new SessionTabViewModel(existing, SessionTree.Tree.Vault, isTransient: false));
+            Workspace.Open(CreateTab(existing, SessionTree.Tree.Vault, transient: false));
             StatusText = $"Geöffnet: {existing.Path}";
         }
         else if (QuickConnectParser.TryParse(text, Settings.QuickConnectDefaultProtocol, out var target))
         {
-            Workspace.Open(new SessionTabViewModel(target!.ToConnection(), new CredentialVault(), isTransient: true));
+            Workspace.Open(CreateTab(target!.ToConnection(), new CredentialVault(), transient: true));
             StatusText = $"Quick-Connect: {target.Protocol} → {target.Host}:{target.EffectivePort}";
         }
         else

@@ -2,6 +2,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using HostDeck.Core.Model;
 using HostDeck.Import.MRemoteNG;
+using HostDeck.Protocols.Ssh;
 
 namespace HostDeck.Presentation.Services;
 
@@ -22,10 +23,19 @@ public interface IDialogService
 
     /// <summary>Altes + neues Master-Passwort abfragen; <c>null</c> = abgebrochen.</summary>
     (string Current, string New)? AskChangeMasterPassword();
+
+    /// <summary>Unbekannter oder geänderter SSH-Host-Key.</summary>
+    HostKeyDecision AskHostKey(HostKeyInfo info);
+
+    /// <summary>Freie Eingabe (z. B. Ordnername, OTP-Code); <c>null</c> = abgebrochen.</summary>
+    string? Prompt(string title, string message, string defaultValue = "", bool secret = false);
+
+    /// <summary>Lokalen Zielordner wählen.</summary>
+    string? PickFolder(string title);
 }
 
 /// <summary>Verschlüsselter Speicher des Verbindungsbestands (in der App: EncryptedConnectionStore).</summary>
-public interface IConnectionStore
+public interface IConnectionStore : IKnownHosts
 {
     string Location { get; }
     ConnectionTree Load();
@@ -56,6 +66,9 @@ public sealed class AppSettings
     public List<string> QuickConnectHistory { get; set; } = [];
     public double SidebarWidth { get; set; } = 300;
     public CredentialExtractionMode CredentialExtraction { get; set; } = CredentialExtractionMode.SharedOnly;
+    public bool TerminalHighlighting { get; set; } = true;
+    public bool SftpFollowsTerminal { get; set; } = true;
+    public int TerminalFontSize { get; set; } = 14;
 }
 
 public interface ISettingsStore

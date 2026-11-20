@@ -17,7 +17,7 @@ namespace HostDeck.Storage;
 /// </summary>
 public sealed class EncryptedConnectionStore : IDisposable
 {
-    public const int SchemaVersion = 1;
+    public const int SchemaVersion = 2;
     private const string KeyFileSuffix = ".key";
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -283,6 +283,50 @@ public sealed class EncryptedConnectionStore : IDisposable
             WriteMeta(db, tx, "schema_version", "1");
             tx.Commit();
         }
+
+        if (version < 2)
+        {
+            using var tx = db.BeginTransaction();
+            Execute(db, tx, """
+                CREATE TABLE known_hosts (
+                    host        TEXT NOT NULL,
+                    port        INTEGER NOT NULL,
+                    key_type    TEXT NOT NULL,
+                    fingerprint TEXT NOT NULL,              -- "SHA256:…"
+                    added_utc   TEXT NOT NULL,
+                    PRIMARY KEY (host, port, key_type)
+                );
+                """);
+            WriteMeta(db, tx, "schema_version", "2");
+            tx.Commit();
+        }
+    }
+
+    // ---- Bekannte SSH-Host-Keys --------------------------------------------------------------------
+
+    public string? FindHostKey(string host, int port, string keyType)
+    {
+        using var cmd = Connection.CreateCommand();
+        cmd.CommandText = "SELECT fingerprint FROM known_hosts WHERE host = $h AND port = $p AND key_type = $k";
+        cmd.Parameters.AddWithValue("$h", host.ToLowerInvariant());
+        cmd.Parameters.AddWithValue("$p", port);
+        cmd.Parameters.AddWithValue("$k", keyType);
+        return cmd.ExecuteScalar() as string;
+    }
+
+    public void RememberHostKey(string host, int port, string keyType, string fingerprint)
+    {
+        using var cmd = Connection.CreateCommand();
+        cmd.CommandText = """
+            INSERT INTO known_hosts (host, port, key_type, fingerprint, added_utc) VALUES ($h, $p, $k, $f, $t)
+            ON CONFLICT(host, port, key_type) DO UPDATE SET fingerprint = excluded.fingerprint, added_utc = excluded.added_utc
+            """;
+        cmd.Parameters.AddWithValue("$h", host.ToLowerInvariant());
+        cmd.Parameters.AddWithValue("$p", port);
+        cmd.Parameters.AddWithValue("$k", keyType);
+        cmd.Parameters.AddWithValue("$f", fingerprint);
+        cmd.Parameters.AddWithValue("$t", DateTime.UtcNow.ToString("O", CultureInfo.InvariantCulture));
+        cmd.ExecuteNonQuery();
     }
 
     // ---- Infrastruktur -----------------------------------------------------------------------------

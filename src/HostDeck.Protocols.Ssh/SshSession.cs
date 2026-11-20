@@ -128,6 +128,7 @@ public sealed class SshTerminalSession : IAsyncDisposable
     private StringBuilder? _suppressed;   // Ausgabe während der Hook-Installation (wird verworfen)
     private Timer? _suppressTimeout;
     private HostKeyInfo? _rejectedHostKey;
+    private string? _interactivePassword; // interaktiv eingegebenes Passwort, nur für die SFTP-Verbindung dieser Session
 
     public SshTerminalSession(SshEndpoint endpoint, IKnownHosts knownHosts, SshSessionOptions? options = null)
     {
@@ -159,7 +160,13 @@ public sealed class SshTerminalSession : IAsyncDisposable
     public async Task ConnectAsync(Func<HostKeyInfo, HostKeyDecision> decideHostKey,
         Func<string, bool, string?>? interactivePrompt = null, CancellationToken cancellationToken = default)
     {
-        var info = SshConnectionFactory.Create(_endpoint, _options.ConnectTimeout, interactivePrompt);
+        Func<string, bool, string?>? prompt = interactivePrompt is null ? null : (request, echo) =>
+        {
+            var answer = interactivePrompt(request, echo);
+            if (!echo && request.Contains("assword", StringComparison.OrdinalIgnoreCase)) _interactivePassword = answer;
+            return answer;
+        };
+        var info = SshConnectionFactory.Create(_endpoint, _options.ConnectTimeout, prompt);
         var client = new SshClient(info) { KeepAliveInterval = _options.KeepAlive };
         SshConnectionFactory.AttachHostKeyCheck(client, _endpoint, _knownHosts, decideHostKey,
             rejected => _rejectedHostKey = rejected, fp => AcceptedFingerprint = fp);
@@ -295,11 +302,14 @@ public sealed class SshTerminalSession : IAsyncDisposable
     }
 
     /// <summary>Eigene SFTP-Verbindung mit demselben Endpunkt; der Host-Key muss dem akzeptierten entsprechen.</summary>
-    public SftpSession CreateSftp() => new(_endpoint, AcceptedFingerprint
-        ?? throw new InvalidOperationException("Erst verbinden."), _options.ConnectTimeout);
+    public SftpSession CreateSftp() => new(
+        _endpoint with { Password = _endpoint.Password ?? _interactivePassword },
+        AcceptedFingerprint ?? throw new InvalidOperationException("Erst verbinden."),
+        _options.ConnectTimeout);
 
     public async ValueTask DisposeAsync()
     {
+        _interactivePassword = null;
         _suppressTimeout?.Dispose();
         var shell = _shell;
         var client = _client;

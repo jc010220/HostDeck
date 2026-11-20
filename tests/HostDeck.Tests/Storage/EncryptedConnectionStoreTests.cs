@@ -165,6 +165,21 @@ public sealed class EncryptedConnectionStoreTests : IDisposable
     }
 
     [Fact]
+    public void Known_host_keys_survive_reopen_and_full_saves()
+    {
+        using (var store = Create())
+        {
+            Assert.Null(store.FindHostKey("Web01", 22, "ssh-ed25519"));
+            store.RememberHostKey("Web01", 22, "ssh-ed25519", "SHA256:alt");
+            store.RememberHostKey("web01", 22, "ssh-ed25519", "SHA256:neu"); // Groß-/Kleinschreibung egal, überschreibt
+            store.Save(new ConnectionTree());                                   // Gesamtspeichern löscht Known Hosts nicht
+        }
+        using var reopened = EncryptedConnectionStore.Open(DbPath, Password);
+        Assert.Equal("SHA256:neu", reopened.FindHostKey("WEB01", 22, "ssh-ed25519"));
+        Assert.Null(reopened.FindHostKey("web01", 2222, "ssh-ed25519"));
+    }
+
+    [Fact]
     public void Argon2id_matches_rfc9106_test_vector()
     {
         // RFC 9106, Abschnitt 5.3 (Argon2id, Version 0x13)

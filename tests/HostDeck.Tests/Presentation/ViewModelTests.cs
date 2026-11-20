@@ -3,6 +3,8 @@ using HostDeck.Core.Model;
 using HostDeck.Import.MRemoteNG;
 using HostDeck.Presentation.Services;
 using HostDeck.Presentation.ViewModels;
+using HostDeck.Protocols.Ssh;
+using System.Collections.Concurrent;
 
 namespace HostDeck.Tests.Presentation;
 
@@ -244,6 +246,12 @@ public class MainViewModelTests
         public void ShowError(string title, string message) => Errors.Add(message);
         public bool Confirm(string title, string message) { ConfirmCalls++; return ConfirmAnswer; }
         public (string Current, string New)? AskChangeMasterPassword() => PasswordChange;
+        public HostKeyDecision HostKeyAnswer = HostKeyDecision.AcceptAndSave;
+        public ConcurrentQueue<HostKeyInfo> HostKeyPrompts = new();
+        public HostKeyDecision AskHostKey(HostKeyInfo info) { HostKeyPrompts.Enqueue(info); return HostKeyAnswer; }
+        public Func<string, string?> PromptAnswer = _ => null;
+        public string? Prompt(string title, string message, string defaultValue = "", bool secret = false) => PromptAnswer(message);
+        public string? PickFolder(string title) => null;
     }
 
     internal sealed class MemorySettings : ISettingsStore
@@ -272,9 +280,12 @@ public class MainViewModelTests
             if (currentPassword != CurrentPassword) throw new UnauthorizedAccessException();
             CurrentPassword = newPassword;
         }
+        public readonly ConcurrentDictionary<string, string> HostKeys = new();
+        public string? Find(string host, int port, string keyType) => HostKeys.GetValueOrDefault($"{host}:{port}:{keyType}");
+        public void Remember(string host, int port, string keyType, string fingerprint) => HostKeys[$"{host}:{port}:{keyType}"] = fingerprint;
     }
 
-    private static (MainViewModel Vm, FakeDialogs Dialogs, MemorySettings Settings, MemoryStore Store) Create()
+    internal static (MainViewModel Vm, FakeDialogs Dialogs, MemorySettings Settings, MemoryStore Store) Create()
     {
         var d = new FakeDialogs();
         var s = new MemorySettings();

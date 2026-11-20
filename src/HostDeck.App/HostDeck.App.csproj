@@ -16,6 +16,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\HostDeck.Presentation\HostDeck.Presentation.csproj" />
+    <ProjectReference Include="..\HostDeck.Storage\HostDeck.Storage.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="WPF-UI" />

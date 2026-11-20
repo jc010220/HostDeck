@@ -10,6 +10,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\HostDeck.Import.MRemoteNG\HostDeck.Import.MRemoteNG.csproj" />
     <ProjectReference Include="..\..\src\HostDeck.Presentation\HostDeck.Presentation.csproj" />
+    <ProjectReference Include="..\..\src\HostDeck.Storage\HostDeck.Storage.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />

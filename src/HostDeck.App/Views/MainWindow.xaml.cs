@@ -136,6 +136,17 @@ public partial class MainWindow : FluentWindow
         if (result == MessageBoxResult.Yes) _vm.DeleteCommand.Execute(item);
     }
 
+    private void OnSecurityMenu(object sender, RoutedEventArgs e)
+    {
+        if (sender is FrameworkElement { ContextMenu: { } menu } element)
+        {
+            menu.PlacementTarget = element;
+            menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+            menu.DataContext = DataContext;
+            menu.IsOpen = true;
+        }
+    }
+
     private void OnSidebarResized(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)
     {
         _vm.Settings.SidebarWidth = SidebarColumn.ActualWidth;

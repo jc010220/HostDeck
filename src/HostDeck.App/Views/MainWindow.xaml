@@ -92,6 +92,19 @@
                     </StackPanel>
                 </ToggleButton>
 
+                <ui:Button DockPanel.Dock="Right" ToolTip="Sicherheit" Click="OnSecurityMenu">
+                    <ui:SymbolIcon Symbol="{x:Static app:Icons.Lock}" />
+                    <ui:Button.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Master-Passwort ändern …" Command="{Binding ChangeMasterPasswordCommand}" />
+                            <MenuItem Header="Auf diesem PC merken (ohne Passwort entsperren)" IsCheckable="True"
+                                      IsChecked="{Binding IsDeviceUnlockEnabled}"
+                                      Visibility="{Binding DeviceUnlockSupported, Converter={StaticResource BoolToVisibility}}" />
+                            <Separator />
+                            <MenuItem Header="{Binding StoreLocation}" HeaderStringFormat="Datenbank: {0}" IsEnabled="False" />
+                        </ContextMenu>
+                    </ui:Button.ContextMenu>
+                </ui:Button>
                 <ui:Button DockPanel.Dock="Right" Command="{Binding ToggleThemeCommand}" ToolTip="Hell / Dunkel umschalten">
                     <ui:SymbolIcon Symbol="{x:Static app:Icons.Moon}" />
                 </ui:Button>

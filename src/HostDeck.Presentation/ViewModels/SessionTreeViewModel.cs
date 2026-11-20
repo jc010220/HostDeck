@@ -101,6 +101,10 @@ public sealed partial class SessionTreeViewModel : ObservableObject
     public ObservableCollection<TreeItemViewModel> Items { get; } = [];
     public ConnectionTree Tree => _tree;
 
+    /// <summary>Strukturänderung (Verschieben, Anlegen, Löschen, Umbenennen) – Auslöser für das Speichern.</summary>
+    public event EventHandler? Changed;
+    public void NotifyChanged() => Changed?.Invoke(this, EventArgs.Empty);
+
     [ObservableProperty] private string _filterText = "";
     [ObservableProperty] private TreeItemViewModel? _selectedItem;
     [ObservableProperty] private int _visibleConnectionCount;
@@ -210,6 +214,7 @@ public sealed partial class SessionTreeViewModel : ObservableObject
         if (newParent is not null) newParent.IsExpanded = true;
         source.RefreshDisplay();
         ApplyFilter();
+        NotifyChanged();
         return true;
     }
 
@@ -234,6 +239,7 @@ public sealed partial class SessionTreeViewModel : ObservableObject
         if (parentItem is not null) parentItem.IsExpanded = true;
         SelectedItem = vm;
         ApplyFilter();
+        NotifyChanged();
         return vm;
     }
 
@@ -244,5 +250,6 @@ public sealed partial class SessionTreeViewModel : ObservableObject
         if (SelectedItem == item || (SelectedItem is not null && item.IsAncestorOf(SelectedItem)))
             SelectedItem = null;
         ApplyFilter();
+        NotifyChanged();
     }
 }

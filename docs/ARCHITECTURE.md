@@ -12,7 +12,7 @@ Ziel: mRemoteNG-kompatible Verbindungsverwaltung mit MobaXterm-artiger Bedienung
 | MVVM/DI | CommunityToolkit.Mvvm, Microsoft.Extensions.Hosting | Source Generators, testbare ViewModels. |
 | RDP | Nativer ActiveX `MsRdpClient` (mstscax.dll) per selbst erzeugtem Interop (`aximp`) | Volle Performance, Zwischenablage, Audio, Laufwerke, Smartcards, RD Gateway. |
 | SSH/SFTP | **SSH.NET** + **xterm.js in WebView2** | xterm.js ist die ausgereifteste Terminal-Emulation (VS Code nutzt sie), GPU-Rendering, Addons für Suche und Links. |
-| Speicher | SQLite mit **SQLCipher** (AES-256) + Argon2id-KDF für das Master-Passwort | Ein verschlüsselter Datei-Container, transaktionssicher, teamfähig erweiterbar. |
+| Speicher | SQLite im **SQLCipher-v4-Format** (AES-256-CBC + HMAC-SHA512) über *SQLite3 Multiple Ciphers*, Argon2id für das Master-Passwort | Komplett verschlüsselte Datei, transaktionssicher. `e_sqlite3mc` ist der empfohlene Nachfolger der veralteten `e_sqlcipher`-Builds. |
 | mRemoteNG-Krypto | BouncyCastle.Cryptography | mRemoteNG nutzt AES-GCM mit **128-bit-Nonce**. `System.Security.Cryptography.AesGcm` erlaubt nur 96 bit. |
 
 **Warum nicht Avalonia?** Das Produkt ist ausdrücklich Windows-only, und der Kern (RDP-ActiveX) ist Windows-only. In Avalonia wäre ActiveX-Hosting nur per `NativeControlHost` mit eigener HWND-Verwaltung möglich, ohne fertigen Docking-Ersatz für AvalonDock. Die Geschäftslogik (`HostDeck.Core`, `HostDeck.Import.*`, Storage, SSH) ist UI-frei auf `net10.0` gebaut. Ein späterer Avalonia-Port müsste also nur die UI-Schicht ersetzen.
@@ -28,7 +28,7 @@ HostDeck.slnx
 │  ├─ HostDeck.Core                 net10.0   Datenmodell, Vererbung, Vault          ✅ Phase 1
 │  ├─ HostDeck.Import.MRemoteNG     net10.0   confCons.xml Import/Export + Krypto    ✅ Phase 2
 │  ├─ HostDeck.Presentation         net10.0   ViewModels, Quick-Connect-Parser, Settings ✅ Phase 3
-│  ├─ HostDeck.Storage              net10.0   SQLCipher-Repository, Master-Passwort    Phase 2b
+│  ├─ HostDeck.Storage              net10.0   Verschlüsselte DB, Master-Passwort       ✅ Phase 2b
 │  ├─ HostDeck.Protocols.Abstractions net10.0 ISessionHost, IProtocolEngine           Phase 4
 │  ├─ HostDeck.Protocols.Ssh        net10.0   SSH.NET, SFTP, CWD-Tracking (OSC 7)      Phase 4
 │  ├─ HostDeck.Protocols.Rdp        net10.0-windows  MsRdpClient-Interop               Phase 4
@@ -93,7 +93,7 @@ ConnectionSettings  (alle Felder nullable)
 ## 5. Sicherheit
 
 * XML wird ohne DTD und ohne externe Entities geparst (XXE-Schutz, getestet).
-* Klartext-Passwörter existieren nur im Arbeitsspeicher. Die Persistenz (Phase 2b) erfolgt ausschließlich in der SQLCipher-DB, deren Schlüssel per Argon2id aus dem Master-Passwort abgeleitet wird.
+* Klartext-Passwörter existieren nur im Arbeitsspeicher. Persistiert wird ausschließlich in der verschlüsselten Datenbank (siehe Abschnitt 7).
 * Abgeleitete Schlüssel werden nach Gebrauch genullt (`CryptographicOperations.ZeroMemory`).
 
 ## 6. UI-Schicht (Phase 3)
@@ -111,8 +111,8 @@ MainWindow (FluentWindow, Mica, PerMonitorV2-DPI)
   `HostDeck.Presentation` (plattformneutral, getestet). Code-behind enthält nur Eingabe- und Drag-and-Drop-Verdrahtung.
 * **Sessions überleben Tab-Wechsel und Layoutwechsel:** kein `TabControl` (zerstört den Inhalt nicht
   ausgewählter Tabs), PaneViews werden pro Bereich wiederverwendet. Voraussetzung für RDP/SSH in Phase 4.
-* **Persistenz bis Phase 2b:** Beim Start wird die zuletzt importierte `confCons.xml` erneut geladen.
-  Änderungen im Baum (Verschieben, Neu, Löschen) gehen bis dahin beim Beenden verloren – Export ist möglich.
+* **Persistenz:** Strukturänderungen (Verschieben, Neu, Löschen, Import) werden sofort gespeichert,
+  der Auf-/Zuklapp-Zustand beim Beenden.
 
 ### Tastenkürzel
 
@@ -128,3 +128,25 @@ MainWindow (FluentWindow, Mica, PerMonitorV2-DPI)
 | Strg+Alt+1…4 | Layout: 1 / 2 nebeneinander / 2 untereinander / 4er-Grid |
 | Strg+Alt+→ | Nächster Bereich |
 | Strg+Umschalt+M | Multi-Execution an/aus |
+
+## 7. Verschlüsselte Datenbank (Phase 2b)
+
+Dateien unter `%APPDATA%\HostDeck\` (beide gehören in jede Sicherung):
+
+| Datei | Inhalt |
+|---|---|
+| `connections.hdk` (+ `-wal`, `-shm`) | SQLite, vollständig verschlüsselt im SQLCipher-v4-Format; ohne Schlüssel nicht von Zufallsdaten unterscheidbar |
+| `connections.hdk.key` | Schlüsseldatei (JSON): Argon2id-Parameter + Salt, verpackter Datenbankschlüssel, optional Geräte-Slot |
+
+```
+Master-Passwort ──Argon2id (64 MiB, t=3, p=4, Salt 128 bit)──► KEK
+KEK ──AES-256-GCM──► DEK (zufällig, 256 bit) ──► SQLCipher-Raw-Key (keine zusätzliche PBKDF2)
+Windows-DPAPI (CurrentUser) ──► DEK            optionaler Slot „Auf diesem PC merken“
+```
+
+* **Passwort ändern** verpackt nur den DEK neu – die Datenbank bleibt unverändert, der Vorgang ist atomar.
+* **Passwort vergessen:** keine Hintertür. „Neu beginnen“ benennt die alten Dateien in `*.bak` um, statt sie zu löschen.
+* **Schema:** Tabellen `nodes` (Baum, Einstellungen als JSON – geerbte Felder entfallen), `credentials` (Vault), `meta`
+  (Schema-Version, Wurzel-Defaults). Gespeichert wird als Gesamtstand in einer Transaktion (5.000 Verbindungen < 1 s).
+* **Einzelinstanz:** Ein benannter Mutex verhindert, dass zwei HostDeck-Instanzen dieselbe Datenbank überschreiben.
+* Geprüft durch Tests: RFC-9106-Testvektor für Argon2id, keine Klartexte in den Dateien, falsches Passwort und falscher Geräteschlüssel werden abgewiesen.

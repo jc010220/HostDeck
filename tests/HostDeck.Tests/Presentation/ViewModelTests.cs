@@ -229,67 +229,168 @@ public class WorkspaceViewModelTests
 
 public class MainViewModelTests
 {
-    private sealed class FakeDialogs : IDialogService
+    internal sealed class FakeDialogs : IDialogService
     {
         public string? FileToOpen;
         public Queue<string?> Passwords = new();
         public List<string> Errors = [];
+        public bool ConfirmAnswer = true;
+        public int ConfirmCalls;
+        public (string, string)? PasswordChange;
         public string? OpenFile(string title, string filter) => FileToOpen;
         public string? SaveFile(string title, string filter, string defaultFileName) => null;
         public string? AskMasterPassword(string? s, bool failed, int attempt, int max) => Passwords.Count > 0 ? Passwords.Dequeue() : null;
         public void ShowInfo(string title, string message) { }
         public void ShowError(string title, string message) => Errors.Add(message);
+        public bool Confirm(string title, string message) { ConfirmCalls++; return ConfirmAnswer; }
+        public (string Current, string New)? AskChangeMasterPassword() => PasswordChange;
     }
 
-    private sealed class MemorySettings : ISettingsStore
+    internal sealed class MemorySettings : ISettingsStore
     {
         public AppSettings Stored = new();
         public AppSettings Load() => Stored;
         public void Save(AppSettings settings) => Stored = settings;
     }
 
-    private sealed class NoTheme : IThemeService { public AppTheme? Applied; public void Apply(AppTheme theme) => Applied = theme; }
+    internal sealed class NoTheme : IThemeService { public AppTheme? Applied; public void Apply(AppTheme theme) => Applied = theme; }
 
-    private static (MainViewModel Vm, FakeDialogs Dialogs, MemorySettings Settings) Create()
+    /// <summary>Speichert über den echten mRemoteNG-Exporter – prüft so nebenbei die Vollständigkeit.</summary>
+    internal sealed class MemoryStore : IConnectionStore
+    {
+        public ConnectionTree Saved = new();
+        public int SaveCount;
+        public string CurrentPassword = "altes-passwort";
+        public string Location => "memory";
+        public ConnectionTree Load() => Saved;
+        public void Save(ConnectionTree tree) { Saved = tree; SaveCount++; }
+        public bool HasDeviceUnlock { get; private set; }
+        public bool DeviceUnlockSupported => true;
+        public void SetDeviceUnlock(bool enabled) => HasDeviceUnlock = enabled;
+        public void ChangeMasterPassword(string currentPassword, string newPassword)
+        {
+            if (currentPassword != CurrentPassword) throw new UnauthorizedAccessException();
+            CurrentPassword = newPassword;
+        }
+    }
+
+    private static (MainViewModel Vm, FakeDialogs Dialogs, MemorySettings Settings, MemoryStore Store) Create()
     {
         var d = new FakeDialogs();
         var s = new MemorySettings();
-        return (new MainViewModel(d, s, new NoTheme()), d, s);
+        var store = new MemoryStore();
+        var vm = new MainViewModel(d, s, new NoTheme(), store);
+        vm.Initialize();
+        return (vm, d, s, store);
+    }
+
+    private static void ImportFixture(MainViewModel vm, FakeDialogs dialogs, string file = "confCons_v2_6.xml")
+    {
+        dialogs.FileToOpen = Fixture.PathOf(file);
+        vm.ImportMRemoteNGCommand.Execute(null);
     }
 
     [Fact]
-    public void Import_with_master_password_prompt()
+    public void Import_with_master_password_prompt_is_persisted()
     {
-        var (vm, dialogs, settings) = Create();
-        dialogs.FileToOpen = Fixture.PathOf("confCons_v2_6_passwordis_Password.xml");
+        var (vm, dialogs, settings, store) = Create();
         dialogs.Passwords.Enqueue("falsch");
         dialogs.Passwords.Enqueue("Password");
-
-        vm.ImportMRemoteNGCommand.Execute(null);
+        ImportFixture(vm, dialogs, "confCons_v2_6_passwordis_Password.xml");
 
         Assert.Empty(dialogs.Errors);
         Assert.Equal(12, vm.SessionTree.VisibleConnectionCount);
-        Assert.Equal(dialogs.FileToOpen, settings.Stored.LastImportPath);
-        // Standard: gemeinsame Zugangsdaten ⇒ Vault
-        Assert.True(vm.SessionTree.Tree.Vault.Count > 0);
+        Assert.Equal(12, store.Saved.Connections.Count());
+        Assert.True(store.Saved.Vault.Count > 0);          // gemeinsame Logins ⇒ Vault
+        Assert.EndsWith("confCons_v2_6_passwordis_Password.xml", settings.Stored.LastImportPath);
     }
 
     [Fact]
-    public void Cancelled_password_on_startup_is_silent()
+    public void Second_import_goes_into_own_folder_with_new_ids()
     {
-        var (vm, dialogs, settings) = Create();
-        settings.Stored.LastImportPath = Fixture.PathOf("confCons_v2_6_passwordis_Password.xml");
-        vm.Initialize();
+        var (vm, dialogs, _, store) = Create();
+        ImportFixture(vm, dialogs);
+        ImportFixture(vm, dialogs);
+
         Assert.Empty(dialogs.Errors);
-        Assert.Equal("Laden abgebrochen", vm.StatusText);
+        Assert.Equal(24, store.Saved.Connections.Count());
+        var importFolder = store.Saved.Root.Children.OfType<FolderNode>().Single(f => f.Name.StartsWith("Import confCons_v2_6"));
+        Assert.Equal(3, importFolder.Children.Count);
+        var ids = store.Saved.Root.Descendants().Select(n => n.Id).ToList();
+        Assert.Equal(ids.Count, ids.Distinct().Count());
+        Assert.Equal(@"domainFolder1\userFolder1:folder1",
+            Fixture.EffectiveCredentials(store.Saved, importFolder.Name + "/Folder1/Connection1.1"));
+    }
+
+    [Fact]
+    public void Structural_changes_are_saved_immediately()
+    {
+        var (vm, dialogs, _, store) = Create();
+        ImportFixture(vm, dialogs);
+        var before = store.SaveCount;
+
+        var item = vm.SessionTree.AllItems.Single(i => i.Node.Path == "Folder1/Connection1.1");
+        vm.SessionTree.Move(item, vm.SessionTree.AllItems.Single(i => i.Node.Path == "Folder2"), DropPosition.Into);
+        Assert.Equal(before + 1, store.SaveCount);
+        Assert.NotNull(store.Saved.FindByPath("Folder2/Connection1.1"));
+
+        vm.NewFolderCommand.Execute(null);
+        vm.DeleteCommand.Execute(item);
+        Assert.Equal(before + 3, store.SaveCount);
+        Assert.Null(store.Saved.FindByPath("Folder2/Connection1.1"));
+    }
+
+    [Fact]
+    public void Shutdown_saves_expansion_state()
+    {
+        var (vm, dialogs, _, store) = Create();
+        ImportFixture(vm, dialogs);
+        var folder = vm.SessionTree.AllItems.Single(i => i.Node.Path == "Folder1");
+        folder.IsExpanded = !folder.IsExpanded;
+        vm.Shutdown();
+        Assert.Equal(folder.IsExpanded, ((FolderNode)store.Saved.FindByPath("Folder1")!).IsExpanded);
+    }
+
+    [Fact]
+    public void First_start_offers_mRemoteNG_import_once()
+    {
+        var d = new FakeDialogs();
+        var s = new MemorySettings();
+        var store = new MemoryStore();
+        var vm = new MainViewModel(d, s, new NoTheme(), store);
+        vm.Initialize(Fixture.PathOf("confCons_v2_6.xml"));
+        Assert.Equal(1, d.ConfirmCalls);
+        Assert.Equal(12, store.Saved.Connections.Count());
+
+        var vm2 = new MainViewModel(d, s, new NoTheme(), new MemoryStore());
+        vm2.Initialize(Fixture.PathOf("confCons_v2_6.xml"));
+        Assert.Equal(1, d.ConfirmCalls); // nicht erneut fragen
+    }
+
+    [Fact]
+    public void Change_master_password_and_device_unlock()
+    {
+        var (vm, dialogs, _, store) = Create();
+        dialogs.PasswordChange = ("falsch", "neues-passwort");
+        vm.ChangeMasterPasswordCommand.Execute(null);
+        Assert.Single(dialogs.Errors);
+        Assert.Equal("altes-passwort", store.CurrentPassword);
+
+        dialogs.PasswordChange = ("altes-passwort", "neues-passwort");
+        vm.ChangeMasterPasswordCommand.Execute(null);
+        Assert.Equal("neues-passwort", store.CurrentPassword);
+
+        vm.IsDeviceUnlockEnabled = true;
+        Assert.True(store.HasDeviceUnlock);
+        vm.IsDeviceUnlockEnabled = false;
+        Assert.False(store.HasDeviceUnlock);
     }
 
     [Fact]
     public void Quick_connect_prefers_existing_connection_then_parses()
     {
-        var (vm, dialogs, _) = Create();
-        dialogs.FileToOpen = Fixture.PathOf("confCons_v2_6.xml");
-        vm.ImportMRemoteNGCommand.Execute(null);
+        var (vm, dialogs, _, _) = Create();
+        ImportFixture(vm, dialogs);
 
         vm.QuickConnectText = "connection1.3";
         vm.QuickConnectCommand.Execute(null);
@@ -312,10 +413,8 @@ public class MainViewModelTests
     [Fact]
     public void Open_folder_tiled()
     {
-        var (vm, dialogs, _) = Create();
-        dialogs.FileToOpen = Fixture.PathOf("confCons_v2_6.xml");
-        vm.ImportMRemoteNGCommand.Execute(null);
-
+        var (vm, dialogs, _, _) = Create();
+        ImportFixture(vm, dialogs);
         vm.OpenAllTiledCommand.Execute(vm.SessionTree.AllItems.Single(i => i.Node.Path == "Folder1"));
         Assert.Equal(WorkspaceLayout.Grid, vm.Workspace.Layout);
         Assert.Equal(3, vm.Workspace.TabCount);
@@ -324,7 +423,7 @@ public class MainViewModelTests
     [Fact]
     public void Theme_toggle_is_persisted()
     {
-        var (vm, _, settings) = Create();
+        var (vm, _, settings, _) = Create();
         vm.ToggleThemeCommand.Execute(null);
         Assert.Equal(AppTheme.Dark, settings.Stored.Theme);
     }

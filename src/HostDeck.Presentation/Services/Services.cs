@@ -18,6 +18,25 @@ public interface IDialogService
 
     void ShowInfo(string title, string message);
     void ShowError(string title, string message);
+    bool Confirm(string title, string message);
+
+    /// <summary>Altes + neues Master-Passwort abfragen; <c>null</c> = abgebrochen.</summary>
+    (string Current, string New)? AskChangeMasterPassword();
+}
+
+/// <summary>Verschlüsselter Speicher des Verbindungsbestands (in der App: EncryptedConnectionStore).</summary>
+public interface IConnectionStore
+{
+    string Location { get; }
+    ConnectionTree Load();
+    void Save(ConnectionTree tree);
+
+    bool HasDeviceUnlock { get; }
+    bool DeviceUnlockSupported { get; }
+    void SetDeviceUnlock(bool enabled);
+
+    /// <exception cref="UnauthorizedAccessException">Aktuelles Passwort falsch.</exception>
+    void ChangeMasterPassword(string currentPassword, string newPassword);
 }
 
 public interface IThemeService
@@ -29,7 +48,10 @@ public interface IThemeService
 public sealed class AppSettings
 {
     public AppTheme Theme { get; set; } = AppTheme.System;
+    /// <summary>Ordner der zuletzt importierten Datei (Vorschlag im Dateidialog).</summary>
     public string? LastImportPath { get; set; }
+    /// <summary>Angebot "mRemoteNG-Verbindungen übernehmen?" wurde schon gezeigt.</summary>
+    public bool FirstRunImportOffered { get; set; }
     public ProtocolKind QuickConnectDefaultProtocol { get; set; } = ProtocolKind.Ssh2;
     public List<string> QuickConnectHistory { get; set; } = [];
     public double SidebarWidth { get; set; } = 300;

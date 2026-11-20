@@ -30,6 +30,16 @@ public sealed class DialogService : IDialogService
         return dialog.ShowDialog() == true ? dialog.Password : null;
     }
 
+    public bool Confirm(string title, string message) =>
+        System.Windows.MessageBox.Show(Owner ?? Application.Current.MainWindow!, message, title, MessageBoxButton.YesNo,
+            MessageBoxImage.Question, MessageBoxResult.Yes) == MessageBoxResult.Yes;
+
+    public (string Current, string New)? AskChangeMasterPassword()
+    {
+        var dialog = new MasterKeyDialog(MasterKeyDialogMode.Change) { Owner = Owner };
+        return dialog.ShowDialog() == true ? (dialog.CurrentPassword, dialog.Password) : null;
+    }
+
     public void ShowInfo(string title, string message) => new MessageDialog(title, message, isError: false) { Owner = Owner }.ShowDialog();
     public void ShowError(string title, string message) => new MessageDialog(title, message, isError: true) { Owner = Owner }.ShowDialog();
 }

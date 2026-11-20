@@ -3,6 +3,7 @@
     <Project Path="src/HostDeck.Core/HostDeck.Core.csproj" />
     <Project Path="src/HostDeck.Import.MRemoteNG/HostDeck.Import.MRemoteNG.csproj" />
     <Project Path="src/HostDeck.Storage/HostDeck.Storage.csproj" />
+    <Project Path="src/HostDeck.Protocols.Ssh/HostDeck.Protocols.Ssh.csproj" />
     <Project Path="src/HostDeck.Presentation/HostDeck.Presentation.csproj" />
     <Project Path="src/HostDeck.App/HostDeck.App.csproj" />
   </Folder>

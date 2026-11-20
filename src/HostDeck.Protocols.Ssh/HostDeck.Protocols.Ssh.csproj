@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>HostDeck.Protocols.Ssh</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="SSH.NET" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="HostDeck.Tests" />
+  </ItemGroup>
+</Project>

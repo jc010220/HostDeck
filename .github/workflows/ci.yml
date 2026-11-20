@@ -9,8 +9,8 @@ jobs:
   build:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-dotnet@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
         with:
           global-json-file: global.json
       - name: Build
@@ -19,7 +19,7 @@ jobs:
         run: dotnet test --solution HostDeck.slnx -c Release --no-build
       - name: Publish (self-contained, win-x64)
         run: dotnet publish src/HostDeck.App -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -o publish
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: HostDeck-win-x64
           path: publish/

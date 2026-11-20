@@ -91,20 +91,72 @@ public sealed partial class MainViewModel : ObservableObject
         () => SessionTree.Tree,
         () => Settings.RecentConnections,
         () => Settings.QuickConnectDefaultProtocol,
-        [
-            ("Layout: ein Bereich", "single layout 1", () => Workspace.SetLayout(WorkspaceLayout.Single)),
-            ("Layout: zwei nebeneinander", "split vertical columns 2", () => Workspace.SetLayout(WorkspaceLayout.TwoColumns)),
-            ("Layout: zwei untereinander", "split horizontal rows 2", () => Workspace.SetLayout(WorkspaceLayout.TwoRows)),
-            ("Layout: 4er-Grid", "grid quad 4", () => Workspace.SetLayout(WorkspaceLayout.Grid)),
-            ("Multi-Execution umschalten", "multiexec broadcast", () => IsMultiExecutionEnabled = !IsMultiExecutionEnabled),
-            ("mRemoteNG-Datei importieren", "import confcons", () => ImportMRemoteNGCommand.Execute(null)),
-            ("Als mRemoteNG-Datei exportieren", "export confcons", () => ExportMRemoteNGCommand.Execute(null)),
-            ("Hell/Dunkel umschalten", "theme dark light dunkel hell", () => ToggleThemeCommand.Execute(null)),
-            ("Neue Verbindung", "new connection add", () => NewConnectionCommand.Execute(null)),
-            ("Neuer Ordner", "new folder add", () => NewFolderCommand.Execute(null)),
-            ("Master-Passwort ändern", "password security sicherheit", () => ChangeMasterPasswordCommand.Execute(null)),
-            ("Alle Tabs schließen", "close all tabs", CloseAllTabs),
-        ]);
+        PaletteActions);
+
+    private IEnumerable<(string Title, string Keywords, Action Run)> PaletteActions()
+    {
+        foreach (var (name, snapshot) in Settings.SavedWorkspaces.OrderBy(w => w.Key, StringComparer.OrdinalIgnoreCase))
+            yield return ($"Arbeitsbereich öffnen: {name}  ({snapshot.ConnectionCount} Sessions)", "workspace arbeitsbereich " + name, () => RestoreWorkspace(snapshot));
+        yield return ("Arbeitsbereich speichern unter …", "workspace arbeitsbereich save speichern", () => SaveWorkspaceCommand.Execute(null));
+        foreach (var name in Settings.SavedWorkspaces.Keys.Order())
+            yield return ($"Arbeitsbereich löschen: {name}", "workspace arbeitsbereich delete löschen " + name, () => { Settings.SavedWorkspaces.Remove(name); SaveSettings(); });
+        yield return ("Layout: ein Bereich", "single layout 1", () => Workspace.SetLayout(WorkspaceLayout.Single));
+        yield return ("Layout: zwei nebeneinander", "split vertical columns 2", () => Workspace.SetLayout(WorkspaceLayout.TwoColumns));
+        yield return ("Layout: zwei untereinander", "split horizontal rows 2", () => Workspace.SetLayout(WorkspaceLayout.TwoRows));
+        yield return ("Layout: 4er-Grid", "grid quad 4", () => Workspace.SetLayout(WorkspaceLayout.Grid));
+        yield return ("Multi-Execution umschalten", "multiexec broadcast", () => IsMultiExecutionEnabled = !IsMultiExecutionEnabled);
+        yield return ("mRemoteNG-Datei importieren", "import confcons", () => ImportMRemoteNGCommand.Execute(null));
+        yield return ("Als mRemoteNG-Datei exportieren", "export confcons", () => ExportMRemoteNGCommand.Execute(null));
+        yield return ("Hell/Dunkel umschalten", "theme dark light dunkel hell", () => ToggleThemeCommand.Execute(null));
+        yield return ("Neue Verbindung", "new connection add", () => NewConnectionCommand.Execute(null));
+        yield return ("Neuer Ordner", "new folder add", () => NewFolderCommand.Execute(null));
+        yield return ("Zugangsdaten verwalten (Vault)", "vault credentials passwort", () => ManageVaultCommand.Execute(null));
+        yield return ("Master-Passwort ändern", "password security sicherheit", () => ChangeMasterPasswordCommand.Execute(null));
+        yield return ("Alle Tabs schließen", "close all tabs", CloseAllTabs);
+    }
+
+    // ---- Arbeitsbereiche --------------------------------------------------------------------------
+
+    public WorkspaceSnapshot CaptureWorkspace() => new()
+    {
+        Layout = Workspace.Layout,
+        Panes = Workspace.Panes.Select(p => p.Tabs.Where(t => !t.IsTransient).Select(t => t.Connection.Id).ToList()).ToList(),
+    };
+
+    /// <summary>Öffnet die Sessions eines Arbeitsbereichs (zusätzlich zu bereits offenen Tabs).</summary>
+    public int RestoreWorkspace(WorkspaceSnapshot snapshot)
+    {
+        if (WorkspaceViewModel.PaneCount(snapshot.Layout) > Workspace.Panes.Count) Workspace.SetLayout(snapshot.Layout);
+        var opened = 0;
+        for (var i = 0; i < snapshot.Panes.Count; i++)
+        {
+            var pane = Workspace.Panes[Math.Min(i, Workspace.Panes.Count - 1)];
+            foreach (var id in snapshot.Panes[i])
+            {
+                if (SessionTree.Tree.Find(id) is not ConnectionNode node) continue; // inzwischen gelöscht
+                Workspace.Open(CreateTab(node, SessionTree.Tree.Vault, transient: false), pane);
+                opened++;
+            }
+        }
+        if (Workspace.Panes.Count > 0) Workspace.ActivePane = Workspace.Panes[0];
+        StatusText = $"Arbeitsbereich wiederhergestellt: {opened} Session(s)";
+        return opened;
+    }
+
+    [RelayCommand]
+    private void SaveWorkspace()
+    {
+        var snapshot = CaptureWorkspace();
+        if (snapshot.ConnectionCount == 0)
+        {
+            StatusText = "Keine gespeicherten Verbindungen geöffnet – nichts zu speichern.";
+            return;
+        }
+        if (_dialogs.Prompt("Arbeitsbereich speichern", "Name des Arbeitsbereichs:", "") is not { Length: > 0 } name) return;
+        Settings.SavedWorkspaces[name.Trim()] = snapshot;
+        SaveSettings();
+        StatusText = $"Arbeitsbereich „{name.Trim()}“ gespeichert ({snapshot.ConnectionCount} Sessions) – über Strg+K abrufbar";
+    }
 
     /// <summary>Treffer ausführen. <paramref name="split"/>: in einem neuen Split-Bereich öffnen (Strg+Enter).</summary>
     public void ExecutePaletteItem(PaletteItem? item, bool split = false)
@@ -173,6 +225,8 @@ public sealed partial class MainViewModel : ObservableObject
         _theme.Apply(Settings.Theme);
         SessionTree.Load(_store.Load());
         StatusText = $"{SessionTree.Tree.Connections.Count()} Verbindungen geladen";
+        if (Settings.RestoreWorkspaceOnStart && Settings.LastWorkspace is { ConnectionCount: > 0 } last)
+            RestoreWorkspace(last);
 
         if (!Settings.FirstRunImportOffered && !SessionTree.Tree.Root.Children.Any()
             && mRemoteNgDefaultFile is not null && File.Exists(mRemoteNgDefaultFile))
@@ -186,7 +240,12 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     /// <summary>Beim Beenden: Stand (inkl. Auf-/Zuklapp-Zustand) speichern.</summary>
-    public void Shutdown() => Persist();
+    public void Shutdown()
+    {
+        Settings.LastWorkspace = CaptureWorkspace();
+        SaveSettings();
+        Persist();
+    }
 
     // ---- Persistenz -------------------------------------------------------------------------------
 
@@ -341,8 +400,47 @@ public sealed partial class MainViewModel : ObservableObject
     private void NewFolder() => SessionTree.Add(new FolderNode("Neuer Ordner") { IsExpanded = true });
 
     [RelayCommand]
-    private void NewConnection() =>
-        SessionTree.Add(new ConnectionNode("Neue Verbindung") { Hostname = "" });
+    private void NewConnection()
+    {
+        var item = SessionTree.Add(new ConnectionNode("Neue Verbindung") { Hostname = "" });
+        if (!Edit(item))
+        {
+            SessionTree.Delete(item); // abgebrochen ⇒ nicht als leere Verbindung stehen lassen
+        }
+    }
+
+    /// <summary>Eigenschaften bearbeiten (F4 / Doppelklick mit Alt / Kontextmenü).</summary>
+    [RelayCommand]
+    private void EditItem(TreeItemViewModel? item) => Edit(item);
+
+    private bool Edit(TreeItemViewModel? item)
+    {
+        if (item is null) return false;
+        var editor = new ConnectionEditorViewModel(item.Node, SessionTree.Tree.Vault);
+        if (!_dialogs.EditConnection(editor)) return false;
+        item.NotifyNameChanged();
+        item.RefreshDisplay(); // Ordner: Kinder erben ggf. neue Werte
+        SessionTree.ApplyFilter();
+        Persist();
+        StatusText = $"Gespeichert: {item.Node.Path}";
+        return true;
+    }
+
+    [RelayCommand]
+    private void Rename(TreeItemViewModel? item)
+    {
+        if (item is null || _dialogs.Prompt("Umbenennen", "Neuer Name:", item.Name) is not { Length: > 0 } name) return;
+        item.Name = name;
+        Persist();
+    }
+
+    [RelayCommand]
+    private void ManageVault()
+    {
+        _dialogs.ManageVault(new CredentialVaultViewModel(SessionTree.Tree));
+        SessionTree.Load(SessionTree.Tree); // Anzeige (z. B. Benutzer in Tooltips) aktualisieren
+        Persist();
+    }
 
     [RelayCommand]
     private void Delete(TreeItemViewModel? item)
@@ -413,6 +511,7 @@ public sealed partial class MainViewModel : ObservableObject
             MergeInto(current, result.Tree, $"Import {Path.GetFileNameWithoutExtension(path)} {DateTime.Now:yyyy-MM-dd HH-mm}");
             SessionTree.Load(current);
         }
+        OfferSecurityFixes(result.Tree);
         Persist();
 
         Settings.LastImportPath = path;
@@ -422,6 +521,26 @@ public sealed partial class MainViewModel : ObservableObject
         if (result.Warnings.Count > 0)
             _dialogs.ShowInfo("Import abgeschlossen mit Warnungen", string.Join(Environment.NewLine, result.Warnings.Take(30)));
         return true;
+    }
+
+    /// <summary>
+    /// mRemoteNG speichert „Server-Zertifikat nicht prüfen“ als Standard explizit an jedem Knoten. Anbieten,
+    /// diese Einträge auf den sicheren HostDeck-Standard (warnen) zurückzusetzen.
+    /// </summary>
+    internal int OfferSecurityFixes(ConnectionTree imported)
+    {
+        var insecure = imported.Root.Descendants().Where(n => n.Settings.Rdp.AuthenticationLevel == RdpAuthenticationLevel.NoAuth).ToList();
+        var affectedConnections = imported.Connections.Count(c =>
+            Core.Inheritance.SettingsResolver.Resolve(c) is { Protocol: ProtocolKind.Rdp, Rdp.AuthenticationLevel: RdpAuthenticationLevel.NoAuth });
+        if (affectedConnections == 0) return 0;
+        if (!_dialogs.Confirm("Sicherheitsprüfung",
+                $"{affectedConnections} RDP-Verbindung(en) prüfen das Server-Zertifikat nicht (mRemoteNG-Standard). " +
+                "Damit sind Man-in-the-Middle-Angriffe unbemerkt möglich.\n\n" +
+                "Auf den sicheren Standard „bei ungültigem Zertifikat warnen“ umstellen? (empfohlen)"))
+            return 0;
+        foreach (var node in insecure) node.Settings.Rdp.AuthenticationLevel = null; // erbt sicheren Standard
+        StatusText = $"{affectedConnections} RDP-Verbindung(en) auf Zertifikatsprüfung umgestellt";
+        return affectedConnections;
     }
 
     internal static void MergeInto(ConnectionTree target, ConnectionTree imported, string folderName)

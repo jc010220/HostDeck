@@ -4,6 +4,34 @@ Moderne, schnelle Alternative zu mRemoteNG mit MobaXterm-artiger Bedienung (WPF,
 
 **Stand:** Phase 1 (Architektur, Datenmodell), Phase 2 (mRemoteNG-Import/Export inkl. Passwort-Entschlüsselung) Phase 2b (verschlüsselte Datenbank mit Master-Passwort) und Phase 3 (UI-Grundgerüst: Seitenleiste, Quick-Connect, Tabs, Split-Screen) sind fertig. Phase 4a (SSH-Terminal mit xterm.js, SFTP-Browser, Multi-Exec, Highlighting) ist fertig; Phase 4b (RDP über den nativen Windows-Client) ist implementiert. Architektur siehe [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
+## Auf Windows 11 starten
+
+1. `HostDeck.exe` an einen beliebigen Ort kopieren (z. B. `C:\Tools\HostDeck\`) und starten.
+   Es wird kein .NET benötigt (self-contained). Die Datei ist nicht signiert – Windows SmartScreen zeigt
+   beim ersten Start „Unbekannter Herausgeber“ → *Weitere Informationen* → *Trotzdem ausführen*.
+2. Master-Passwort festlegen (mind. 8 Zeichen). Optional „Auf diesem PC merken“.
+3. Ist mRemoteNG installiert, bietet HostDeck die Übernahme von `%APPDATA%\mRemoteNG\confCons.xml` an
+   (sonst: *Import* in der Werkzeugleiste).
+
+Daten liegen in `%APPDATA%\HostDeck\` (`connections.hdk` + `connections.hdk.key` – beide sichern!),
+das Terminal-Profil von WebView2 in `%LOCALAPPDATA%\HostDeck\WebView2`.
+
+### Bedienung
+
+| Taste | Aktion |
+|---|---|
+| **Strg+K** | **Schnellsuche**: Gerät suchen (Name, IP, Ordner, Tag, Beschreibung – auch unscharf: „acw1“ → „acme-web-01“), `ssh user@host` direkt verbinden, `>` für Befehle |
+| Strg+Enter (in der Suche) | im Split-Screen öffnen |
+| Strg+L | Quick-Connect-Feld |
+| Strg+F | Filter im Baum |
+| F2 / F4 / Entf | Umbenennen / Eigenschaften / Löschen |
+| Strg+Tab, Strg+W | Tabs wechseln / schließen (im Terminal: Strg+Umschalt+W) |
+| Strg+Alt+1…4 | Layout 1 / 2 nebeneinander / 2 untereinander / 4er-Grid |
+| Strg+Umschalt+M | Multi-Execution |
+
+Offene Sessions werden beim Beenden gemerkt und beim nächsten Start wiederhergestellt. Benannte
+Arbeitsbereiche: Strg+K → `>arbeitsbereich speichern`.
+
 ## Bauen und Testen
 
 ```bash

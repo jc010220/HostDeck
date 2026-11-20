@@ -53,6 +53,12 @@ public sealed class DialogService : IDialogService
         return dialog.ShowDialog() == true ? dialog.Value : null;
     }
 
+    public bool EditConnection(HostDeck.Presentation.ViewModels.ConnectionEditorViewModel editor) =>
+        new ConnectionEditorWindow(editor) { Owner = Owner }.ShowDialog() == true;
+
+    public void ManageVault(HostDeck.Presentation.ViewModels.CredentialVaultViewModel vault) =>
+        new VaultWindow(vault) { Owner = Owner }.ShowDialog();
+
     public string? PickFolder(string title)
     {
         var dialog = new OpenFolderDialog { Title = title, Multiselect = false };

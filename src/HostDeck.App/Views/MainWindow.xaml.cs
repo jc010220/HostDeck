@@ -191,6 +191,14 @@ public partial class MainWindow : FluentWindow
                 ConfirmDelete(item);
                 e.Handled = true;
                 break;
+            case Key.F2:
+                _vm.RenameCommand.Execute(item);
+                e.Handled = true;
+                break;
+            case Key.F4:
+                _vm.EditItemCommand.Execute(item);
+                e.Handled = true;
+                break;
         }
     }
 
@@ -201,6 +209,9 @@ public partial class MainWindow : FluentWindow
         var item = _vm.SessionTree.SelectedItem;
         _vm.OpenAllTiledCommand.Execute(item?.IsFolder == true ? item : item?.Parent);
     }
+
+    private void OnMenuEdit(object sender, RoutedEventArgs e) => _vm.EditItemCommand.Execute(_vm.SessionTree.SelectedItem);
+    private void OnMenuRename(object sender, RoutedEventArgs e) => _vm.RenameCommand.Execute(_vm.SessionTree.SelectedItem);
 
     private void OnMenuDelete(object sender, RoutedEventArgs e)
     {

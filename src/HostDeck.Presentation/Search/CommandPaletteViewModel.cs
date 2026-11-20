@@ -35,10 +35,14 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
     private readonly Func<ConnectionTree> _tree;
     private readonly Func<IReadOnlyList<Guid>> _recent;
     private readonly Func<ProtocolKind> _defaultProtocol;
-    private readonly IReadOnlyList<(string Title, string Keywords, Action Run)> _actions;
+    private readonly Func<IEnumerable<(string Title, string Keywords, Action Run)>> _actions;
 
     public CommandPaletteViewModel(Func<ConnectionTree> tree, Func<IReadOnlyList<Guid>> recent, Func<ProtocolKind> defaultProtocol,
         IReadOnlyList<(string Title, string Keywords, Action Run)> actions)
+        : this(tree, recent, defaultProtocol, () => actions) { }
+
+    public CommandPaletteViewModel(Func<ConnectionTree> tree, Func<IReadOnlyList<Guid>> recent, Func<ProtocolKind> defaultProtocol,
+        Func<IEnumerable<(string Title, string Keywords, Action Run)>> actions)
     {
         _tree = tree;
         _recent = recent;
@@ -164,7 +168,7 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
     }
 
     private IEnumerable<PaletteItem> Actions(string query) =>
-        _actions
+        _actions()
             .Select(a => (a, score: query.Length == 0 ? 1 : Math.Max(FuzzyMatcher.Score(query, a.Title) * 2, FuzzyMatcher.Score(query, a.Keywords))))
             .Where(x => x.score > 0)
             .OrderByDescending(x => x.score)

@@ -17,6 +17,7 @@
             <conv:EnumEqualsConverter x:Key="EnumEquals" />
             <conv:NullToVisibilityConverter x:Key="NullToVisibility" />
             <conv:FileSizeConverter x:Key="FileSize" />
+            <conv:InverseBoolConverter x:Key="InverseBool" />
 
             <!-- Monospace für Hosts/Terminals: Cascadia (Win11/Terminal), Fallback Consolas -->
             <FontFamily x:Key="MonoFont">Cascadia Mono, Cascadia Code, Consolas</FontFamily>

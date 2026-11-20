@@ -65,6 +65,8 @@ public sealed partial class TreeItemViewModel : ObservableObject
     }
 
     /// <summary>Effektive Werte neu berechnen – nötig nach Verschieben (Vererbung ändert sich!).</summary>
+    public void NotifyNameChanged() => OnPropertyChanged(nameof(Name));
+
     public void RefreshDisplay()
     {
         RefreshSelf();

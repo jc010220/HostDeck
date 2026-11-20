@@ -32,6 +32,12 @@ public interface IDialogService
 
     /// <summary>Lokalen Zielordner wählen.</summary>
     string? PickFolder(string title);
+
+    /// <summary>Eigenschaften-Dialog; true = übernommen (Apply wurde bereits erfolgreich ausgeführt).</summary>
+    bool EditConnection(ViewModels.ConnectionEditorViewModel editor);
+
+    /// <summary>Credential-Vault verwalten (Änderungen wirken direkt auf den Vault).</summary>
+    void ManageVault(ViewModels.CredentialVaultViewModel vault);
 }
 
 /// <summary>Verschlüsselter Speicher des Verbindungsbestands (in der App: EncryptedConnectionStore).</summary>
@@ -69,6 +75,11 @@ public sealed class AppSettings
     public bool TerminalHighlighting { get; set; } = true;
     public bool SftpFollowsTerminal { get; set; } = true;
     public int TerminalFontSize { get; set; } = 14;
+    /// <summary>Offene Sessions beim letzten Beenden (wird beim Start wiederhergestellt).</summary>
+    public WorkspaceSnapshot? LastWorkspace { get; set; }
+    public bool RestoreWorkspaceOnStart { get; set; } = true;
+    /// <summary>Benannte Arbeitsbereiche („Kunde ACME – 4 Server“).</summary>
+    public Dictionary<string, WorkspaceSnapshot> SavedWorkspaces { get; set; } = [];
     /// <summary>Zuletzt geöffnete Verbindungen (neueste zuerst) für Schnellsuche und Start.</summary>
     public List<Guid> RecentConnections { get; set; } = [];
 }
@@ -110,4 +121,12 @@ public sealed class JsonSettingsStore(string path) : ISettingsStore
         File.WriteAllText(temp, JsonSerializer.Serialize(settings, Options));
         File.Move(temp, path, overwrite: true);
     }
+}
+
+/// <summary>Layout + Verbindungs-IDs je Bereich (Quick-Connect-Tabs werden nicht gespeichert).</summary>
+public sealed class WorkspaceSnapshot
+{
+    public HostDeck.Presentation.ViewModels.WorkspaceLayout Layout { get; set; }
+    public List<List<Guid>> Panes { get; set; } = [];
+    public int ConnectionCount => Panes.Sum(p => p.Count);
 }

@@ -252,6 +252,10 @@ public class MainViewModelTests
         public Func<string, string?> PromptAnswer = _ => null;
         public string? Prompt(string title, string message, string defaultValue = "", bool secret = false) => PromptAnswer(message);
         public string? PickFolder(string title) => null;
+        public Func<ConnectionEditorViewModel, bool> EditAnswer = e => e.Apply() is null;
+        public bool EditConnection(ConnectionEditorViewModel editor) => EditAnswer(editor);
+        public Action<CredentialVaultViewModel> VaultAction = _ => { };
+        public void ManageVault(CredentialVaultViewModel vault) => VaultAction(vault);
     }
 
     internal sealed class MemorySettings : ISettingsStore
@@ -370,12 +374,13 @@ public class MainViewModelTests
         var store = new MemoryStore();
         var vm = new MainViewModel(d, s, new NoTheme(), store);
         vm.Initialize(Fixture.PathOf("confCons_v2_6.xml"));
-        Assert.Equal(1, d.ConfirmCalls);
+        var callsAfterFirstStart = d.ConfirmCalls;           // Übernahme-Angebot (+ Sicherheitsprüfung)
+        Assert.True(callsAfterFirstStart >= 1);
         Assert.Equal(12, store.Saved.Connections.Count());
 
         var vm2 = new MainViewModel(d, s, new NoTheme(), new MemoryStore());
         vm2.Initialize(Fixture.PathOf("confCons_v2_6.xml"));
-        Assert.Equal(1, d.ConfirmCalls); // nicht erneut fragen
+        Assert.Equal(callsAfterFirstStart, d.ConfirmCalls); // nicht erneut fragen
     }
 
     [Fact]

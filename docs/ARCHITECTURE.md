@@ -204,3 +204,17 @@ verständliche Trennungsgründe über `GetErrorDescription`. Layoutwechsel im Sp
 visuellen Baum, damit RDP-Sitzungen dabei nicht getrennt werden.
 
 **Hinweis:** Importierte mRemoteNG-Verbindungen behalten ihren expliziten Wert (oft `NoAuth`).
+
+## 10. Bedienung: Schnellsuche, Editor, Arbeitsbereiche
+
+* **Schnellsuche (Strg+K):** `FuzzyMatcher` (Präfix > Wortanfang > zusammenhängend > verstreut) über Name (×3), Host (×2),
+  Ordnerpfad, Beschreibung, Tags und Benutzer; mehrere Begriffe müssen alle passen. Leere Eingabe zeigt
+  „zuletzt verwendet“ und Favoriten, `>` listet Befehle und Arbeitsbereiche, eine unbekannte Adresse wird als
+  Quick-Connect angeboten. Die Palette ist ein eigenes Fenster und liegt damit auch über RDP-/Terminal-Inhalten.
+* **Eigenschaften-Editor:** bildet die Vererbung direkt ab – leere Felder zeigen den geerbten Wert samt Herkunft,
+  Auswahllisten haben „(geerbt: …)“, Checkboxen sind dreistufig. Warnung bei unsicheren RDP-Einstellungen.
+* **Credential-Vault:** eigener Dialog (Benutzer, Domäne, Passwort, SSH-Schlüssel + Passphrase); Zuweisung im Editor.
+* **Arbeitsbereiche:** offene Tabs (Layout + Bereich) werden beim Beenden gespeichert und beim Start
+  wiederhergestellt; benannte Arbeitsbereiche über die Schnellsuche.
+* **Import-Sicherheitsprüfung:** mRemoteNG speichert „Zertifikat nicht prüfen“ explizit; HostDeck bietet die
+  Umstellung auf „warnen“ an.

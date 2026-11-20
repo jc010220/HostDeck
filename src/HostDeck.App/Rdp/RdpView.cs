@@ -68,6 +68,15 @@ public sealed class RdpView : Grid
     {
         if (_vm is null) return;
         Teardown();
+        // Erst einblenden und Layout abwarten: das Panel braucht seine echte Größe (Startauflösung)
+        // und der WindowsFormsHost ein Fenster-Handle, bevor das ActiveX erzeugt wird.
+        ShowHost();
+        Dispatcher.BeginInvoke(DispatcherPriority.Loaded, ConnectCore);
+    }
+
+    private void ConnectCore()
+    {
+        if (_vm is null) return;
         try
         {
             _plan = _vm.CreatePlan(DpiPercent);

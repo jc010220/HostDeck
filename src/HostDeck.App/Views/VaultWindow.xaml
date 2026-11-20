@@ -1,0 +1,60 @@
+<ui:FluentWindow x:Class="HostDeck.App.Views.VaultWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 xmlns:app="clr-namespace:HostDeck.App"
+                 Title="Zugangsdaten (Vault)" Width="820" Height="600"
+                 WindowStartupLocation="CenterOwner" ShowInTaskbar="False"
+                 ExtendsContentIntoTitleBar="True" WindowBackdropType="Mica">
+    <DockPanel>
+        <ui:TitleBar DockPanel.Dock="Top" Title="Zugangsdaten (Vault)" ShowMinimize="False" />
+        <Grid Margin="16,4,16,16">
+            <Grid.ColumnDefinitions><ColumnDefinition Width="260" /><ColumnDefinition Width="16" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+            <DockPanel>
+                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+                    <ui:Button Command="{Binding AddCommand}" Margin="0,0,8,0">
+                        <StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="{x:Static app:Icons.Add}" Margin="0,0,6,0" /><TextBlock Text="Neu" /></StackPanel>
+                    </ui:Button>
+                    <ui:Button Click="OnRemove" IsEnabled="{Binding HasSelection}">
+                        <StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="{x:Static app:Icons.Delete}" Margin="0,0,6,0" /><TextBlock Text="Löschen" /></StackPanel>
+                    </ui:Button>
+                </StackPanel>
+                <ListBox ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <StackPanel Margin="0,2">
+                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" />
+                                <TextBlock Text="{Binding DisplayUser}" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+            </DockPanel>
+            <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" IsEnabled="{Binding HasSelection}">
+                <StackPanel>
+                    <TextBlock Text="Name" Margin="0,0,0,4" />
+                    <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Text="Benutzername" Margin="0,10,0,4" />
+                    <TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Text="Domäne" Margin="0,10,0,4" />
+                    <TextBox Text="{Binding Domain, UpdateSourceTrigger=PropertyChanged}" />
+                    <TextBlock Text="Passwort (leer lassen = unverändert)" Margin="0,10,0,4" />
+                    <PasswordBox x:Name="PasswordInput" />
+                    <TextBlock Text="Privater SSH-Schlüssel (OpenSSH/PEM, optional)" Margin="0,10,0,4" />
+                    <TextBox Text="{Binding PrivateKey, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="110"
+                             FontFamily="{StaticResource MonoFont}" FontSize="11" VerticalScrollBarVisibility="Auto" TextWrapping="NoWrap" />
+                    <ui:Button Content="Schlüsseldatei laden …" Click="OnLoadKey" Margin="0,6,0,0" />
+                    <TextBlock Text="Passphrase des Schlüssels (leer lassen = unverändert)" Margin="0,10,0,4" />
+                    <PasswordBox x:Name="PassphraseInput" />
+                    <TextBlock Text="Notizen" Margin="0,10,0,4" />
+                    <TextBox Text="{Binding Notes, UpdateSourceTrigger=PropertyChanged}" AcceptsReturn="True" Height="60" TextWrapping="Wrap" />
+                    <TextBlock Text="{Binding UsageText}" Margin="0,10,0,0" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+                        <ui:Button Content="Eintrag speichern" Appearance="Primary" Click="OnSave" Margin="0,0,8,0" />
+                        <ui:Button Content="Schließen" IsCancel="True" Click="OnClose" />
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+    </DockPanel>
+</ui:FluentWindow>

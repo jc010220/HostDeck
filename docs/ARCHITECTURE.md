@@ -30,7 +30,7 @@ HostDeck.slnx
 │  ├─ HostDeck.Presentation         net10.0   ViewModels, Quick-Connect-Parser, Settings ✅ Phase 3
 │  ├─ HostDeck.Storage              net10.0   Verschlüsselte DB, Master-Passwort       ✅ Phase 2b
 │  ├─ HostDeck.Protocols.Abstractions net10.0 ISessionHost, IProtocolEngine           Phase 4
-│  ├─ HostDeck.Protocols.Ssh        net10.0   SSH.NET, SFTP, CWD-Tracking (OSC 7)      Phase 4
+│  ├─ HostDeck.Protocols.Ssh        net10.0   SSH.NET, SFTP, CWD-Tracking (OSC 7)      ✅ Phase 4a
 │  ├─ HostDeck.Protocols.Rdp        net10.0-windows  MsRdpClient-Interop               Phase 4
 │  └─ HostDeck.App                  net10.0-windows  WPF-Shell, WPF-UI (Fluent/Mica)   ✅ Phase 3
 └─ tests/
@@ -150,3 +150,28 @@ Windows-DPAPI (CurrentUser) ──► DEK            optionaler Slot „Auf dies
   (Schema-Version, Wurzel-Defaults). Gespeichert wird als Gesamtstand in einer Transaktion (5.000 Verbindungen < 1 s).
 * **Einzelinstanz:** Ein benannter Mutex verhindert, dass zwei HostDeck-Instanzen dieselbe Datenbank überschreiben.
 * Geprüft durch Tests: RFC-9106-Testvektor für Argon2id, keine Klartexte in den Dateien, falsches Passwort und falscher Geräteschlüssel werden abgewiesen.
+
+## 8. SSH, Terminal und SFTP (Phase 4a)
+
+```
+TerminalView (WPF) ── WebView2 ── terminal.html + xterm.js 6 (eingebettete Ressourcen, kein CDN)
+      │  JSON-Nachrichten: Ausgabe (gebündelt), Eingabe, Größe, Kopieren/Einfügen, Tastenkürzel
+TerminalSessionViewModel ── Ausgabepuffer (512 KB, Wiedergabe beim Anmelden der View)
+      │                    └─ Multi-Exec-Routing über MainViewModel
+SshTerminalSession (SSH.NET) ── PTY xterm-256color · OSC-7-Parser · TerminalHighlighter
+SftpSession ── eigene Verbindung, gleicher (bereits bestätigter) Host-Key
+```
+
+* **Host-Keys:** Trust on First Use mit Fingerprint-Dialog; geänderte Keys werden deutlich gewarnt und standardmäßig
+  abgelehnt. Gespeichert in der verschlüsselten Datenbank (Tabelle `known_hosts`, Schema v2).
+* **SFTP folgt dem Terminal:** Über einen Exec-Kanal wird geprüft, ob die Login-Shell bash oder zsh ist. Nur dann wird
+  ein Prompt-Hook gesetzt, der das Verzeichnis per OSC 7 meldet. Das Echo des Hook-Befehls wird ausgeblendet; die MOTD
+  bleibt erhalten. Auf Netzwerkgeräten (Switch-CLI) wird nichts eingeschleust.
+* **Highlighting:** Fehler (rot), Warnungen (gelb), Erfolg (grün), IPv4 (cyan) – nur auf Text, den das Programm nicht
+  selbst färbt; Vollbild-Programme (vim, htop) bleiben unangetastet.
+* **Bedienung im Terminal:** Markieren = kopieren, Rechtsklick = einfügen (Bracketed Paste), Strg+Umschalt+C/V,
+  Strg+Umschalt+F Suche, Strg+Mausrad Schriftgröße, Links per Klick, Enter in getrennter Session verbindet neu.
+  App-Kürzel im Terminal: Strg+Tab, Strg+Umschalt+W (Tab schließen; Strg+W bleibt „Wort löschen“ der Shell),
+  Strg+Umschalt+M, Strg+Umschalt+L, Strg+Alt+1…4.
+* **Integrationstests** laufen gegen einen echten OpenSSH-Server, wenn `HOSTDECK_TEST_SSH`, `HOSTDECK_TEST_SSH_USER`,
+  `HOSTDECK_TEST_SSH_PASSWORD` (optional `HOSTDECK_TEST_SSH_KEYFILE`) gesetzt sind.

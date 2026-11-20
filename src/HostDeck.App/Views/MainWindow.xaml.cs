@@ -22,6 +22,75 @@ public partial class MainWindow : FluentWindow
         SidebarColumn.Width = new GridLength(Math.Clamp(viewModel.Settings.SidebarWidth, 200, 700));
         Workspace.OpenInPane = viewModel.OpenInPane;
         RegisterShortcuts();
+
+        // Terminal (WebView2) – Kürzel, Theme und Schriftgröße
+        TerminalView.FontSize = viewModel.Settings.TerminalFontSize;
+        TerminalView.FontSizeChanged = size => { viewModel.Settings.TerminalFontSize = size; viewModel.SaveSettings(); };
+        TerminalView.CurrentTheme = () => Wpf.Ui.Appearance.ApplicationThemeManager.GetAppTheme() == Wpf.Ui.Appearance.ApplicationTheme.Light ? "light" : "dark";
+        TerminalView.ShortcutHandler = OnTerminalShortcut;
+
+        viewModel.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(MainViewModel.CurrentTheme))
+                TerminalView.BroadcastTheme(TerminalView.CurrentTheme!());
+        };
+    }
+
+    /// <summary>Tastenkürzel, die im Terminal gedrückt wurden (dort hat WebView2 den Tastaturfokus).</summary>
+    private void OnTerminalShortcut(string key)
+    {
+        switch (key)
+        {
+            case "ctrl+tab": _vm.Workspace.SelectNextTab(); break;
+            case "ctrl+shift+tab": _vm.Workspace.SelectNextTab(backwards: true); break;
+            case "ctrl+shift+w": _vm.Workspace.Close(_vm.Workspace.ActiveTab); break;
+            case "ctrl+shift+m": _vm.ToggleMultiExecutionCommand.Execute(null); break;
+            case "ctrl+shift+l": QuickConnectBox.Focus(); break;
+            case "ctrl+f": SidebarTabs.SelectedIndex = 0; SearchBox.Focus(); break;
+            case "ctrl+alt+arrowright": _vm.Workspace.FocusNextPane(); break;
+            case "ctrl+alt+1": _vm.Workspace.SetLayout(WorkspaceLayout.Single); break;
+            case "ctrl+alt+2": _vm.Workspace.SetLayout(WorkspaceLayout.TwoColumns); break;
+            case "ctrl+alt+3": _vm.Workspace.SetLayout(WorkspaceLayout.TwoRows); break;
+            case "ctrl+alt+4": _vm.Workspace.SetLayout(WorkspaceLayout.Grid); break;
+        }
+    }
+
+    // ---- SFTP-Seitenleiste ---------------------------------------------------------------------------
+
+    private SftpBrowserViewModel? Sftp => _vm.ActiveSftp;
+    private List<object> SftpSelection => SftpList.SelectedItems.Cast<object>().ToList();
+
+    private void OnSftpPathKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.Enter && Sftp is { } sftp) { _ = sftp.NavigateAsync(SftpPath.Text.Trim()); e.Handled = true; }
+    }
+
+    private void OnSftpDoubleClick(object sender, MouseButtonEventArgs e)
+    {
+        if (SftpList.SelectedItem is HostDeck.Protocols.Ssh.RemoteEntry entry) Sftp?.OpenCommand.Execute(entry);
+    }
+
+    private void OnSftpOpen(object sender, RoutedEventArgs e) => OnSftpDoubleClick(sender, null!);
+    private void OnSftpDownload(object sender, RoutedEventArgs e) => Sftp?.DownloadCommand.Execute(SftpSelection);
+    private void OnSftpDelete(object sender, RoutedEventArgs e) => Sftp?.DeleteCommand.Execute(SftpSelection);
+    private void OnSftpRename(object sender, RoutedEventArgs e) => Sftp?.RenameCommand.Execute(SftpList.SelectedItem);
+
+    private void OnSftpUpload(object sender, RoutedEventArgs e)
+    {
+        var dialog = new Microsoft.Win32.OpenFileDialog { Title = "Dateien hochladen", Multiselect = true };
+        if (dialog.ShowDialog(this) == true && Sftp is { } sftp) _ = sftp.UploadAsync(dialog.FileNames);
+    }
+
+    private void OnSftpDragOver(object sender, DragEventArgs e)
+    {
+        e.Effects = e.Data.GetDataPresent(DataFormats.FileDrop) && Sftp is not null ? DragDropEffects.Copy : DragDropEffects.None;
+        e.Handled = true;
+    }
+
+    private void OnSftpDrop(object sender, DragEventArgs e)
+    {
+        if (e.Data.GetData(DataFormats.FileDrop) is string[] files && Sftp is { } sftp) _ = sftp.UploadAsync(files);
+        e.Handled = true;
     }
 
     private void RegisterShortcuts()

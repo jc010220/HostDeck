@@ -23,6 +23,9 @@ public static class Icons
     public static SymbolRegular Keyboard => SymbolRegular.KeyboardShift24;
     public static SymbolRegular Plug => SymbolRegular.PlugConnected24;
     public static SymbolRegular Lock => SymbolRegular.LockClosed24;
+    public static SymbolRegular ArrowUp => SymbolRegular.ArrowUp24;
+    public static SymbolRegular Refresh => SymbolRegular.ArrowClockwise24;
+    public static SymbolRegular Document => SymbolRegular.Document24;
 
     public static SymbolRegular LayoutSingle => SymbolRegular.Square24;
     public static SymbolRegular LayoutColumns => SymbolRegular.LayoutColumnTwo24;

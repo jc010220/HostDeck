@@ -120,8 +120,10 @@
             </Grid.ColumnDefinitions>
 
             <!-- Seitenleiste -->
-            <Border CornerRadius="6" Padding="8" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
+            <Border CornerRadius="6" Padding="6" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="1">
+              <TabControl x:Name="SidebarTabs" Background="Transparent" BorderThickness="0" Padding="0,6,0,0">
+                <TabItem Header="Sitzungen">
                 <DockPanel>
                     <ComboBox x:Name="QuickConnectBox" DockPanel.Dock="Top" IsEditable="True" Margin="0,0,0,6"
                               Text="{Binding QuickConnectText, UpdateSourceTrigger=PropertyChanged}"
@@ -188,6 +190,79 @@
                         </TreeView.ItemTemplate>
                     </TreeView>
                 </DockPanel>
+                </TabItem>
+
+                <!-- ===== SFTP-Browser des aktiven SSH-Tabs ===== -->
+                <TabItem Header="SFTP">
+                    <Grid>
+                        <TextBlock Margin="8,24" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                   Text="Öffne eine SSH-Session – der Dateibrowser folgt dann automatisch dem Verzeichnis im Terminal."
+                                   Visibility="{Binding ActiveSftp, Converter={StaticResource NullToVisibility}, ConverterParameter=invert}" />
+                        <DockPanel DataContext="{Binding ActiveSftp}"
+                                   Visibility="{Binding Converter={StaticResource NullToVisibility}}">
+                            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                                <ui:Button DockPanel.Dock="Left" Appearance="Transparent" Padding="6,4" Command="{Binding UpCommand}" ToolTip="Übergeordneter Ordner">
+                                    <ui:SymbolIcon Symbol="{x:Static app:Icons.ArrowUp}" />
+                                </ui:Button>
+                                <ui:Button DockPanel.Dock="Right" Appearance="Transparent" Padding="6,4" Command="{Binding RefreshCommand}" ToolTip="Aktualisieren">
+                                    <ui:SymbolIcon Symbol="{x:Static app:Icons.Refresh}" />
+                                </ui:Button>
+                                <TextBox x:Name="SftpPath" Text="{Binding Path, Mode=OneWay}" FontFamily="{StaticResource MonoFont}" FontSize="12"
+                                         KeyDown="OnSftpPathKeyDown" ToolTip="Pfad eingeben und Enter drücken" />
+                            </DockPanel>
+                            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6" LastChildFill="False">
+                                <CheckBox Content="Terminal folgen" IsChecked="{Binding FollowTerminal}" ToolTip="Ordner wechselt mit „cd“ im Terminal" />
+                                <ui:Button DockPanel.Dock="Right" Appearance="Transparent" Padding="6,4" Command="{Binding NewFolderCommand}" ToolTip="Neuer Ordner">
+                                    <ui:SymbolIcon Symbol="{x:Static app:Icons.FolderAdd}" />
+                                </ui:Button>
+                            </DockPanel>
+                            <StackPanel DockPanel.Dock="Bottom" Margin="2,6,0,0">
+                                <ProgressBar Height="3" Value="{Binding TransferPercent}" Margin="0,0,0,4"
+                                             Visibility="{Binding IsTransferring, Converter={StaticResource BoolToVisibility}}" />
+                                <TextBlock Text="{Binding Status}" FontSize="11" TextTrimming="CharacterEllipsis"
+                                           Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                            </StackPanel>
+                            <ListView x:Name="SftpList" ItemsSource="{Binding Entries}" SelectionMode="Extended" AllowDrop="True"
+                                      MouseDoubleClick="OnSftpDoubleClick" Drop="OnSftpDrop" DragOver="OnSftpDragOver"
+                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                                <ListView.ItemTemplate>
+                                    <DataTemplate>
+                                        <DockPanel ToolTip="{Binding Permissions}">
+                                            <ui:SymbolIcon DockPanel.Dock="Left" FontSize="16" Margin="0,0,8,0">
+                                                <ui:SymbolIcon.Style>
+                                                    <Style TargetType="ui:SymbolIcon">
+                                                        <Setter Property="Symbol" Value="{x:Static app:Icons.Document}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsDirectory}" Value="True">
+                                                                <Setter Property="Symbol" Value="{x:Static app:Icons.Folder}" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </ui:SymbolIcon.Style>
+                                            </ui:SymbolIcon>
+                                            <TextBlock DockPanel.Dock="Right" FontSize="11" Margin="8,0,0,0" VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                       Text="{Binding Size, Converter={StaticResource FileSize}}" />
+                                            <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ListView.ItemTemplate>
+                                <ListView.ContextMenu>
+                                    <ContextMenu>
+                                        <MenuItem Header="Öffnen / Herunterladen (Downloads)" Click="OnSftpOpen" FontWeight="SemiBold" />
+                                        <MenuItem Header="Herunterladen nach …" Click="OnSftpDownload" />
+                                        <MenuItem Header="Umbenennen" Click="OnSftpRename" />
+                                        <MenuItem Header="Löschen" Click="OnSftpDelete" />
+                                        <Separator />
+                                        <MenuItem Header="Dateien hochladen …" Click="OnSftpUpload" />
+                                        <MenuItem Header="Neuer Ordner" Command="{Binding NewFolderCommand}" />
+                                    </ContextMenu>
+                                </ListView.ContextMenu>
+                            </ListView>
+                        </DockPanel>
+                    </Grid>
+                </TabItem>
+              </TabControl>
             </Border>
 
             <GridSplitter Grid.Column="1" Width="6" HorizontalAlignment="Stretch" Background="Transparent"

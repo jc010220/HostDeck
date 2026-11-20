@@ -49,6 +49,10 @@ public sealed partial class SessionTabViewModel : ObservableObject
     /// <summary>SSH-Engine (Phase 4a); bei anderen Protokollen null.</summary>
     [ObservableProperty] private TerminalSessionViewModel? _terminal;
 
+    /// <summary>Tab wurde geschlossen (View gibt WebView2/RDP-Control frei).</summary>
+    public event EventHandler? Closed;
+    internal void RaiseClosed() => Closed?.Invoke(this, EventArgs.Empty);
+
     /// <summary>Für die View: Platzhalter nur, solange keine Engine existiert.</summary>
     public bool HasEngine => Terminal is not null;
     partial void OnTerminalChanged(TerminalSessionViewModel? value) => OnPropertyChanged(nameof(HasEngine));
@@ -176,6 +180,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject
         pane.Tabs.RemoveAt(index);
         if (pane.SelectedTab == tab) pane.SelectedTab = null;
         if (tab.Terminal is { } terminal) _ = terminal.DisposeAsync().AsTask(); // Verbindung trennen
+        tab.RaiseClosed();
         if (pane.SelectedTab is null || pane.SelectedTab == tab)
             pane.SelectedTab = pane.Tabs.Count == 0 ? null : pane.Tabs[Math.Min(index, pane.Tabs.Count - 1)];
         pane.NotifyEmptyChanged();

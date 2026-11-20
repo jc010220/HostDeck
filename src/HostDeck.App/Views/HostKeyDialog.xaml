@@ -1,0 +1,35 @@
+<ui:FluentWindow x:Class="HostDeck.App.Views.HostKeyDialog"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 Title="SSH-Host-Key" Width="560" SizeToContent="Height"
+                 WindowStartupLocation="CenterOwner" ResizeMode="NoResize" ShowInTaskbar="False"
+                 ExtendsContentIntoTitleBar="True" WindowBackdropType="Mica">
+    <StackPanel Margin="0,0,0,20">
+        <ui:TitleBar x:Name="TitleBar" Title="SSH-Host-Key" ShowMinimize="False" ShowMaximize="False" />
+        <StackPanel Margin="24,4,24,0">
+            <Border x:Name="WarningBox" Background="#33E81123" BorderBrush="#E81123" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12" Visibility="Collapsed">
+                <TextBlock TextWrapping="Wrap" FontWeight="SemiBold"
+                           Text="ACHTUNG: Der Host-Key hat sich geändert! Das kann eine Neuinstallation des Servers bedeuten – oder einen Man-in-the-Middle-Angriff. Nur fortfahren, wenn die Änderung bekannt ist." />
+            </Border>
+            <TextBlock x:Name="Intro" TextWrapping="Wrap" Margin="0,0,0,12" />
+            <Grid Margin="0,0,0,12">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
+                <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
+                <TextBlock Text="Host" Margin="0,2,16,2" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                <TextBlock x:Name="HostText" Grid.Column="1" Margin="0,2" />
+                <TextBlock Grid.Row="1" Text="Schlüsseltyp" Margin="0,2,16,2" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                <TextBlock x:Name="TypeText" Grid.Row="1" Grid.Column="1" Margin="0,2" />
+                <TextBlock Grid.Row="2" Text="Fingerprint" Margin="0,2,16,2" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                <TextBox x:Name="FingerprintText" Grid.Row="2" Grid.Column="1" IsReadOnly="True" BorderThickness="0" Background="Transparent" FontFamily="{StaticResource MonoFont}" TextWrapping="Wrap" />
+                <TextBlock x:Name="PreviousLabel" Grid.Row="3" Text="Bisher" Margin="0,2,16,2" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                <TextBox x:Name="PreviousText" Grid.Row="3" Grid.Column="1" IsReadOnly="True" BorderThickness="0" Background="Transparent" FontFamily="{StaticResource MonoFont}" TextWrapping="Wrap" />
+            </Grid>
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                <ui:Button Content="Abbrechen" IsCancel="True" MinWidth="96" Margin="0,0,8,0" />
+                <ui:Button Content="Nur diesmal" MinWidth="96" Margin="0,0,8,0" Click="OnOnce" />
+                <ui:Button x:Name="SaveButton" Content="Vertrauen und speichern" Appearance="Primary" MinWidth="160" Click="OnSave" />
+            </StackPanel>
+        </StackPanel>
+    </StackPanel>
+</ui:FluentWindow>

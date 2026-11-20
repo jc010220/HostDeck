@@ -5,26 +5,38 @@ using HostDeck.Storage;
 namespace HostDeck.App.Services;
 
 /// <summary>Verbindet den verschlüsselten Store mit dem ViewModel (Gerätschlüssel = Windows DPAPI).</summary>
+/// <remarks>
+/// Thread-sicher: Host-Key-Abfragen kommen aus dem SSH-Verbindungsthread, Speichern aus dem UI-Thread –
+/// eine SQLite-Verbindung darf aber nicht parallel benutzt werden.
+/// </remarks>
 public sealed class StoreAdapter(EncryptedConnectionStore store, IDeviceKeyProtector deviceProtector) : IConnectionStore, IDisposable
 {
+    private readonly Lock _lock = new();
+
     public string Location => store.DatabasePath;
-    public ConnectionTree Load() => store.Load();
-    public void Save(ConnectionTree tree) => store.Save(tree);
+    public ConnectionTree Load() { lock (_lock) return store.Load(); }
+    public void Save(ConnectionTree tree) { lock (_lock) store.Save(tree); }
+
+    public string? Find(string host, int port, string keyType) { lock (_lock) return store.FindHostKey(host, port, keyType); }
+    public void Remember(string host, int port, string keyType, string fingerprint) { lock (_lock) store.RememberHostKey(host, port, keyType, fingerprint); }
 
     public bool HasDeviceUnlock => store.HasDeviceUnlock;
     public bool DeviceUnlockSupported => OperatingSystem.IsWindows();
 
     public void SetDeviceUnlock(bool enabled)
     {
-        if (enabled) store.EnableDeviceUnlock(deviceProtector);
-        else store.DisableDeviceUnlock();
+        lock (_lock)
+        {
+            if (enabled) store.EnableDeviceUnlock(deviceProtector);
+            else store.DisableDeviceUnlock();
+        }
     }
 
     public void ChangeMasterPassword(string currentPassword, string newPassword)
     {
-        try { store.ChangeMasterPassword(currentPassword, newPassword); }
+        try { lock (_lock) store.ChangeMasterPassword(currentPassword, newPassword); }
         catch (WrongMasterPasswordException) { throw new UnauthorizedAccessException(); }
     }
 
-    public void Dispose() => store.Dispose();
+    public void Dispose() { lock (_lock) store.Dispose(); }
 }

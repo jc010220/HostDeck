@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self'" />
+  <link rel="stylesheet" href="xterm.css" />
+  <style>
+    html, body { margin: 0; height: 100%; overflow: hidden; background: #1e1e1e; }
+    #terminal { position: absolute; inset: 4px 0 0 6px; }
+    #search { position: absolute; top: 6px; right: 18px; display: none; z-index: 10; gap: 4px;
+              background: #2d2d2d; border: 1px solid #555; border-radius: 6px; padding: 4px 6px; font: 12px "Segoe UI", sans-serif; color: #ddd; }
+    #search.open { display: flex; align-items: center; }
+    #search input { width: 200px; background: #1e1e1e; color: #eee; border: 1px solid #555; border-radius: 4px; padding: 3px 6px; outline: none; }
+    #search button { background: none; border: none; color: #ddd; cursor: pointer; padding: 2px 6px; }
+  </style>
+</head>
+<body>
+  <div id="terminal"></div>
+  <div id="search">
+    <input id="searchInput" placeholder="Suchen …" spellcheck="false" />
+    <button id="searchPrev" title="Vorheriger (Umschalt+Enter)">▲</button>
+    <button id="searchNext" title="Nächster (Enter)">▼</button>
+    <button id="searchClose" title="Schließen (Esc)">✕</button>
+  </div>
+  <script src="xterm.js"></script>
+  <script src="addon-fit.js"></script>
+  <script src="addon-web-links.js"></script>
+  <script src="addon-search.js"></script>
+  <script src="addon-unicode11.js"></script>
+  <script src="terminal.js"></script>
+</body>
+</html>

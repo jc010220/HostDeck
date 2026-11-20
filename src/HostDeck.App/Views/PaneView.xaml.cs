@@ -39,6 +39,11 @@ public partial class PaneView : UserControl
 
     private void OnCloseMenu(object sender, RoutedEventArgs e) => Workspace?.Close(TabOf(sender));
 
+    private void OnReconnectMenu(object sender, RoutedEventArgs e)
+    {
+        if (TabOf(sender)?.Terminal is { } terminal) _ = terminal.ConnectAsync();
+    }
+
     private void OnSaveMenu(object sender, RoutedEventArgs e)
     {
         if (Window.GetWindow(this)?.DataContext is MainViewModel main)

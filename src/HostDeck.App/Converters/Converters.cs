@@ -49,3 +49,25 @@ public sealed class EnumEqualsConverter : IValueConverter
     public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture)
         => value is true && parameter is not null ? Enum.Parse(targetType, parameter.ToString()!) : Binding.DoNothing;
 }
+
+public sealed class NullToVisibilityConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => (value is null) ^ (parameter as string == "invert") ? Visibility.Collapsed : Visibility.Visible;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
+}
+
+public sealed class FileSizeConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value switch
+    {
+        long b when b < 1024 => $"{b} B",
+        long b when b < 1024 * 1024 => $"{b / 1024.0:0.#} KB",
+        long b when b < 1024L * 1024 * 1024 => $"{b / 1024.0 / 1024:0.#} MB",
+        long b => $"{b / 1024.0 / 1024 / 1024:0.##} GB",
+        _ => "",
+    };
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
+}

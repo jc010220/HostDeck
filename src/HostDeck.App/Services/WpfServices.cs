@@ -1,6 +1,7 @@
 using System.Windows;
 using HostDeck.App.Views;
 using HostDeck.Presentation.Services;
+using HostDeck.Protocols.Ssh;
 using Microsoft.Win32;
 using Wpf.Ui.Appearance;
 
@@ -38,6 +39,24 @@ public sealed class DialogService : IDialogService
     {
         var dialog = new MasterKeyDialog(MasterKeyDialogMode.Change) { Owner = Owner };
         return dialog.ShowDialog() == true ? (dialog.CurrentPassword, dialog.Password) : null;
+    }
+
+    public HostKeyDecision AskHostKey(HostKeyInfo info)
+    {
+        var dialog = new HostKeyDialog(info) { Owner = Owner };
+        return dialog.ShowDialog() == true ? dialog.Decision : HostKeyDecision.Reject;
+    }
+
+    public string? Prompt(string title, string message, string defaultValue = "", bool secret = false)
+    {
+        var dialog = new InputDialog(title, message, defaultValue, secret) { Owner = Owner };
+        return dialog.ShowDialog() == true ? dialog.Value : null;
+    }
+
+    public string? PickFolder(string title)
+    {
+        var dialog = new OpenFolderDialog { Title = title, Multiselect = false };
+        return dialog.ShowDialog(Owner) == true ? dialog.FolderName : null;
     }
 
     public void ShowInfo(string title, string message) => new MessageDialog(title, message, isError: false) { Owner = Owner }.ShowDialog();

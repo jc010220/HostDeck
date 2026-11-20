@@ -2,7 +2,7 @@
 
 Moderne, schnelle Alternative zu mRemoteNG mit MobaXterm-artiger Bedienung (WPF, .NET 10).
 
-**Stand:** Phase 1 (Architektur, Datenmodell), Phase 2 (mRemoteNG-Import/Export inkl. Passwort-Entschlüsselung) Phase 2b (verschlüsselte Datenbank mit Master-Passwort) und Phase 3 (UI-Grundgerüst: Seitenleiste, Quick-Connect, Tabs, Split-Screen) sind fertig. Die Protokoll-Engines (RDP, SSH/SFTP) folgen in Phase 4. Architektur siehe [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+**Stand:** Phase 1 (Architektur, Datenmodell), Phase 2 (mRemoteNG-Import/Export inkl. Passwort-Entschlüsselung) Phase 2b (verschlüsselte Datenbank mit Master-Passwort) und Phase 3 (UI-Grundgerüst: Seitenleiste, Quick-Connect, Tabs, Split-Screen) sind fertig. Phase 4a (SSH-Terminal mit xterm.js, SFTP-Browser, Multi-Exec, Highlighting) ist fertig; RDP folgt in Phase 4b. Architektur siehe [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 ## Bauen und Testen
 

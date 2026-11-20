@@ -20,8 +20,11 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="WPF-UI" />
+    <PackageReference Include="Microsoft.Web.WebView2" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Assets\hostdeck.ico" />
+    <!-- Terminal (xterm.js, MIT) als eingebettete Ressource: funktioniert auch in der Single-File-EXE -->
+    <EmbeddedResource Include="Assets\Terminal\*" LogicalName="terminal/%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>

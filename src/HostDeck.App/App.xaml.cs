@@ -58,6 +58,7 @@ public partial class App : Application
         viewModel.AppVersion = _updates.CurrentVersion;
         viewModel.CheckForUpdatesAction = () => _ = _updates.CheckAsync(interactive: true);
         var window = new MainWindow(viewModel);
+        Views.MainWindow.RegisterGlobalShortcuts(window);
         MainWindow = window;
         ShutdownMode = ShutdownMode.OnMainWindowClose;
         window.Closing += (_, _) => viewModel.Shutdown();

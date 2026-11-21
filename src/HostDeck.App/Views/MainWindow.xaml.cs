@@ -63,6 +63,7 @@ public partial class MainWindow : FluentWindow
         switch (key)
         {
             case "ctrl+shift+k" or "ctrl+shift+p": ShowPalette(Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive) ?? this); break;
+            case "ctrl+,": _vm.OpenSettingsCommand.Execute(null); break;
             case "ctrl+tab": _vm.FocusedWorkspace.SelectNextTab(); break;
             case "ctrl+shift+tab": _vm.FocusedWorkspace.SelectNextTab(backwards: true); break;
             case "ctrl+shift+w": _vm.FocusedWorkspace.Close(_vm.FocusedWorkspace.ActiveTab); break;
@@ -80,6 +81,29 @@ public partial class MainWindow : FluentWindow
 
     /// <summary>Schnellsuche öffnen (Strg+K; im Terminal Strg+Umschalt+K, da Strg+K dort „Zeile löschen“ ist).</summary>
     public void ShowPalette() => ShowPalette(this);
+
+    /// <summary>
+    /// App-weite Kürzel, die immer funktionieren müssen – egal welches Element (Baum, Suchfeld, Liste, Web-Tab,
+    /// abgelöstes Fenster) gerade den Fokus hat. Läuft als Klassen-Handler vor allen Steuerelementen, die
+    /// Tastendrücke sonst selbst verbrauchen (z. B. Textfelder, Listen, Menüs).
+    /// </summary>
+    public static void RegisterGlobalShortcuts(MainWindow main) =>
+        EventManager.RegisterClassHandler(typeof(Window), Keyboard.PreviewKeyDownEvent, new KeyEventHandler((sender, e) =>
+        {
+            if (e.Handled || sender is not (MainWindow or SessionWindow)) return; // nicht in Dialogen/Palette
+            var mods = Keyboard.Modifiers;
+            var key = e.Key == Key.System ? e.SystemKey : e.Key;
+            if ((key == Key.K && mods == ModifierKeys.Control) || (key == Key.P && mods == (ModifierKeys.Control | ModifierKeys.Shift)))
+            {
+                main.ShowPalette((Window)sender);
+                e.Handled = true;
+            }
+            else if (key == Key.OemComma && mods == ModifierKeys.Control)
+            {
+                main._vm.OpenSettingsCommand.Execute(null);
+                e.Handled = true;
+            }
+        }));
 
     public void ShowPalette(Window owner)
     {
@@ -160,8 +184,6 @@ public partial class MainWindow : FluentWindow
         void Bind(Key key, ModifierKeys modifiers, Action action) =>
             InputBindings.Add(new KeyBinding(new RelayCommand(action), key, modifiers));
 
-        Bind(Key.K, ModifierKeys.Control, ShowPalette);
-        Bind(Key.P, ModifierKeys.Control | ModifierKeys.Shift, ShowPalette);
         Bind(Key.F, ModifierKeys.Control, FocusSearch);
         Bind(Key.B, ModifierKeys.Control | ModifierKeys.Shift, ToggleSidebar);
         Bind(Key.S, ModifierKeys.Control, () => { if (_vm.HasTeamLibrary) _vm.SyncTeamCommand.Execute(null); });

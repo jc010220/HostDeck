@@ -20,7 +20,7 @@ If mRemoteNG is installed, HostDeck offers to import `%APPDATA%\mRemoteNG\confCo
 | Area | |
 |---|---|
 | **Protocols** | RDP (native Windows client, live resolution, DPI scaling, RD Gateway, Restricted Admin), SSH (password/key/OTP, host key verification), Telnet (auto-login for network devices), raw TCP, VNC (built-in client: ZRLE/Hextile), HTTP/HTTPS (WebView2, login from the vault) |
-| **Usability** | Quick search **Ctrl+K** (fuzzy over name, IP, folder, tags; commands with `>`), quick connect `ssh user@host`, filter, drag & drop, favorites, recently used, duplicate connections |
+| **Usability** | Quick search **Ctrl+K** (fuzzy over name, IP, folder, tags and commands; only commands with `>`), quick connect `ssh user@host`, filter, drag & drop, favorites, recently used, duplicate connections |
 | **Windows** | Tabs, split view 1/2/2/4 with movable splitters, drag tabs into their own windows (second monitor), save workspaces and restore them on startup, collapsible sidebar |
 | **Terminal** | xterm.js: colors, Unicode, search, zoom, select = copy, right-click = paste, syntax highlighting (errors/warnings/IPs), multi-execution, snippets with placeholders |
 | **SFTP** | Sidebar automatically follows `cd` in the terminal, upload via drag & drop, download, rename, delete |
@@ -34,6 +34,7 @@ If mRemoteNG is installed, HostDeck offers to import `%APPDATA%\mRemoteNG\confCo
 | Key | Action |
 |---|---|
 | **Ctrl+K** (in the terminal Ctrl+Shift+K) | Quick search: Enter connects, Ctrl+Enter opens in split view, Alt+Enter shows in tree |
+| Ctrl+, | Settings |
 | Ctrl+L / Ctrl+F | Quick connect / filter the tree |
 | F2 / F4 / Del | Rename / properties / delete |
 | Ctrl+S | Sync team library |

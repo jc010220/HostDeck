@@ -30,7 +30,12 @@
                 <TextBlock x:Name="StrengthText" FontSize="11" Margin="0,0,0,8" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
             </StackPanel>
 
-            <CheckBox x:Name="RememberBox" Content="Remember on this PC (Windows account, no password needed)" Margin="0,4,0,8" />
+            <CheckBox x:Name="RememberBox" Margin="0,4,0,8">
+                <TextBlock TextWrapping="Wrap">
+                    <Run Text="Remember on this PC" /><LineBreak />
+                    <Run Text="Unlock with your Windows account, no password needed" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                </TextBlock>
+            </CheckBox>
             <TextBlock x:Name="ErrorText" Foreground="#E81123" TextWrapping="Wrap" Visibility="Collapsed" Margin="0,0,0,8" />
 
             <DockPanel Margin="0,8,0,0">

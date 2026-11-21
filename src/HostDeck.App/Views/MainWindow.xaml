@@ -124,13 +124,21 @@
                         <ContextMenu>
                             <MenuItem Header="Settings …" Command="{Binding OpenSettingsCommand}" />
                             <MenuItem Header="Manage credentials (vault) …" Command="{Binding ManageVaultCommand}" />
-                            <MenuItem Header="Change master password …" Command="{Binding ChangeMasterPasswordCommand}" />
+                            <MenuItem Header="Change HostDeck master password …" Command="{Binding ChangeMasterPasswordCommand}" />
                             <MenuItem Header="Create backup …" Command="{Binding BackupCommand}" />
                             <MenuItem Header="Remember on this PC (unlock without password)" IsCheckable="True"
                                       IsChecked="{Binding IsDeviceUnlockEnabled}"
                                       Visibility="{Binding DeviceUnlockSupported, Converter={StaticResource BoolToVisibility}}" />
                             <Separator />
-                            <MenuItem Header="{Binding StoreLocation}" HeaderStringFormat="Datenbank: {0}" IsEnabled="False" />
+                            <MenuItem Header="Connect team library …" Command="{Binding ConnectTeamLibraryCommand}" />
+                            <MenuItem Header="Sync team library" InputGestureText="Ctrl+S" Command="{Binding SyncTeamCommand}"
+                                      Visibility="{Binding HasTeamLibrary, Converter={StaticResource BoolToVisibility}}" />
+                            <MenuItem Header="Set team file password …" Command="{Binding SetTeamPasswordCommand}"
+                                      Visibility="{Binding HasTeamLibrary, Converter={StaticResource BoolToVisibility}}" />
+                            <MenuItem Header="Disconnect team library" Command="{Binding DisconnectTeamLibraryCommand}"
+                                      Visibility="{Binding HasTeamLibrary, Converter={StaticResource BoolToVisibility}}" />
+                            <Separator />
+                            <MenuItem Header="{Binding StoreLocation}" HeaderStringFormat="Database: {0}" IsEnabled="False" />
                         </ContextMenu>
                     </ui:Button.ContextMenu>
                 </ui:Button>

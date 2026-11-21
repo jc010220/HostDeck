@@ -76,7 +76,7 @@ public sealed class UpdateService(MainViewModel vm, IDialogService dialogs, ICon
     /// <summary>Beim Start (verzögert, höchstens einmal täglich) still prüfen und im Hintergrund laden.</summary>
     public async Task CheckOnStartupAsync()
     {
-        if (Manager is not { IsInstalled: true }) return;
+        if (!vm.Settings.AutoUpdate || Manager is not { IsInstalled: true }) return;
         if (vm.Settings.LastUpdateCheckUtc is { } last && DateTime.UtcNow - last < TimeSpan.FromHours(20)) return;
         await Task.Delay(TimeSpan.FromSeconds(15));
         await CheckAsync(interactive: false);
@@ -111,6 +111,13 @@ public sealed class UpdateService(MainViewModel vm, IDialogService dialogs, ICon
             vm.StatusText = $"Update {info.TargetFullRelease.Version} ready – installed on exit (Ctrl+K → “Update now”).";
             if (!vm.AppActions.Any(a => a.Title.StartsWith("Update now", StringComparison.Ordinal)))
                 vm.AppActions.Insert(0, ($"Update now to {info.TargetFullRelease.Version} (restart)", "update neustart restart", ApplyNow));
+            if (interactive && dialogs.Confirm("Update ready",
+                    $"HostDeck {info.TargetFullRelease.Version} has been downloaded.\n\nRestart now to install it? Open connections will be closed " +
+                    "(the workspace is restored).\n\nNo: it is installed automatically when you close HostDeck."))
+            {
+                vm.Shutdown();
+                manager.ApplyUpdatesAndRestart(info);
+            }
         }
         catch (Exception ex) // Hintergrundprüfung darf nie die App stören (Velopack wirft teils eigene Typen)
         {

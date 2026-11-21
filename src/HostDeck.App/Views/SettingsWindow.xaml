@@ -47,13 +47,25 @@
                        Text="Shared confCons.xml (stays compatible with mRemoteNG). Changes by others appear automatically, save your own with Ctrl+S. Folder instead of file: the newest .xml in it is used." />
 
             <TextBlock Text="Updates" FontWeight="SemiBold" Margin="0,16,0,6" />
-            <ui:TextBox Text="{Binding UpdateSource, UpdateSourceTrigger=PropertyChanged}"
-                        PlaceholderText="\\server\software\HostDeck  ·  https://…  ·  https://github.com/…" />
-            <TextBlock Margin="0,4,0,0" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                       Text="Updates are downloaded in the background and installed on exit (only when installed via Setup.exe)." />
-            <ui:PasswordBox x:Name="TokenBox" Margin="0,8,0,0" PlaceholderText="{Binding UpdateTokenHint}" />
-            <TextBlock Margin="0,4,0,0" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                       Text="GitHub → Settings → Developer settings → Fine-grained tokens: only this repository, permission “Contents: Read-only”. Stored encrypted in the HostDeck database." />
+            <DockPanel>
+                <ui:Button DockPanel.Dock="Right" Content="Check for updates now" Click="OnCheckForUpdates" VerticalAlignment="Center" />
+                <ui:ToggleSwitch Content="Install updates automatically" IsChecked="{Binding AutoUpdate}" VerticalAlignment="Center" />
+            </DockPanel>
+            <TextBlock Margin="0,4,0,0" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}">
+                <Run Text="When on, HostDeck checks once a day, downloads new versions in the background and installs them when you close the app – never during a session. " />
+                <Run Text="{Binding LastUpdateCheckText, Mode=OneWay}" />
+            </TextBlock>
+            <Expander Header="Advanced: update source and access token" Margin="0,8,0,0">
+                <StackPanel Margin="0,6,0,0">
+                    <ui:TextBox Text="{Binding UpdateSource, UpdateSourceTrigger=PropertyChanged}"
+                                PlaceholderText="https://github.com/…  ·  \\server\software\HostDeck  ·  https://…" />
+                    <TextBlock Margin="0,4,0,0" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                               Text="Default: the HostDeck GitHub repository. A network share or HTTPS folder with the release files works as well." />
+                    <ui:PasswordBox x:Name="TokenBox" Margin="0,8,0,0" PlaceholderText="{Binding UpdateTokenHint}" />
+                    <TextBlock Margin="0,4,0,0" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                               Text="Only for a private GitHub repository: GitHub → Settings → Developer settings → Fine-grained tokens, only this repository, permission “Contents: Read-only”. Stored encrypted in the HostDeck database." />
+                </StackPanel>
+            </Expander>
 
             <DockPanel Margin="0,20,0,0">
                 <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}">

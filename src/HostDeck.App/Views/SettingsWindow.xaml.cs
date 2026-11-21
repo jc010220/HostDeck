@@ -29,6 +29,8 @@ public partial class SettingsWindow : FluentWindow
         if (dialog.ShowDialog(this) == true) vm.TeamLibraryPath = dialog.FileName;
     }
 
+    private void OnCheckForUpdates(object sender, RoutedEventArgs e) => ((SettingsViewModel)DataContext).CheckForUpdates?.Invoke();
+
     private void OnOk(object sender, RoutedEventArgs e)
     {
         ((SettingsViewModel)DataContext).UpdateToken = TokenBox.Password ?? "";

@@ -716,6 +716,7 @@ public sealed partial class MainViewModel : ObservableObject
         var editor = new SettingsViewModel(Settings, !string.IsNullOrEmpty(_store.ReadDocument(SettingsViewModel.UpdateTokenDocument)))
         {
             AppVersion = AppVersion,
+            CheckForUpdates = CheckForUpdatesAction,
         };
         if (!_dialogs.EditSettings(editor)) return;
         var themeChanged = editor.ThemeChanged;

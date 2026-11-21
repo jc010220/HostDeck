@@ -28,6 +28,9 @@ public sealed partial class SettingsViewModel : ObservableObject
         _updateSource = settings.UpdateSource ?? "";
         _teamLibraryPath = settings.TeamLibraryPath ?? "";
         _teamReadOnly = settings.TeamReadOnly;
+        _autoUpdate = settings.AutoUpdate;
+        LastUpdateCheckText = settings.LastUpdateCheckUtc is { } last
+            ? $"Last checked: {last.ToLocalTime():g}" : "Not checked yet";
     }
 
     public IReadOnlyList<AppTheme> Themes { get; } = Enum.GetValues<AppTheme>();
@@ -47,6 +50,11 @@ public sealed partial class SettingsViewModel : ObservableObject
     /// <summary>Wird nicht in <see cref="Apply"/> übernommen – das Verbinden erledigt das MainViewModel.</summary>
     [ObservableProperty] private string _teamLibraryPath;
     [ObservableProperty] private bool _teamReadOnly;
+    [ObservableProperty] private bool _autoUpdate;
+    public string LastUpdateCheckText { get; }
+
+    /// <summary>„Jetzt nach Updates suchen“ (von der App gesetzt).</summary>
+    public Action? CheckForUpdates { get; init; }
     /// <summary>Neu eingegebener Token (leer = unverändert). Wird nie aus dem Speicher vorbefüllt.</summary>
     [ObservableProperty] private string _updateToken = "";
 
@@ -68,6 +76,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _settings.RestoreWorkspaceOnStart = RestoreWorkspace;
         _settings.ShowReachability = ShowReachability;
         _settings.TerminalFontSize = Math.Clamp(FontSize, 8, 32);
+        _settings.AutoUpdate = AutoUpdate;
         var source = UpdateSource.Trim();
         if (source != (_settings.UpdateSource ?? ""))
         {

@@ -97,6 +97,8 @@ public sealed class AppSettings
     /// <summary>Standard-Update-Quelle wurde einmalig eingetragen (danach gilt die Wahl des Benutzers, auch „leer“).</summary>
     public bool UpdateSourceDefaulted { get; set; }
     public DateTime? LastUpdateCheckUtc { get; set; }
+    /// <summary>Täglich im Hintergrund prüfen, laden und beim Beenden installieren.</summary>
+    public bool AutoUpdate { get; set; } = true;
     /// <summary>Gemeinsame Team-Datei (confCons.xml auf dem Netzlaufwerk oder Ordner mit lokaler Kopie).</summary>
     public string? TeamLibraryPath { get; set; }
     /// <summary>Nur lesen (z. B. Jumphost): Änderungen anderer übernehmen, nie zurückschreiben.</summary>

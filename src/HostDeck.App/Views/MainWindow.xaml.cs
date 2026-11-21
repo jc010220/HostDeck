@@ -20,6 +20,7 @@ public partial class MainWindow : FluentWindow
         InitializeComponent();
 
         SidebarColumn.Width = new GridLength(Math.Clamp(viewModel.Settings.SidebarWidth, 200, 700));
+        SetSidebarVisible(!viewModel.Settings.SidebarCollapsed, save: false);
         Workspace.OpenInPane = viewModel.OpenInPane;
         RegisterShortcuts();
         // Ordner aufgeklappt ⇒ Online-Status der jetzt sichtbaren Verbindungen gleich prüfen
@@ -60,7 +61,8 @@ public partial class MainWindow : FluentWindow
             case "ctrl+shift+w": _vm.FocusedWorkspace.Close(_vm.FocusedWorkspace.ActiveTab); break;
             case "ctrl+shift+m": _vm.ToggleMultiExecutionCommand.Execute(null); break;
             case "ctrl+shift+l": QuickConnectBox.Focus(); break;
-            case "ctrl+f": SidebarTabs.SelectedIndex = 0; SearchBox.Focus(); break;
+            case "ctrl+f": FocusSearch(); break;
+            case "ctrl+shift+b": ToggleSidebar(); break;
             case "ctrl+alt+arrowright": _vm.Workspace.FocusNextPane(); break;
             case "ctrl+alt+1": _vm.Workspace.SetLayout(WorkspaceLayout.Single); break;
             case "ctrl+alt+2": _vm.Workspace.SetLayout(WorkspaceLayout.TwoColumns); break;
@@ -153,7 +155,8 @@ public partial class MainWindow : FluentWindow
 
         Bind(Key.K, ModifierKeys.Control, ShowPalette);
         Bind(Key.P, ModifierKeys.Control | ModifierKeys.Shift, ShowPalette);
-        Bind(Key.F, ModifierKeys.Control, () => { SearchBox.Focus(); SearchBox.SelectAll(); });
+        Bind(Key.F, ModifierKeys.Control, FocusSearch);
+        Bind(Key.B, ModifierKeys.Control | ModifierKeys.Shift, ToggleSidebar);
         Bind(Key.L, ModifierKeys.Control, () => QuickConnectBox.Focus());
         Bind(Key.O, ModifierKeys.Control, () => _vm.ImportMRemoteNGCommand.Execute(null));
         Bind(Key.N, ModifierKeys.Control, () => _vm.NewConnectionCommand.Execute(null));
@@ -282,6 +285,33 @@ public partial class MainWindow : FluentWindow
             menu.DataContext = DataContext;
             menu.IsOpen = true;
         }
+    }
+
+    // ---- Seitenleiste ein-/ausklappen ---------------------------------------------------------------
+
+    private void OnSidebarToggle(object sender, RoutedEventArgs e) => SetSidebarVisible(SidebarToggle.IsChecked == true);
+
+    private void ToggleSidebar() => SetSidebarVisible(SidebarPanel.Visibility != Visibility.Visible);
+
+    /// <summary>Suche braucht die Seitenleiste – eingeklappt wird sie dafür wieder geöffnet.</summary>
+    private void FocusSearch()
+    {
+        if (SidebarPanel.Visibility != Visibility.Visible) SetSidebarVisible(true);
+        SidebarTabs.SelectedIndex = 0;
+        Dispatcher.BeginInvoke(() => { SearchBox.Focus(); SearchBox.SelectAll(); }, System.Windows.Threading.DispatcherPriority.Input);
+    }
+
+    private void SetSidebarVisible(bool visible, bool save = true)
+    {
+        SidebarPanel.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
+        SidebarSplitter.Visibility = SidebarPanel.Visibility;
+        SidebarColumn.MinWidth = visible ? 200 : 0;
+        SidebarColumn.Width = visible ? new GridLength(Math.Clamp(_vm.Settings.SidebarWidth, 200, 700)) : new GridLength(0);
+        SplitterColumn.Width = new GridLength(visible ? 6 : 0);
+        SidebarToggle.IsChecked = visible;
+        if (!save || _vm.Settings.SidebarCollapsed == !visible) return;
+        _vm.Settings.SidebarCollapsed = !visible;
+        _vm.SaveSettings();
     }
 
     private void OnSidebarResized(object sender, System.Windows.Controls.Primitives.DragCompletedEventArgs e)

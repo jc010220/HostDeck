@@ -27,6 +27,7 @@ public static class Icons
     public static SymbolRegular Refresh => SymbolRegular.ArrowClockwise24;
     public static SymbolRegular Document => SymbolRegular.Document24;
     public static SymbolRegular Edit => SymbolRegular.Edit24;
+    public static SymbolRegular Sidebar => SymbolRegular.PanelLeft24;
 
 
     public static SymbolRegular Desktop => SymbolRegular.Desktop24;

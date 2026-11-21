@@ -82,6 +82,8 @@ public sealed class AppSettings
     public ProtocolKind QuickConnectDefaultProtocol { get; set; } = ProtocolKind.Ssh2;
     public List<string> QuickConnectHistory { get; set; } = [];
     public double SidebarWidth { get; set; } = 300;
+    /// <summary>Seitenleiste eingeklappt (mehr Platz für Sessions).</summary>
+    public bool SidebarCollapsed { get; set; }
     public CredentialExtractionMode CredentialExtraction { get; set; } = CredentialExtractionMode.SharedOnly;
     public bool TerminalHighlighting { get; set; } = true;
     public bool SftpFollowsTerminal { get; set; } = true;

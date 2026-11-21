@@ -59,15 +59,25 @@ internal static class SshConnectionFactory
             methods.Add(new PasswordAuthenticationMethod(endpoint.Username, endpoint.Password));
 
         // Keyboard-Interactive: gespeichertes Passwort beantworten, sonst (z. B. OTP) den Benutzer fragen
+        // Das gespeicherte Passwort nur EINMAL senden: fragt der Server erneut, war es falsch –
+        // dann den Benutzer fragen statt dasselbe Passwort bis MaxAuthTries zu wiederholen
+        // (jeder Fehlversuch kostet serverseitig mehrere Sekunden Verzögerung).
+        var storedPasswordUsed = false;
         var kbd = new KeyboardInteractiveAuthenticationMethod(endpoint.Username);
         kbd.AuthenticationPrompt += (_, e) =>
         {
             foreach (var prompt in e.Prompts)
             {
                 var isPasswordPrompt = prompt.Request.Contains("assword", StringComparison.OrdinalIgnoreCase);
-                prompt.Response = isPasswordPrompt && !string.IsNullOrEmpty(endpoint.Password)
-                    ? endpoint.Password
-                    : interactivePrompt?.Invoke(prompt.Request, prompt.IsEchoed) ?? "";
+                if (isPasswordPrompt && !storedPasswordUsed && !string.IsNullOrEmpty(endpoint.Password))
+                {
+                    storedPasswordUsed = true;
+                    prompt.Response = endpoint.Password;
+                }
+                else
+                {
+                    prompt.Response = interactivePrompt?.Invoke(prompt.Request, prompt.IsEchoed) ?? "";
+                }
             }
         };
         methods.Add(kbd);

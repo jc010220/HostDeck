@@ -82,6 +82,8 @@ public sealed class AppSettings
     public ProtocolKind QuickConnectDefaultProtocol { get; set; } = ProtocolKind.Ssh2;
     public List<string> QuickConnectHistory { get; set; } = [];
     public double SidebarWidth { get; set; } = 300;
+    /// <summary>Fensterposition/-größe beim letzten Beenden (null = Standard, zentriert).</summary>
+    public WindowPlacement? MainWindow { get; set; }
     /// <summary>Seitenleiste eingeklappt (mehr Platz für Sessions).</summary>
     public bool SidebarCollapsed { get; set; }
     public CredentialExtractionMode CredentialExtraction { get; set; } = CredentialExtractionMode.SharedOnly;
@@ -145,6 +147,16 @@ public sealed class JsonSettingsStore(string path) : ISettingsStore
         File.WriteAllText(temp, JsonSerializer.Serialize(settings, Options));
         File.Move(temp, path, overwrite: true);
     }
+}
+
+/// <summary>Position und Größe (geräteunabhängige Pixel) sowie ob das Fenster maximiert war.</summary>
+public sealed class WindowPlacement
+{
+    public double Left { get; set; }
+    public double Top { get; set; }
+    public double Width { get; set; }
+    public double Height { get; set; }
+    public bool Maximized { get; set; }
 }
 
 /// <summary>Layout + Verbindungs-IDs je Bereich (Quick-Connect-Tabs werden nicht gespeichert).</summary>

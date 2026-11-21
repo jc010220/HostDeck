@@ -41,8 +41,10 @@ public partial class MainWindow : FluentWindow
             window.Show();
         };
         Activated += (_, _) => viewModel.FocusedWorkspace = viewModel.Workspace;
+        RestorePlacement(viewModel.Settings.MainWindow);
         Closing += (_, _) =>
         {
+            SavePlacement();
             foreach (var w in Application.Current.Windows.OfType<SessionWindow>().ToList()) w.Close();
         };
 
@@ -322,6 +324,38 @@ public partial class MainWindow : FluentWindow
         SidebarToggle.IsChecked = visible;
         if (!save || _vm.Settings.SidebarCollapsed == !visible) return;
         _vm.Settings.SidebarCollapsed = !visible;
+        _vm.SaveSettings();
+    }
+
+    // ---- Fensterposition merken -------------------------------------------------------------------
+
+    private void RestorePlacement(HostDeck.Presentation.Services.WindowPlacement? p)
+    {
+        if (p is null || p.Width < MinWidth || p.Height < MinHeight) return;
+        // Nur übernehmen, wenn das Fenster noch auf einem vorhandenen Bildschirm liegt (Monitor abgesteckt, Dock gewechselt …)
+        var screen = new Rect(SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenTop,
+                              SystemParameters.VirtualScreenWidth, SystemParameters.VirtualScreenHeight);
+        var title = new Rect(p.Left, p.Top, p.Width, 40); // Titelleiste muss erreichbar sein
+        if (!screen.IntersectsWith(title) || Rect.Intersect(screen, title).Width < 100) return;
+
+        WindowStartupLocation = WindowStartupLocation.Manual;
+        Left = p.Left;
+        Top = p.Top;
+        Width = Math.Min(p.Width, screen.Width);
+        Height = Math.Min(p.Height, screen.Height);
+        if (p.Maximized) Loaded += (_, _) => WindowState = WindowState.Maximized; // erst nach dem Laden ⇒ richtiger Monitor
+    }
+
+    private void SavePlacement()
+    {
+        // RestoreBounds = normale Größe auch dann, wenn das Fenster gerade maximiert/minimiert ist
+        var bounds = WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds;
+        if (bounds.IsEmpty || bounds.Width <= 0) return;
+        _vm.Settings.MainWindow = new HostDeck.Presentation.Services.WindowPlacement
+        {
+            Left = bounds.Left, Top = bounds.Top, Width = bounds.Width, Height = bounds.Height,
+            Maximized = WindowState == WindowState.Maximized,
+        };
         _vm.SaveSettings();
     }
 

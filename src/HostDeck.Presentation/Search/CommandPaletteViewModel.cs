@@ -32,6 +32,8 @@ public sealed class PaletteItem
 public sealed partial class CommandPaletteViewModel : ObservableObject
 {
     private const int MaxResults = 50;
+    /// <summary>Ab diesem Wert ist es ein Teilstring-Treffer (siehe <see cref="FuzzyMatcher"/>).</summary>
+    private const int MinActionScore = 1000;
     private readonly Func<ConnectionTree> _tree;
     private readonly Func<IReadOnlyList<Guid>> _recent;
     private readonly Func<ProtocolKind> _defaultProtocol;
@@ -113,6 +115,11 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
                 Score = score,
             });
         }
+
+        // Befehle auch ohne „>“ finden („version“, „backup“, „team“) – aber nur bei echtem Wort-/Teilstring-Treffer,
+        // damit verstreute Buchstaben-Treffer die Geräteliste nicht zumüllen.
+        if (query.Length >= 3)
+            items.AddRange(Actions(query).Where(a => a.Score >= MinActionScore).Take(5));
 
         var result = items.OrderByDescending(i => i.Score).ThenBy(i => i.Title, StringComparer.OrdinalIgnoreCase).Take(MaxResults).ToList();
 

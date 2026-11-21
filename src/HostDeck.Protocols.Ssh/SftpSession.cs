@@ -12,9 +12,11 @@ public sealed class SftpSession : IAsyncDisposable
 {
     private readonly SftpClient _client;
     private readonly SemaphoreSlim _gate = new(1, 1); // SFTP-Kanal nicht parallel nutzen
+    private readonly string _endpointHost;
 
     internal SftpSession(SshEndpoint endpoint, string expectedFingerprint, TimeSpan timeout)
     {
+        _endpointHost = endpoint.Host;
         _client = new SftpClient(SshConnectionFactory.Create(endpoint, timeout, interactivePrompt: null));
         _client.HostKeyReceived += (_, e) => e.CanTrust = "SHA256:" + e.FingerPrintSHA256 == expectedFingerprint;
     }
@@ -68,7 +70,7 @@ public sealed class SftpSession : IAsyncDisposable
 
     public async Task DownloadAsync(RemoteEntry entry, string localDirectory, IProgress<TransferProgress>? progress = null, CancellationToken ct = default)
     {
-        var target = Path.Combine(localDirectory, entry.Name);
+        var target = LocalFileNames.UniqueTarget(localDirectory, LocalFileNames.Sanitize(entry.Name));
         var temp = target + ".hostdeck-part";
         await _gate.WaitAsync(ct).ConfigureAwait(false);
         try
@@ -79,7 +81,8 @@ public sealed class SftpSession : IAsyncDisposable
                     new Progress<DownloadFileProgressReport>(r => progress?.Report(new TransferProgress(entry.Name, (long)r.TotalBytesDownloaded, entry.Size))), ct)
                     .ConfigureAwait(false);
             }
-            File.Move(temp, target, overwrite: true); // abgebrochene Downloads hinterlassen keine halbe Zieldatei
+            File.Move(temp, target, overwrite: false); // abgebrochene Downloads hinterlassen keine halbe Zieldatei
+            LocalFileNames.MarkAsDownloaded(target, $"sftp://{_endpointHost}{entry.FullPath}");
         }
         catch
         {

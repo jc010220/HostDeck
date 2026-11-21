@@ -78,10 +78,22 @@ public sealed class WebView : DockPanel
         var core = _web.CoreWebView2;
         core.Settings.IsPasswordAutosaveEnabled = false;      // Passwörter gehören in den HostDeck-Vault
         core.Settings.IsGeneralAutofillEnabled = false;
-        core.NewWindowRequested += (_, e) => { e.Handled = true; core.Navigate(e.Uri); };
+        core.NewWindowRequested += (_, e) =>
+        {
+            e.Handled = true;
+            if (IsWebUri(e.Uri)) core.Navigate(e.Uri);
+        };
+        // Nur http(s) im Tab; file:, ms-…:, andere Protokoll-Handler würden lokale Programme starten
+        core.NavigationStarting += (_, e) => { if (!IsWebUri(e.Uri) && !e.Uri.StartsWith("about:", StringComparison.OrdinalIgnoreCase)) e.Cancel = true; };
+        core.LaunchingExternalUriScheme += (_, e) => e.Cancel = true;
         core.BasicAuthenticationRequested += (_, e) =>
         {
             if (vm.CredentialsUsed || vm.Username is null) return; // sonst fragt der Browser selbst
+            // Gespeicherte Zugangsdaten nur an das eingetragene Gerät – nie an einen Server, auf den umgeleitet wurde
+            if (!Uri.TryCreate(e.Uri, UriKind.Absolute, out var target)
+                || !string.Equals(target.Host, vm.StartUri.Host, StringComparison.OrdinalIgnoreCase)
+                || target.Port != vm.StartUri.Port || target.Scheme != vm.StartUri.Scheme)
+                return;
             vm.CredentialsUsed = true;
             e.Response.UserName = vm.Username;
             e.Response.Password = vm.Password ?? "";
@@ -92,6 +104,9 @@ public sealed class WebView : DockPanel
         vm.Tab.State = SessionState.Connecting;
         core.Navigate(vm.StartUri.ToString());
     }
+
+    private static bool IsWebUri(string? uri) =>
+        Uri.TryCreate(uri, UriKind.Absolute, out var u) && u.Scheme is "http" or "https";
 
     private void OnCertificateError(object? sender, CoreWebView2ServerCertificateErrorDetectedEventArgs e)
     {

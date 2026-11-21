@@ -81,7 +81,7 @@ public static class TeamLibraryFile
     /// z. B. ergänzt mRemoteNG-Standardwerte für Felder, die eine ältere Datei noch nicht kannte).
     /// </summary>
     public static (string Hash, IReadOnlyList<TreeNode> Written) Write(string path, IEnumerable<TreeNode> children, ConfConsFileInfo format, string? password,
-        string expectedHash, string backupDirectory)
+        string expectedHash, Action<byte[]>? backupPrevious)
     {
         var tree = new ConnectionTree();
         foreach (var child in children) tree.Root.Add(TreeMerge.CopyWithIds(child, includePersonal: false));
@@ -107,7 +107,11 @@ public static class TeamLibraryFile
         var current = File.Exists(path) ? ReadShared(path) : [];
         if (HashOf(current) != expectedHash) throw new TeamFileChangedException();
 
-        if (current.Length > 0) BackupPrevious(path, current, backupDirectory);
+        if (current.Length > 0)
+        {
+            try { backupPrevious?.Invoke(current); }
+            catch (Exception ex) { Services.AppLog.Error("Team-Sicherung", ex); } // Sicherung darf das Speichern nicht verhindern
+        }
 
         var temp = path + ".hostdeck-tmp";
         File.WriteAllBytes(temp, bytes);
@@ -172,22 +176,6 @@ public static class TeamLibraryFile
             }
         }
         throw new TeamFileLockedException("einem Kollegen");
-    }
-
-    private static void BackupPrevious(string path, byte[] content, string backupDirectory)
-    {
-        try
-        {
-            Directory.CreateDirectory(backupDirectory);
-            var name = $"{Path.GetFileNameWithoutExtension(path)}-{DateTime.Now:yyyyMMdd-HHmmss}.xml";
-            File.WriteAllBytes(Path.Combine(backupDirectory, name), content);
-            foreach (var old in new DirectoryInfo(backupDirectory).GetFiles("*.xml").OrderByDescending(f => f.LastWriteTimeUtc).Skip(30))
-                TryDelete(old.FullName);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            Services.AppLog.Error("Team-Sicherung", ex);
-        }
     }
 
     private static void TryDelete(string path)

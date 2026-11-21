@@ -83,6 +83,9 @@ public sealed class TerminalView : Border
         core.AddWebResourceRequestedFilter(Origin + "*", CoreWebView2WebResourceContext.All);
         core.WebResourceRequested += OnResourceRequested;
         core.NewWindowRequested += (_, e) => e.Handled = true;
+        // Das Terminal darf seine eigene Seite nie verlassen (Links öffnet der Standardbrowser)
+        core.NavigationStarting += (_, e) => { if (!e.Uri.StartsWith(Origin, StringComparison.Ordinal)) e.Cancel = true; };
+        core.LaunchingExternalUriScheme += (_, e) => e.Cancel = true;
         core.WebMessageReceived += OnMessage;
         core.Navigate(Origin + "terminal.html");
     }
@@ -104,6 +107,7 @@ public sealed class TerminalView : Border
 
     private void OnMessage(object? sender, CoreWebView2WebMessageReceivedEventArgs e)
     {
+        if (!e.Source.StartsWith(Origin, StringComparison.Ordinal)) return;
         using var doc = JsonDocument.Parse(e.WebMessageAsJson);
         var m = doc.RootElement;
         switch (m.GetProperty("t").GetString())
@@ -124,7 +128,7 @@ public sealed class TerminalView : Border
                 TrySetClipboard(m.GetProperty("d").GetString());
                 break;
             case "paste-request":
-                if (Clipboard.ContainsText()) Post(new { t = "paste", d = Clipboard.GetText().Replace("\r\n", "\r") });
+                if (Clipboard.ContainsText() && ConfirmPaste(Clipboard.GetText()) is { } text) Post(new { t = "paste", d = text.Replace("\r\n", "\r") });
                 break;
             case "link":
                 var uri = m.GetProperty("uri").GetString();
@@ -139,6 +143,23 @@ public sealed class TerminalView : Border
                 FontSizeChanged?.Invoke(FontSize);
                 break;
         }
+    }
+
+    /// <summary>
+    /// Mehrzeiliges Einfügen führt jede Zeile sofort aus (auch versteckte Befehle aus kopierten Webseiten).
+    /// Daher wie Windows Terminal nachfragen – bei Multi-Exec sogar für alle Server gleichzeitig.
+    /// </summary>
+    private string? ConfirmPaste(string text)
+    {
+        var lines = text.Replace("\r\n", "\n").TrimEnd('\n').Split('\n');
+        if (lines.Length < 2) return text;
+        var preview = string.Join("\n", lines.Take(8).Select(l => l.Length > 100 ? l[..100] + "…" : l)) + (lines.Length > 8 ? $"\n… ({lines.Length - 8} weitere Zeilen)" : "");
+        var owner = Window.GetWindow(this);
+        var message = $"Du fügst {lines.Length} Zeilen ein. Jede Zeile wird sofort ausgeführt:\n\n{preview}\n\nEinfügen?";
+        var result = owner is null
+            ? MessageBox.Show(message, "Mehrzeilig einfügen", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No)
+            : MessageBox.Show(owner, message, "Mehrzeilig einfügen", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+        return result == MessageBoxResult.Yes ? text : null;
     }
 
     private static void TrySetClipboard(string? text)

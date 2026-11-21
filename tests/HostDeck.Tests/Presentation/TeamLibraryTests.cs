@@ -81,6 +81,8 @@ public sealed class TeamLibraryTests : IDisposable
         Assert.Equal(0, alice.TeamPendingChanges);
         Assert.Equal(0, bob.TeamPendingChanges);
         Assert.Equal("Geheim!1", Conn(alice, "dc01").Settings.Password); // gemeinsame Passwörter bleiben erhalten
+        Assert.NotEmpty(alice.TeamBackups());  // vorheriger Stand verschlüsselt gesichert
+        Assert.False(Directory.Exists(Path.Combine(_dir, "alice", "backups", "team")));
     }
 
     [Fact]
@@ -236,12 +238,12 @@ public sealed class TeamLibraryTests : IDisposable
         var snapshot = TeamLibraryFile.Read(TeamFile, null, null);
         File.AppendAllText(TeamFile, "\n"); // jemand anderes hat gespeichert
         Assert.Throws<TeamFileChangedException>(() =>
-            TeamLibraryFile.Write(TeamFile, snapshot.Children, snapshot.Info, null, snapshot.Hash, Path.Combine(_dir, "bk")));
+            TeamLibraryFile.Write(TeamFile, snapshot.Children, snapshot.Info, null, snapshot.Hash, null));
 
         var fresh = TeamLibraryFile.Read(TeamFile, null, null);
         File.WriteAllText(TeamFile + ".hostdeck-lock", "bob@PC42 now");
         var ex = Assert.Throws<TeamFileLockedException>(() =>
-            TeamLibraryFile.Write(TeamFile, fresh.Children, fresh.Info, null, fresh.Hash, Path.Combine(_dir, "bk")));
+            TeamLibraryFile.Write(TeamFile, fresh.Children, fresh.Info, null, fresh.Hash, null));
         Assert.Equal("bob@PC42", ex.Holder);
     }
 
@@ -252,7 +254,7 @@ public sealed class TeamLibraryTests : IDisposable
         {
             File.Copy(Fixture.PathOf(fixture), TeamFile, overwrite: true);
             var original = TeamLibraryFile.Read(TeamFile, password, null);
-            var (_, written) = TeamLibraryFile.Write(TeamFile, original.Children, original.Info, password ?? original.Password, original.Hash, Path.Combine(_dir, "bk"));
+            var (_, written) = TeamLibraryFile.Write(TeamFile, original.Children, original.Info, password ?? original.Password, original.Hash, null);
             var second = TeamLibraryFile.Read(TeamFile, password, null);
             // Was Write als „geschrieben“ meldet, ist exakt das, was andere lesen (keine Scheinänderungen)
             var a = TreeMerge.Snapshot(written);

@@ -35,6 +35,7 @@ Ist mRemoteNG installiert, wird die Übernahme von `%APPDATA%\mRemoteNG\confCons
 | **Strg+K** (im Terminal Strg+Umschalt+K) | Schnellsuche – Enter verbinden, Strg+Enter im Split-Screen, Alt+Enter im Baum zeigen |
 | Strg+L / Strg+F | Quick-Connect / Filter im Baum |
 | F2 / F4 / Entf | Umbenennen / Eigenschaften / Löschen |
+| Strg+S | Team-Bibliothek synchronisieren |
 | Strg+D (im Baum) | Verbindung duplizieren – Eigenschaften öffnen sich direkt zum Anpassen von Name und Host |
 | Strg+N / Strg+Umschalt+N | Neue Verbindung / Neuer Ordner |
 | Strg+Tab, Strg+W (Terminal: Strg+Umschalt+W) | Tab wechseln / schließen |
@@ -43,6 +44,40 @@ Ist mRemoteNG installiert, wird die Übernahme von `%APPDATA%\mRemoteNG\confCons
 | Strg+Umschalt+B | Seitenleiste ein-/ausklappen (auch über das Symbol ganz links in der Symbolleiste) |
 | Esc / Strg+C (Terminal), „Abbrechen“ in der Statusleiste | Laufenden Verbindungsaufbau abbrechen |
 | Terminal: Strg+Umschalt+C/V/F, Strg+Mausrad | Kopieren / Einfügen / Suchen / Zoom |
+
+## Team-Bibliothek (gemeinsame confCons.xml)
+
+Wie eine gemeinsame KeePass-Datei: Alle arbeiten auf derselben `confCons.xml` auf dem Netzlaufwerk.
+
+- **Einrichten:** Strg+K → „Team-Bibliothek verbinden …“ (oder *Einstellungen → Team-Bibliothek*). Im Baum erscheint der Ordner **Team**.
+- **Änderungen anderer** werden automatisch übernommen (Prüfung alle 15 s), eigene, noch nicht gespeicherte bleiben dabei erhalten.
+- **Eigene Änderungen** speichern mit **Strg+S** (oder Knopf „Team“ in der Symbolleiste, die Zahl zeigt offene Änderungen).
+  HostDeck führt pro Eintrag zusammen: Wer was geändert hat, bleibt erhalten. Haben zwei Personen *denselben* Eintrag
+  unterschiedlich geändert, fragt HostDeck nach. Gelöscht und gleichzeitig woanders geändert ⇒ bleibt erhalten.
+- **Sicher speichern:** Sperrdatei gegen gleichzeitiges Schreiben, atomares Ersetzen, vorheriger Stand wird verschlüsselt
+  in der HostDeck-Datenbank gesichert (die letzten 10). Den Team-Ordner zu löschen trennt nur die Verbindung – die Datei bleibt.
+- **Persönliche Logins (z. B. RADIUS):** einmal im Vault anlegen und einem Team-Ordner/-Eintrag zuweisen. Diese Zuordnung
+  bleibt lokal und wird nie in die gemeinsame Datei geschrieben. Gemeinsame Passwörter in der Datei bleiben wie bisher.
+- **Jumphost ohne Laufwerkszugriff:** Datei per RDP in einen festen Ordner kopieren (z. B. `C:\HostDeck\Team`) und diesen
+  Ordner als Team-Bibliothek mit „Nur lesen“ eintragen – die neueste `.xml` darin wird automatisch geladen.
+- **mRemoteNG-kompatibel:** Format, Verschlüsselung und Master-Passwort der Datei bleiben erhalten. Hinweis: mRemoteNG
+  selbst führt nicht zusammen – speichert ein Kollege mit mRemoteNG, überschreibt er die Datei mit seinem Stand.
+- **Wichtig:** Ohne eigenes Master-Passwort verwendet mRemoteNG einen öffentlich bekannten Schlüssel – Passwörter in der
+  Datei sind dann für jeden mit Lesezugriff lesbar. Master-Passwort setzen (HostDeck fragt es einmal ab) oder persönliche
+  Logins im Vault verwenden.
+
+## Sicherheit
+
+- Datenbank: SQLCipher (AES-256), Schlüssel per Argon2id (64 MiB, 3 Durchläufe) aus dem Master-Passwort; optional
+  zusätzlich an den Windows-Benutzer gebunden (DPAPI, „auf diesem PC merken“).
+- Keine Geheimnisse in `settings.json` oder im Protokoll; Update-Token und Team-Passwort liegen verschlüsselt in der Datenbank.
+- SSH: Host-Keys werden geprüft (Warnung bei Änderung), SFTP nutzt denselben bestätigten Key. Ein gespeichertes Passwort
+  wird nur einmal gesendet.
+- SFTP-Downloads: Dateinamen vom Server werden bereinigt (kein Schreiben außerhalb des Zielordners), vorhandene Dateien
+  nie überschrieben, Downloads als „aus dem Internet“ markiert (SmartScreen-Warnung bei Programmen).
+- RDP: Server-Zertifikat wird geprüft (Warnung), Laufwerke/Drucker/Ports werden standardmäßig nicht umgeleitet.
+- Terminal: mehrzeiliges Einfügen nur nach Rückfrage; Links öffnen nur http(s) im Standardbrowser.
+- Web-Tabs: nur http(s), keine externen Protokoll-Handler, gespeicherte Zugangsdaten nur an das eingetragene Gerät.
 
 ## Daten und Sicherung
 

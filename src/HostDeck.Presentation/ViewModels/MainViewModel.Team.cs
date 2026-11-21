@@ -32,7 +32,33 @@ public sealed partial class MainViewModel
 
     public bool HasTeamLibrary => !string.IsNullOrWhiteSpace(Settings.TeamLibraryPath);
 
-    private string TeamBackupDirectory => Path.Combine(BackupDirectory, "team");
+    private const int TeamBackupSlots = 10;
+
+    /// <summary>
+    /// Vorheriger Stand der Team-Datei vor jedem Speichern – verschlüsselt in der HostDeck-Datenbank
+    /// (eine Datei-Kopie wäre bei mRemoteNG-Standardschlüssel praktisch Klartext).
+    /// </summary>
+    private void BackupTeamFile(byte[] content)
+    {
+        var index = int.TryParse(_store.ReadDocument("team-backup-index"), out var i) ? (i + 1) % TeamBackupSlots : 0;
+        _store.WriteDocument($"team-backup-{index}", JsonSerializer.Serialize(new TeamBackup(DateTime.UtcNow, System.Text.Encoding.UTF8.GetString(content))));
+        _store.WriteDocument("team-backup-index", index.ToString(System.Globalization.CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>Gesicherte Stände (neueste zuerst) – z. B. zum Wiederherstellen nach einem Fehler.</summary>
+    public IReadOnlyList<(DateTime SavedUtc, string Content)> TeamBackups()
+    {
+        var list = new List<(DateTime, string)>();
+        for (var i = 0; i < TeamBackupSlots; i++)
+        {
+            if (_store.ReadDocument($"team-backup-{i}") is not { Length: > 0 } json) continue;
+            try { if (JsonSerializer.Deserialize<TeamBackup>(json) is { } b) list.Add((b.SavedUtc, b.Content)); }
+            catch (JsonException) { }
+        }
+        return list.OrderByDescending(b => b.Item1).ToList();
+    }
+
+    private sealed record TeamBackup(DateTime SavedUtc, string Content);
 
     /// <summary>Lokaler Ordner, der den Inhalt der Team-Datei hält.</summary>
     public FolderNode? TeamContainer =>
@@ -264,7 +290,7 @@ public sealed partial class MainViewModel
                         var format = remote.Info;
                         var password = remote.Password;
                         var merged = children;
-                        (newHash, var written) = await Io(() => TeamLibraryFile.Write(path, merged, format, password, remote.Hash, TeamBackupDirectory));
+                        (newHash, var written) = await Io(() => TeamLibraryFile.Write(path, merged, format, password, remote.Hash, BackupTeamFile));
                         children = TreeMerge.WithPersonalFrom(written, merged);
                         newBase = TreeMerge.Snapshot(children);
                         wrote = true;

@@ -111,7 +111,11 @@ public sealed class EncryptedConnectionStore : IDisposable
     {
         KeyFile.ValidatePassword(newPassword);
         _keyFile.UnlockWithPassword(currentPassword); // prüft das alte Passwort
-        var replacement = KeyFile.CreateForDek(_dek, newPassword, _keyFile.KdfParams);
+        // Nie schwächer als der aktuelle Standard – auch wenn die Schlüsseldatei manipuliert/alt ist
+        var current = _keyFile.KdfParams;
+        var floor = KdfParameters.Default;
+        var kdf = current.MemoryKiB < floor.MemoryKiB || current.Iterations < floor.Iterations ? floor : current;
+        var replacement = KeyFile.CreateForDek(_dek, newPassword, kdf);
         _keyFile.Kdf = replacement.Kdf;
         _keyFile.PasswordSlot = replacement.PasswordSlot;
         _keyFile.Save(KeyFilePath);

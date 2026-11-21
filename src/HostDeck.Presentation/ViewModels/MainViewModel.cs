@@ -9,6 +9,11 @@ using HostDeck.Presentation.Services;
 
 namespace HostDeck.Presentation.ViewModels;
 
+public sealed record QuickConnectProtocolOption(ProtocolKind? Value, string Label)
+{
+    public override string ToString() => Label;
+}
+
 public sealed partial class MainViewModel : ObservableObject
 {
     private const int MaxHistory = 20;
@@ -570,7 +575,7 @@ public sealed partial class MainViewModel : ObservableObject
             StatusText = "Quick connect: passwords can't be entered here (they would end up in the history). Use user@host – you will be asked for the password.";
             return;
         }
-        else if (QuickConnectParser.TryParse(text, Settings.QuickConnectDefaultProtocol, out var target))
+        else if (QuickConnectParser.TryParse(text, QuickConnectProtocol.Value ?? Settings.QuickConnectDefaultProtocol, out var target, inferFromPort: QuickConnectProtocol.Value is null))
         {
             Workspace.Open(CreateTab(target!.ToConnection(), new CredentialVault(), transient: true));
             StatusText = $"Quick connect: {target.Protocol.DisplayName()} → {target.Host}:{target.EffectivePort}";
@@ -584,6 +589,26 @@ public sealed partial class MainViewModel : ObservableObject
 
         RememberQuickConnect(text);
         QuickConnectText = "";
+    }
+
+    /// <summary>Auswahl neben dem Quick-Connect-Feld: „Auto“ (Standard bzw. am Port erkannt) oder ein festes Protokoll.</summary>
+    public IReadOnlyList<QuickConnectProtocolOption> QuickConnectProtocols { get; } =
+    [
+        new(null, "Auto"),
+        new(ProtocolKind.Ssh2, "SSH"),
+        new(ProtocolKind.Rdp, "RDP"),
+        new(ProtocolKind.Telnet, "Telnet"),
+        new(ProtocolKind.Vnc, "VNC"),
+        new(ProtocolKind.Https, "HTTPS"),
+    ];
+
+    [ObservableProperty] private QuickConnectProtocolOption _quickConnectProtocol = new(null, "Auto");
+
+    partial void OnQuickConnectProtocolChanged(QuickConnectProtocolOption value)
+    {
+        // gleiche Instanz aus der Liste verwenden (für die Auswahl in der ComboBox)
+        var match = QuickConnectProtocols.FirstOrDefault(o => o.Value == value.Value);
+        if (match is not null && !ReferenceEquals(match, value)) QuickConnectProtocol = match;
     }
 
     private void RememberQuickConnect(string text)

@@ -76,7 +76,20 @@ public static partial class QuickConnectParser
     public static bool LooksLikeInlinePassword(string? input) =>
         input is not null && System.Text.RegularExpressions.Regex.IsMatch(input, @"(^|[\s/])[^\s@/:]+:[^\s@/]*@");
 
-    public static bool TryParse(string? input, ProtocolKind defaultProtocol, out QuickConnectTarget? target)
+    /// <summary>Bekannte Ports ⇒ Protokoll („server01:3389“ ist RDP, auch wenn der Standard SSH ist).</summary>
+    public static ProtocolKind? ProtocolFromPort(int port) => port switch
+    {
+        3389 => ProtocolKind.Rdp,
+        22 => ProtocolKind.Ssh2,
+        23 => ProtocolKind.Telnet,
+        >= 5900 and <= 5999 => ProtocolKind.Vnc,
+        443 or 8443 => ProtocolKind.Https,
+        80 or 8080 => ProtocolKind.Http,
+        _ => null,
+    };
+
+    /// <param name="inferFromPort">Ohne ausdrückliches Protokoll anhand eines bekannten Ports wählen (Standard).</param>
+    public static bool TryParse(string? input, ProtocolKind defaultProtocol, out QuickConnectTarget? target, bool inferFromPort = true)
     {
         target = null;
         if (string.IsNullOrWhiteSpace(input)) return false;
@@ -89,10 +102,12 @@ public static partial class QuickConnectParser
         var tokens = text.Split(' ', StringSplitOptions.RemoveEmptyEntries);
         var protocol = defaultProtocol;
         var index = 0;
+        var explicitProtocol = false;
         if (Schemes.TryGetValue(tokens[0], out var commandProtocol))
         {
             protocol = commandProtocol;
             index = 1;
+            explicitProtocol = true;
         }
 
         // 2) Optionen (ssh -p 2222 -l user, mstsc /v:host)
@@ -111,7 +126,10 @@ public static partial class QuickConnectParser
             else return false;
         }
 
-        return hostToken is not null && TryParseTarget(hostToken, protocol, port, user, out target);
+        if (hostToken is null || !TryParseTarget(hostToken, protocol, port, user, out target)) return false;
+        if (!explicitProtocol && inferFromPort && target!.Port is { } knownPort && ProtocolFromPort(knownPort) is { } inferred)
+            target = target with { Protocol = inferred };
+        return true;
     }
 
     private static bool TryParseTarget(string text, ProtocolKind protocol, int? port, string? user, out QuickConnectTarget? target)

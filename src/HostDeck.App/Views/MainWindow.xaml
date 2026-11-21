@@ -162,10 +162,17 @@
               <TabControl x:Name="SidebarTabs" Background="Transparent" BorderThickness="0" Padding="0,6,0,0">
                 <TabItem Header="Sessions">
                 <DockPanel>
-                    <ComboBox x:Name="QuickConnectBox" DockPanel.Dock="Top" IsEditable="True" Margin="0,0,0,6"
-                              Text="{Binding QuickConnectText, UpdateSourceTrigger=PropertyChanged}"
-                              ItemsSource="{Binding QuickConnectHistory}" PreviewKeyDown="OnQuickConnectKeyDown"
-                              ToolTip="Quick-Connect: ssh user@host:22 · rdp server · mstsc /v:host · telnet host 23 · name from the list  (Ctrl+L)" />
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+                        <!-- Protokoll für Quick-Connect: Auto = Standard aus den Einstellungen bzw. am Port erkannt -->
+                        <ComboBox DockPanel.Dock="Left" Width="92" Margin="0,0,6,0"
+                                  ItemsSource="{Binding QuickConnectProtocols}" SelectedItem="{Binding QuickConnectProtocol}"
+                                  DisplayMemberPath="Label"
+                                  ToolTip="Protocol for quick connect. Auto: from the input (rdp …, ssh …), a known port (:3389 = RDP, :22 = SSH, :5900 = VNC …) or the default in the settings." />
+                        <ComboBox x:Name="QuickConnectBox" IsEditable="True"
+                                  Text="{Binding QuickConnectText, UpdateSourceTrigger=PropertyChanged}"
+                                  ItemsSource="{Binding QuickConnectHistory}" PreviewKeyDown="OnQuickConnectKeyDown"
+                                  ToolTip="Quick connect: ssh user@host:22 · rdp server · mstsc /v:host · telnet host 23 · host:3389 · name from the list  (Ctrl+L)" />
+                    </DockPanel>
 
                     <ui:TextBox x:Name="SearchBox" DockPanel.Dock="Top" Margin="0,0,0,6" PlaceholderText="Search …  (Ctrl+F)"
                                 Text="{Binding SessionTree.FilterText, UpdateSourceTrigger=PropertyChanged}"

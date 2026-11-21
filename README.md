@@ -20,7 +20,7 @@ If mRemoteNG is installed, HostDeck offers to import `%APPDATA%\mRemoteNG\confCo
 | Area | |
 |---|---|
 | **Protocols** | RDP (native Windows client, live resolution, DPI scaling, RD Gateway, Restricted Admin), SSH (password/key/OTP, host key verification), Telnet (auto-login for network devices), raw TCP, VNC (built-in client: ZRLE/Hextile), HTTP/HTTPS (WebView2, login from the vault) |
-| **Usability** | Quick search **Ctrl+K** (fuzzy over name, IP, folder, tags and commands; only commands with `>`), quick connect `ssh user@host`, filter, drag & drop, favorites, recently used, duplicate connections |
+| **Usability** | Quick search **Ctrl+K** (fuzzy over name, IP, folder, tags and commands; only commands with `>`), quick connect `ssh user@host` (protocol picker next to the field; known ports like `:3389`/`:22`/`:5900` select RDP/SSH/VNC automatically), filter, drag & drop, favorites, recently used, duplicate connections |
 | **Windows** | Tabs, split view 1/2/2/4 with movable splitters, drag tabs into their own windows (second monitor), save workspaces and restore them on startup, collapsible sidebar |
 | **Terminal** | xterm.js: colors, Unicode, search, zoom, select = copy, right-click = paste, syntax highlighting (errors/warnings/IPs), multi-execution, snippets with placeholders |
 | **SFTP** | Sidebar automatically follows `cd` in the terminal, upload via drag & drop, download, rename, delete |

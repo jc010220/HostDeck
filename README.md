@@ -63,6 +63,11 @@ Like a shared KeePass database: everyone works on the same `confCons.xml` on the
   assignment stays local and is never written to the shared file. Shared passwords in the file keep working.
 - **Jump host without access to the share:** copy the file via RDP into a fixed folder (e.g. `C:\HostDeck\Team`) and set
   that folder as the team library with "Read-only"; the newest `.xml` in it is loaded automatically.
+- **Team snippets:** tick "Share with the team" in the snippet dialog. They are stored next to the team file
+  (`<name>.hostdeck-snippets.json`, encrypted with the team password if one is set) and saved immediately – no Ctrl+S
+  needed. Personal snippets stay in your own database. On a jump host, copy this file together with the XML.
+- **Personal folders:** right-click the tree → "New personal folder (top level, only for me)", or click the empty area of
+  the tree first (removes the selection) and then "New folder". Everything outside the Team folder is personal.
 - **mRemoteNG-compatible:** the file's format, encryption and master password are preserved. Note: mRemoteNG itself does
   not merge; when a colleague saves with mRemoteNG, the file is overwritten with their version.
 - **Important:** without its own master password, mRemoteNG uses a publicly known key, so anyone with read access can read

@@ -5,6 +5,7 @@ using HostDeck.Core.Model;
 using HostDeck.Core.Sync;
 using HostDeck.Import.MRemoteNG;
 using HostDeck.Presentation.Services;
+using HostDeck.Presentation.Snippets;
 using HostDeck.Presentation.Team;
 
 namespace HostDeck.Presentation.ViewModels;
@@ -174,6 +175,7 @@ public sealed partial class MainViewModel
             StatusText = "Team library set up";
             WarnIfTeamFileUnprotected(snapshot);
             StartTeamPolling();
+            await SyncTeamSnippetsAsync();
             return true;
         }
         finally
@@ -199,6 +201,9 @@ public sealed partial class MainViewModel
         SaveSettings();
         _store.WriteDocument(TeamBaseDocument, "{}");
         _store.WriteDocument(TeamPasswordDocument, "");
+        _store.WriteDocument(TeamSnippetsCacheDocument, "[]");
+        _store.WriteDocument(TeamSnippetsPendingDocument, "[]");
+        Snippets.SetTeamSnippets([], available: false, readOnly: false);
         _teamPoll?.Dispose();
         _teamPoll = null;
         SessionTree.Load(SessionTree.Tree);
@@ -250,8 +255,12 @@ public sealed partial class MainViewModel
         if (second is null) return;
         if (second != first) { _dialogs.ShowError("Team file password", "The passwords do not match."); return; }
 
+        var oldPassword = _store.ReadDocument(TeamPasswordDocument);
         if (await SyncTeamAsync(write: true, interactive: true, newPassword: first))
+        {
+            await ReencryptTeamSnippetsAsync(string.IsNullOrEmpty(oldPassword) ? null : oldPassword, first);
             _dialogs.ShowInfo("Team file password", "The team file is now protected with the new password.\n\nColleagues will be asked for it the next time they open or sync the file.");
+        }
     }
 
     /// <summary>mRemoteNG/BouncyCastle verarbeitet nur Latin-1-Zeichen (1 Byte pro Zeichen).</summary>
@@ -394,6 +403,7 @@ public sealed partial class MainViewModel
                 ApplyTeamChildren(children);
                 SaveTeamBase(newBase, newHash);
                 _teamProbe = TeamLibraryFile.Probe(path);
+                await SyncTeamSnippetsAsync();
 
                 var info = new List<string>();
                 if (merge.RemoteChanges > 0) info.Add($"{merge.RemoteChanges} change(s) pulled");
@@ -528,6 +538,89 @@ public sealed partial class MainViewModel
         SaveTrustedTargets(trusted);
     }
 
+    // ---- Team-Snippets ----------------------------------------------------------------------------
+    //
+    // Liegen als eigene Datei neben der Team-Datei und werden sofort gespeichert (kein Strg+S nötig). Ein lokaler,
+    // verschlüsselter Zwischenstand macht sie offline verfügbar; nicht schreibbare Änderungen werden gemerkt und
+    // beim nächsten Abgleich nachgereicht.
+
+    private const string TeamSnippetsCacheDocument = "team-snippets-cache";
+    private const string TeamSnippetsPendingDocument = "team-snippets-pending";
+    private (DateTime, long)? _teamSnippetProbe;
+
+    private List<TeamSnippetEntry> LoadSnippetDoc(string name)
+    {
+        try { return JsonSerializer.Deserialize<List<TeamSnippetEntry>>(_store.ReadDocument(name) ?? "[]") ?? []; }
+        catch (JsonException) { return []; }
+    }
+
+    private void ShowCachedTeamSnippets(SnippetsViewModel vm)
+    {
+        if (!HasTeamLibrary) return;
+        var visible = TeamSnippetFile.Merge(LoadSnippetDoc(TeamSnippetsCacheDocument), LoadSnippetDoc(TeamSnippetsPendingDocument));
+        vm.SetTeamSnippets(visible.Where(e => e.DeletedUtc is null).Select(e => e.ToSnippet()), true, Settings.TeamReadOnly);
+    }
+
+    private string? TeamSnippetPath => TeamLibraryFile.Resolve(Settings.TeamLibraryPath) is { } file ? TeamSnippetFile.PathFor(file) : null;
+
+    private string? TeamPassword => _store.ReadDocument(TeamPasswordDocument) is { Length: > 0 } pw ? pw : null;
+
+    /// <summary>Team-Snippets einlesen (offene eigene Änderungen vorher nachreichen).</summary>
+    public async Task SyncTeamSnippetsAsync()
+    {
+        if (!HasTeamLibrary || TeamSnippetPath is not { } path) return;
+        var password = TeamPassword;
+        var pending = LoadSnippetDoc(TeamSnippetsPendingDocument);
+        try
+        {
+            List<TeamSnippetEntry> current;
+            if (pending.Count > 0 && !Settings.TeamReadOnly)
+            {
+                current = await Io(() => TeamSnippetFile.Apply(path, password, pending));
+                _store.WriteDocument(TeamSnippetsPendingDocument, "[]");
+            }
+            else
+            {
+                current = await Io(() => TeamSnippetFile.Read(path, password));
+            }
+            _store.WriteDocument(TeamSnippetsCacheDocument, JsonSerializer.Serialize(current));
+            _teamSnippetProbe = TeamLibraryFile.Probe(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or TeamSnippetPasswordException
+                                       or JsonException or TeamFileLockedException or ConfConsFormatException)
+        {
+            AppLog.Info($"Team snippets not synchronized: {ex.Message}");
+        }
+        ShowCachedTeamSnippets(Snippets);
+    }
+
+    /// <summary>Neues, geändertes oder gelöschtes Team-Snippet sofort in die Team-Datei schreiben.</summary>
+    private async Task SaveTeamSnippetAsync(TeamSnippetEntry entry)
+    {
+        if (!HasTeamLibrary || Settings.TeamReadOnly) return;
+        var pending = TeamSnippetFile.Merge(LoadSnippetDoc(TeamSnippetsPendingDocument), [entry]);
+        _store.WriteDocument(TeamSnippetsPendingDocument, JsonSerializer.Serialize(pending));
+        await SyncTeamSnippetsAsync();
+        if (LoadSnippetDoc(TeamSnippetsPendingDocument).Count > 0)
+            StatusText = "Team snippet saved locally – it will be written to the team library at the next sync.";
+    }
+
+    /// <summary>Nach dem Setzen eines neuen Team-Passworts auch die Snippets damit verschlüsseln.</summary>
+    private async Task ReencryptTeamSnippetsAsync(string? oldPassword, string newPassword)
+    {
+        if (TeamSnippetPath is not { } path || !File.Exists(path)) return;
+        try
+        {
+            var items = await Io(() => TeamSnippetFile.Read(path, oldPassword));
+            await Io(() => { TeamSnippetFile.Rewrite(path, newPassword, items); return true; });
+            _teamSnippetProbe = TeamLibraryFile.Probe(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or TeamSnippetPasswordException or JsonException)
+        {
+            AppLog.Error("Re-encrypt team snippets", ex);
+        }
+    }
+
     // ---- Automatisch nachladen --------------------------------------------------------------------
 
     /// <summary>Alle 15 s günstig prüfen (Zeitstempel/Größe), ob sich die Datei geändert hat.</summary>
@@ -544,8 +637,11 @@ public sealed partial class MainViewModel
                 var path = TeamLibraryFile.Resolve(Settings.TeamLibraryPath);
                 if (path is null) return;
                 var probe = TeamLibraryFile.Probe(path);
-                if (probe is null || probe == _teamProbe) return;
-                _teamUi.Post(_ => _ = SyncTeamAsync(write: false, interactive: false), null);
+                var snippetProbe = TeamLibraryFile.Probe(TeamSnippetFile.PathFor(path));
+                if (probe is not null && probe != _teamProbe)
+                    _teamUi.Post(_ => _ = SyncTeamAsync(write: false, interactive: false), null);
+                else if (snippetProbe != _teamSnippetProbe)
+                    _teamUi.Post(_ => _ = SyncTeamSnippetsAsync(), null);
             }
             catch (Exception ex)
             {

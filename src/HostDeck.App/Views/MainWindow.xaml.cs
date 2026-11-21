@@ -123,21 +123,36 @@ public partial class MainWindow : FluentWindow
 
     private void OnSnippetAdd(object sender, RoutedEventArgs e)
     {
+        var snippets = _vm.Snippets;
         var snippet = new HostDeck.Presentation.Snippets.Snippet();
-        if (new SnippetDialog(snippet) { Owner = this }.ShowDialog() == true)
-            _vm.Snippets.Add(snippet.Name, snippet.Command, snippet.Category, snippet.Execute);
+        var dialog = new SnippetDialog(snippet, snippets.TeamAvailable && !snippets.TeamReadOnly) { Owner = this };
+        if (dialog.ShowDialog() == true)
+            snippets.Add(snippet.Name, snippet.Command, snippet.Category, snippet.Execute, team: dialog.Shared);
     }
 
     private void OnSnippetEdit(object sender, RoutedEventArgs e)
     {
-        if (SnippetList.SelectedItem is HostDeck.Presentation.Snippets.Snippet s && new SnippetDialog(s) { Owner = this }.ShowDialog() == true)
-            _vm.Snippets.Save();
+        if (SnippetList.SelectedItem is not HostDeck.Presentation.Snippets.Snippet s) return;
+        var snippets = _vm.Snippets;
+        if (!snippets.CanEdit(s))
+        {
+            System.Windows.MessageBox.Show(this, "This team snippet is read-only here (the team library is set to read-only).", "Snippets");
+            return;
+        }
+        var dialog = new SnippetDialog(s, snippets.TeamAvailable && !snippets.TeamReadOnly) { Owner = this };
+        if (dialog.ShowDialog() == true) snippets.SetShared(s, dialog.Shared);
     }
 
     private void OnSnippetDelete(object sender, RoutedEventArgs e)
     {
-        if (SnippetList.SelectedItem is HostDeck.Presentation.Snippets.Snippet s &&
-            System.Windows.MessageBox.Show(this, $"Delete snippet “{s.Name}”?", "Snippets", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+        if (SnippetList.SelectedItem is not HostDeck.Presentation.Snippets.Snippet s) return;
+        if (!_vm.Snippets.CanEdit(s))
+        {
+            System.Windows.MessageBox.Show(this, "This team snippet is read-only here (the team library is set to read-only).", "Snippets");
+            return;
+        }
+        var question = s.IsTeam ? $"Delete team snippet “{s.Name}” for everyone?" : $"Delete snippet “{s.Name}”?";
+        if (System.Windows.MessageBox.Show(this, question, "Snippets", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
             _vm.Snippets.Remove(s);
     }
 
@@ -241,6 +256,20 @@ public partial class MainWindow : FluentWindow
     }
 
     // ---- Session-Tree --------------------------------------------------------------------------------
+
+    /// <summary>Klick auf die leere Fläche im Baum hebt die Auswahl auf ⇒ „Neu …“ legt dann auf oberster Ebene an.</summary>
+    private void OnTreeEmptyAreaClick(object sender, MouseButtonEventArgs e)
+    {
+        if (e.OriginalSource is DependencyObject d && FindAncestor<TreeViewItem>(d) is not null) return;
+        _vm.SessionTree.ClearSelection();
+    }
+
+    private static T? FindAncestor<T>(DependencyObject? d) where T : DependencyObject
+    {
+        for (; d is not null; d = d is System.Windows.Media.Visual ? System.Windows.Media.VisualTreeHelper.GetParent(d) : LogicalTreeHelper.GetParent(d))
+            if (d is T match) return match;
+        return null;
+    }
 
     private void OnTreeSelectedItemChanged(object sender, RoutedPropertyChangedEventArgs<object> e)
         => _vm.SessionTree.SelectedItem = e.NewValue as TreeItemViewModel;

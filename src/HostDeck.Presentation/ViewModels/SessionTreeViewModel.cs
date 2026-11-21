@@ -290,6 +290,13 @@ public sealed partial class SessionTreeViewModel : ObservableObject
         ApplyFilter();
     }
 
+    /// <summary>Auswahl aufheben (auch die Markierung im Baum).</summary>
+    public void ClearSelection()
+    {
+        if (SelectedItem is { } item) item.IsSelected = false;
+        SelectedItem = null;
+    }
+
     public void Delete(TreeItemViewModel item)
     {
         (item.Node.Parent ?? _tree.Root).Remove(item.Node);

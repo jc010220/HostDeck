@@ -132,7 +132,7 @@ public static class TeamLibraryFile
     /// <summary>Obergrenze: auch sehr große Bestände (50.000 Verbindungen) bleiben deutlich darunter.</summary>
     public const long MaxFileBytes = ConfConsImporter.MaxFileBytes;
 
-    private static byte[] ReadShared(string path)
+    internal static byte[] ReadShared(string path)
     {
         // mRemoteNG/andere HostDeck-Instanzen dürfen die Datei gleichzeitig offen haben
         for (var attempt = 0; ; attempt++)
@@ -159,7 +159,7 @@ public static class TeamLibraryFile
         }
     }
 
-    private static IDisposable AcquireLock(string path)
+    internal static IDisposable AcquireLock(string path)
     {
         var lockPath = path + ".hostdeck-lock";
         for (var attempt = 0; attempt < 2; attempt++)

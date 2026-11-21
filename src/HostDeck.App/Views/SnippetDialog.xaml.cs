@@ -8,10 +8,15 @@ public partial class SnippetDialog : FluentWindow
 {
     private readonly Snippet _snippet;
 
-    public SnippetDialog(Snippet snippet)
+    /// <summary>„Share with the team“ gewählt.</summary>
+    public bool Shared { get; private set; }
+
+    public SnippetDialog(Snippet snippet, bool teamAvailable = false)
     {
         _snippet = snippet;
         InitializeComponent();
+        ShareBox.Visibility = teamAvailable ? Visibility.Visible : Visibility.Collapsed;
+        ShareBox.IsChecked = snippet.IsTeam;
         NameBox.Text = snippet.Name;
         CategoryBox.Text = snippet.Category;
         CommandBox.Text = snippet.Command.Replace("\r", Environment.NewLine);
@@ -26,6 +31,7 @@ public partial class SnippetDialog : FluentWindow
         _snippet.Category = CategoryBox.Text.Trim();
         _snippet.Command = CommandBox.Text.Replace("\r\n", "\n").TrimEnd('\n');
         _snippet.Execute = ExecuteBox.IsChecked == true;
+        Shared = ShareBox.IsChecked == true;
         DialogResult = true;
     }
 }

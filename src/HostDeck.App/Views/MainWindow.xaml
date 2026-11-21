@@ -189,7 +189,7 @@
                     <TreeView x:Name="SessionTreeView" ItemsSource="{Binding SessionTree.Items}"
                               behaviors:TreeDragDrop.ViewModel="{Binding SessionTree}"
                               SelectedItemChanged="OnTreeSelectedItemChanged" MouseDoubleClick="OnTreeDoubleClick"
-                              KeyDown="OnTreeKeyDown" Background="Transparent" BorderThickness="0"
+                              KeyDown="OnTreeKeyDown" MouseLeftButtonDown="OnTreeEmptyAreaClick" Background="Transparent" BorderThickness="0"
                               VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
                         <TreeView.ItemContainerStyle>
                             <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
@@ -206,6 +206,7 @@
                                 <Separator />
                                 <MenuItem Header="New connection" InputGestureText="Ctrl+N" Command="{Binding NewConnectionCommand}" />
                                 <MenuItem Header="New folder" InputGestureText="Ctrl+Shift+N" Command="{Binding NewFolderCommand}" />
+                                <MenuItem Header="New personal folder (top level, only for me)" Command="{Binding NewPersonalFolderCommand}" />
                                 <Separator />
                                 <MenuItem Header="Properties …" InputGestureText="F4" Click="OnMenuEdit" />
                                 <MenuItem Header="Rename" InputGestureText="F2" Click="OnMenuRename" />
@@ -368,11 +369,21 @@
                                         <DockPanel>
                                             <TextBlock DockPanel.Dock="Right" Text="{Binding Category}" FontSize="10" Margin="6,0,0,0"
                                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                                            <Border x:Name="TeamBadge" DockPanel.Dock="Right" Margin="6,0,0,0" Padding="5,0" CornerRadius="3"
+                                                    Background="{DynamicResource AccentFillColorDefaultBrush}" Visibility="Collapsed"
+                                                    ToolTip="Shared with the team (team library)">
+                                                <TextBlock Text="Team" FontSize="10" Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                                            </Border>
                                             <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
                                         </DockPanel>
                                         <TextBlock Text="{Binding Command}" FontFamily="{StaticResource MonoFont}" FontSize="11" TextTrimming="CharacterEllipsis"
                                                    Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                                     </StackPanel>
+                                    <DataTemplate.Triggers>
+                                        <DataTrigger Binding="{Binding IsTeam}" Value="True">
+                                            <Setter TargetName="TeamBadge" Property="Visibility" Value="Visible" />
+                                        </DataTrigger>
+                                    </DataTemplate.Triggers>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>

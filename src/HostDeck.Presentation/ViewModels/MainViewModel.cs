@@ -180,10 +180,15 @@ public sealed partial class MainViewModel : ObservableObject
 
     private SnippetsViewModel? _snippets;
 
-    public SnippetsViewModel Snippets => _snippets ??= new SnippetsViewModel(
-        new DocumentSnippetStore(_store),
-        (title, message) => _dialogs.Prompt(title, message),
-        SendToTerminals);
+    public SnippetsViewModel Snippets => _snippets ??= CreateSnippets();
+
+    private SnippetsViewModel CreateSnippets()
+    {
+        var vm = new SnippetsViewModel(new DocumentSnippetStore(_store), (title, message) => _dialogs.Prompt(title, message), SendToTerminals);
+        vm.TeamChanged += entry => _ = SaveTeamSnippetAsync(entry);
+        ShowCachedTeamSnippets(vm);
+        return vm;
+    }
 
     /// <summary>An das aktive Terminal senden – bei aktivem Multi-Exec an alle markierten Terminals.</summary>
     public void SendToTerminals(string text)
@@ -254,6 +259,7 @@ public sealed partial class MainViewModel : ObservableObject
         yield return ("Switch theme (system / dark / light)", "theme dark light dunkel hell", () => ToggleThemeCommand.Execute(null));
         yield return ("New connection", "new connection add", () => NewConnectionCommand.Execute(null));
         yield return ("New folder", "new folder add", () => NewFolderCommand.Execute(null));
+        yield return ("New personal folder (top level, only for me)", "personal folder ordner privat mine eigene", () => NewPersonalFolderCommand.Execute(null));
         yield return ("Manage credentials (vault)", "vault credentials passwort", () => ManageVaultCommand.Execute(null));
         yield return ("Change master password", "password security sicherheit", () => ChangeMasterPasswordCommand.Execute(null));
         if (FocusedWorkspace.ActiveTab is { IsConnecting: true } connecting)
@@ -637,6 +643,17 @@ public sealed partial class MainViewModel : ObservableObject
     {
         if (BlockReadOnlyTeam(TargetIsReadOnlyTeam())) return;
         SessionTree.Add(new FolderNode("New folder") { IsExpanded = true });
+    }
+
+    /// <summary>Persönlicher Ordner auf oberster Ebene (nie in der Team-Bibliothek) – Name wird gleich abgefragt.</summary>
+    [RelayCommand]
+    private void NewPersonalFolder()
+    {
+        var name = _dialogs.Prompt("New personal folder", "Name (only visible to you, not shared with the team):", "My connections");
+        if (string.IsNullOrWhiteSpace(name)) return;
+        SessionTree.ClearSelection();
+        SessionTree.Add(new FolderNode(name.Trim()) { IsExpanded = true });
+        StatusText = $"Personal folder “{name.Trim()}” created";
     }
 
     [RelayCommand]

@@ -12,6 +12,30 @@ public class SnippetTests
         public string? Json;
         public string? Load() => Json;
         public void Save(string json) => Json = json;
+        public int DefaultsVersion { get; set; }
+    }
+
+    [Fact]
+    public void Old_cisco_templates_are_replaced_by_linux_templates_but_own_snippets_stay()
+    {
+        var store = new MemorySnippets
+        {
+            Json = """
+            [{"Name":"Show interfaces (Cisco)","Command":"show ip interface brief","Category":"Network","Execute":true},
+             {"Name":"System load","Command":"uptime && free -h && df -h -x tmpfs -x devtmpfs","Category":"Linux","Execute":true},
+             {"Name":"My own","Command":"echo hi","Category":"Mine","Execute":true}]
+            """,
+        };
+        var vm = new SnippetsViewModel(store, (_, _) => null, _ => { });
+        Assert.DoesNotContain(vm.Items, s => s.Name.Contains("Cisco"));
+        Assert.Contains(vm.Items, s => s.Name == "My own");
+        Assert.Contains(vm.Items, s => s.Name == "Top processes (CPU)");
+        Assert.Single(vm.Items, s => s.Name == "System load");
+        Assert.Equal("Linux · System", vm.Items.Single(s => s.Name == "System load").Category);
+
+        vm.Remove(vm.Items.Single(s => s.Name == "Open ports"));     // gelöschte Vorlagen kommen nicht wieder
+        var again = new SnippetsViewModel(store, (_, _) => null, _ => { });
+        Assert.DoesNotContain(again.Items, s => s.Name == "Open ports");
     }
 
     [Fact]

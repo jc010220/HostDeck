@@ -14,6 +14,13 @@
             <TextBlock Text="Command – may span multiple lines, placeholders {{Name}} are asked for when run" Margin="0,10,0,4" TextWrapping="Wrap" />
             <TextBox x:Name="CommandBox" AcceptsReturn="True" Height="120" FontFamily="{StaticResource MonoFont}" VerticalScrollBarVisibility="Auto" />
             <CheckBox x:Name="ExecuteBox" Content="Send Enter automatically (run immediately)" Margin="0,10,0,0" IsChecked="True" />
+            <CheckBox x:Name="ShareBox" Margin="0,6,0,0" Visibility="Collapsed">
+                <TextBlock TextWrapping="Wrap">
+                    <Run Text="Share with the team" /><LineBreak />
+                    <Run Text="Saved in the team library right away – visible to everyone using it" FontSize="11"
+                         Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                </TextBlock>
+            </CheckBox>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
                 <ui:Button Content="Cancel" IsCancel="True" MinWidth="96" Margin="0,0,8,0" />
                 <ui:Button Content="Save" Appearance="Primary" MinWidth="96" Click="OnOk" />

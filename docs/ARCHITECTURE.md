@@ -285,6 +285,10 @@ local encrypted DB: team subtree (offline copy) + base (fingerprints of last syn
   normalisation by the exporter (e.g. default values for attributes an older file lacked) never shows up as a change.
 * **Format preserved:** ConfVersion, cipher engine/mode, KDF iterations, full-file encryption and the file's master password are
   kept, so colleagues can keep using mRemoteNG (which does not merge and overwrites the file when it saves).
+* **Team snippets (`TeamSnippetFile`):** separate file `<team>.hostdeck-snippets.json` next to the team file, so the XML
+  stays mRemoteNG-compatible. Encrypted with AES-256-GCM (key PBKDF2-SHA256, 210,000 iterations, from the team password)
+  when the team file is protected. Merge per snippet id, newer change wins, deletions are kept as tombstones (180 days).
+  Changes are written immediately under the same lock mechanism; failures are queued locally and retried on the next sync.
 * **Read-only mode (jump hosts):** the configured path may be a folder; the newest `.xml` in it is used. Local deviations are
   discarded on every pull and nothing is ever written.
 * **Safeguards:** deleting the team folder only disconnects (never "delete everything in the file"); an earlier manual import of

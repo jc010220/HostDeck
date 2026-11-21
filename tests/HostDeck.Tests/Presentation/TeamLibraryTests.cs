@@ -30,6 +30,7 @@ public sealed class TeamLibraryTests : IDisposable
         var (vm, dialogs, _, store) = Create();
         store.Location = Path.Combine(_dir, name, "hostdeck.db");
         Assert.True(vm.ConnectTeamLibraryAsync(TeamFile, readOnly).GetAwaiter().GetResult());
+        _dialogsByVm[vm] = dialogs;
         return (vm, dialogs, store);
     }
 
@@ -402,5 +403,57 @@ public sealed class TeamLibraryTests : IDisposable
         Assert.Null(alice.TeamContainer);
         Assert.DoesNotContain(alice.SessionTree.Tree.Root.Descendants(), n => n.Name is "sw01" or "Team");
         Assert.Equal(before, File.ReadAllBytes(TeamFile));
+    }
+
+    [Fact]
+    public async Task Team_snippets_are_shared_encrypted_and_deletions_propagate()
+    {
+        WriteTeamFile(Sample());
+        var (alice, aliceDialogs, _) = User("alice");
+        var (bob, _, _) = User("bob");
+
+        alice.Snippets.Add("Restart app", "sudo systemctl restart app", "Team", team: true);
+        await alice.SyncTeamSnippetsAsync();
+        await bob.SyncTeamSnippetsAsync();
+        var shared = Assert.Single(bob.Snippets.Items, s => s.Name == "Restart app");
+        Assert.True(shared.IsTeam);
+        Assert.DoesNotContain(bob.Snippets.Items, s => s.Name == "Restart app" && !s.IsTeam);
+
+        // Persönliche Snippets bleiben persönlich
+        alice.Snippets.Add("Only mine", "echo mine");
+        await bob.SyncTeamSnippetsAsync();
+        Assert.DoesNotContain(bob.Snippets.Items, s => s.Name == "Only mine");
+
+        // Team-Passwort setzen ⇒ Snippet-Datei wird verschlüsselt
+        aliceDialogs.PromptAnswer = _ => "Team-Secret#2026";
+        await alice.SetTeamPasswordCommand.ExecuteAsync(null);
+        var raw = File.ReadAllText(HostDeck.Presentation.Team.TeamSnippetFile.PathFor(TeamFile));
+        Assert.DoesNotContain("systemctl", raw);
+
+        // Bob löscht (kennt das Passwort nach einmaliger Abfrage) ⇒ bei Alice weg
+        var bobDialogs = GetDialogs(bob);
+        bobDialogs.Passwords.Enqueue("Team-Secret#2026");
+        Assert.True(bob.SyncTeam(write: false));
+        bob.Snippets.Remove(bob.Snippets.Items.Single(s => s.Name == "Restart app"));
+        await bob.SyncTeamSnippetsAsync();
+        await alice.SyncTeamSnippetsAsync();
+        Assert.DoesNotContain(alice.Snippets.Items, s => s.Name == "Restart app");
+    }
+
+    private readonly Dictionary<MainViewModel, FakeDialogs> _dialogsByVm = [];
+    private FakeDialogs GetDialogs(MainViewModel vm) => _dialogsByVm[vm];
+
+    [Fact]
+    public async Task Read_only_copy_shows_team_snippets_but_cannot_change_them()
+    {
+        WriteTeamFile(Sample());
+        var (alice, _, _) = User("alice");
+        alice.Snippets.Add("Shared", "uptime", team: true);
+        await alice.SyncTeamSnippetsAsync();
+
+        var (jump, _, _) = User("jump", readOnly: true);
+        await jump.SyncTeamSnippetsAsync();
+        var s = Assert.Single(jump.Snippets.Items, x => x.Name == "Shared");
+        Assert.False(jump.Snippets.CanEdit(s));
     }
 }

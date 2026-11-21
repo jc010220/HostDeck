@@ -14,7 +14,24 @@ public static class Log
     public static string Directory { get; } = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "HostDeck", "logs");
 
-    public static void Error(string context, Exception ex) => Write("FEHLER", $"{context}: {ex}");
+    private static readonly Dictionary<string, int> Repeats = [];
+
+    /// <summary>
+    /// Identische Fehler (gleicher Kontext, Typ, Meldung, Ort) werden nach 10 Einträgen nur noch zusammengefasst
+    /// protokolliert – eine Fehlerschleife darf weder die Platte füllen noch die App ausbremsen.
+    /// </summary>
+    public static void Error(string context, Exception ex)
+    {
+        var key = $"{context}|{ex.GetType().FullName}|{ex.Message}|{ex.StackTrace?.Split('\n').FirstOrDefault()}";
+        int count;
+        lock (Gate)
+        {
+            Repeats.TryGetValue(key, out count);
+            Repeats[key] = ++count;
+        }
+        if (count <= 10) Write("FEHLER", $"{context}: {ex}");
+        else if (count % 1000 == 0) Write("FEHLER", $"{context}: {ex.GetType().Name}: {ex.Message} (bisher {count}× aufgetreten)");
+    }
     public static void Info(string message) => Write("INFO", message);
 
     private static void Write(string level, string message)

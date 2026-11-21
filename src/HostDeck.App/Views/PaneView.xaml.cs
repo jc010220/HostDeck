@@ -29,38 +29,10 @@ public partial class PaneView : UserControl
         if (Workspace is not null && DataContext is PaneViewModel pane) Workspace.ActivePane = pane;
     }
 
-    private static SessionTabViewModel? TabOf(object sender) => (sender as FrameworkElement)?.DataContext as SessionTabViewModel;
-
-    private void OnCloseButton(object sender, RoutedEventArgs e)
-    {
-        Workspace?.Close(TabOf(sender));
-        e.Handled = true;
-    }
-
-    private void OnCloseMenu(object sender, RoutedEventArgs e) => Workspace?.Close(TabOf(sender));
-
-    private void OnReconnectMenu(object sender, RoutedEventArgs e)
-    {
-        var tab = TabOf(sender);
-        if (tab?.Terminal is { } terminal) _ = terminal.ConnectAsync();
-        tab?.Rdp?.ConnectCommand.Execute(null);
-        if (tab?.Vnc is { } vnc) _ = vnc.ConnectAsync();
-    }
-
     private static MainViewModel? Main => Application.Current.MainWindow?.DataContext as MainViewModel;
 
-    private void OnDetachMenu(object sender, RoutedEventArgs e)
-    {
-        if (TabOf(sender) is { } tab) Main?.DetachTab(tab);
-    }
-
-    private void OnFullScreenMenu(object sender, RoutedEventArgs e) => TabOf(sender)?.Rdp?.FullScreenCommand.Execute(null);
-
-    private void OnSaveMenu(object sender, RoutedEventArgs e)
-    {
-        if (Window.GetWindow(this)?.DataContext is MainViewModel main)
-            main.SaveTransientSessionCommand.Execute(TabOf(sender));
-    }
+    // Hinweis: In Vorlagen/Styles (Tab-Kopf, Kontextmenü) KEINE Event-Handler verwenden – der XAML-Compiler
+    // verdrahtet sie dort fehlerhaft (Absturz 1.0.0–1.0.3). Stattdessen Commands am SessionTabViewModel.
 
     // ---- Tab ziehen (zwischen Bereichen verschieben), Mittelklick schließt -------------------------
 

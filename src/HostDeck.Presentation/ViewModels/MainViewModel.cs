@@ -55,6 +55,7 @@ public sealed partial class MainViewModel : ObservableObject
     private SessionTabViewModel CreateTab(ConnectionNode connection, CredentialVault vault, bool transient)
     {
         var tab = new SessionTabViewModel(connection, vault, transient);
+        tab.ActionRequested += OnTabAction;
         if (!transient) RememberRecent(connection.Id);
         if (tab.Protocol is ProtocolKind.Ssh2 or ProtocolKind.Ssh1 or ProtocolKind.Telnet or ProtocolKind.Raw)
         {
@@ -74,6 +75,22 @@ public sealed partial class MainViewModel : ObservableObject
             tab.Vnc = new VncSessionViewModel(tab, _dialogs);
         }
         return tab;
+    }
+
+    private void OnTabAction(SessionTabViewModel tab, TabAction action)
+    {
+        switch (action)
+        {
+            case TabAction.Close:
+                AllWorkspaces.FirstOrDefault(w => w.AllTabs.Contains(tab))?.Close(tab);
+                break;
+            case TabAction.Detach:
+                if (AllWorkspaces.Any(w => w.AllTabs.Contains(tab))) DetachTab(tab);
+                break;
+            case TabAction.Save:
+                SaveTransientSessionCommand.Execute(tab);
+                break;
+        }
     }
 
     /// <summary>

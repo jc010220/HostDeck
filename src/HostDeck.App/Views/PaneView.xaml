@@ -61,18 +61,18 @@
                         <Setter Property="ContextMenu">
                             <Setter.Value>
                                 <ContextMenu>
-                                    <MenuItem Header="Vollbild" Click="OnFullScreenMenu"
+                                    <MenuItem Header="Vollbild" Command="{Binding FullScreenCommand}"
                                               Visibility="{Binding HasRdp, Converter={StaticResource BoolToVisibility}}" />
                                     <MenuItem Header="Verbindungsaufbau abbrechen" Command="{Binding CancelConnectCommand}"
                                               Visibility="{Binding IsConnecting, Converter={StaticResource BoolToVisibility}}" />
-                                    <MenuItem Header="In neuem Fenster öffnen" Click="OnDetachMenu" />
-                                    <MenuItem Header="Neu verbinden" Click="OnReconnectMenu"
+                                    <MenuItem Header="In neuem Fenster öffnen" Command="{Binding RequestDetachCommand}" />
+                                    <MenuItem Header="Neu verbinden" Command="{Binding ReconnectCommand}"
                                               Visibility="{Binding HasEngine, Converter={StaticResource BoolToVisibility}}" />
                                     <MenuItem Header="Empfängt Multi-Exec-Eingaben" IsCheckable="True" IsChecked="{Binding IsMultiExecutionTarget}"
                                               Visibility="{Binding IsTerminal, Converter={StaticResource BoolToVisibility}}" />
                                     <Separator />
-                                    <MenuItem Header="Schließen" InputGestureText="Strg+W" Click="OnCloseMenu" />
-                                    <MenuItem Header="Als Verbindung speichern" Click="OnSaveMenu"
+                                    <MenuItem Header="Schließen" InputGestureText="Strg+W" Command="{Binding RequestCloseCommand}" />
+                                    <MenuItem Header="Als Verbindung speichern" Command="{Binding RequestSaveCommand}"
                                               Visibility="{Binding IsTransient, Converter={StaticResource BoolToVisibility}}" />
                                 </ContextMenu>
                             </Setter.Value>
@@ -102,7 +102,7 @@
                                        ToolTip="Quick-Connect (nicht gespeichert)"
                                        Visibility="{Binding IsTransient, Converter={StaticResource BoolToVisibility}}" />
                             <Button Margin="6,0,0,0" Padding="2" Width="20" Height="20" Background="Transparent" BorderThickness="0"
-                                    ToolTip="Schließen (Strg+W, Mittelklick)" Click="OnCloseButton" Focusable="False">
+                                    ToolTip="Schließen (Strg+W, Mittelklick)" Command="{Binding RequestCloseCommand}" Focusable="False">
                                 <ui:SymbolIcon Symbol="{x:Static app:Icons.Dismiss}" FontSize="12" />
                             </Button>
                         </StackPanel>

@@ -42,6 +42,23 @@ public sealed partial class SessionTabViewModel : ObservableObject
     public bool IsConnecting => State == SessionState.Connecting;
     partial void OnStateChanged(SessionState value) => OnPropertyChanged(nameof(IsConnecting));
 
+    /// <summary>Aktionen, die das Fenster/der Workspace ausführen muss (Schließen, Ablösen, Speichern).</summary>
+    public event Action<SessionTabViewModel, TabAction>? ActionRequested;
+
+    [RelayCommand] private void RequestClose() => ActionRequested?.Invoke(this, TabAction.Close);
+    [RelayCommand] private void RequestDetach() => ActionRequested?.Invoke(this, TabAction.Detach);
+    [RelayCommand] private void RequestSave() => ActionRequested?.Invoke(this, TabAction.Save);
+
+    [RelayCommand]
+    private void Reconnect()
+    {
+        if (Terminal is { } terminal) _ = terminal.ConnectAsync();
+        Rdp?.ConnectCommand.Execute(null);
+        if (Vnc is { } vnc) _ = vnc.ConnectAsync();
+    }
+
+    [RelayCommand] private void FullScreen() => Rdp?.FullScreenCommand.Execute(null);
+
     /// <summary>Laufenden Verbindungsaufbau abbrechen – unabhängig vom Protokoll.</summary>
     [RelayCommand]
     public void CancelConnect()
@@ -104,6 +121,8 @@ public sealed partial class SessionTabViewModel : ObservableObject
         OnPropertyChanged(nameof(HasRdp));
     }
 }
+
+public enum TabAction { Close, Detach, Save }
 
 /// <summary>Ein Bereich im Split-Screen mit eigener Tab-Leiste.</summary>
 public sealed partial class PaneViewModel(int index) : ObservableObject

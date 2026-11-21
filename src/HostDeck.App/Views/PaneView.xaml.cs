@@ -44,6 +44,7 @@ public partial class PaneView : UserControl
         var tab = TabOf(sender);
         if (tab?.Terminal is { } terminal) _ = terminal.ConnectAsync();
         tab?.Rdp?.ConnectCommand.Execute(null);
+        if (tab?.Vnc is { } vnc) _ = vnc.ConnectAsync();
     }
 
     private static MainViewModel? Main => Application.Current.MainWindow?.DataContext as MainViewModel;

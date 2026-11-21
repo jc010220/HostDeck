@@ -5,6 +5,8 @@
              xmlns:app="clr-namespace:HostDeck.App"
              xmlns:views="clr-namespace:HostDeck.App.Views"
              xmlns:rdp="clr-namespace:HostDeck.App.Rdp"
+             xmlns:vnc="clr-namespace:HostDeck.App.Vnc"
+             xmlns:web="clr-namespace:HostDeck.App.Web"
              AllowDrop="True">
     <Border x:Name="Frame" Margin="2" CornerRadius="6" BorderThickness="1"
             Background="{DynamicResource CardBackgroundFillColorDefaultBrush}">
@@ -124,6 +126,8 @@
                             <views:SessionPlaceholderView Visibility="{Binding HasEngine, Converter={StaticResource InverseBoolToVisibility}}" />
                             <views:TerminalView Visibility="{Binding HasTerminal, Converter={StaticResource BoolToVisibility}}" Margin="0,2,0,0" />
                             <rdp:RdpView Visibility="{Binding HasRdp, Converter={StaticResource BoolToVisibility}}" Margin="0,2,0,0" />
+                            <vnc:VncView Visibility="{Binding HasVnc, Converter={StaticResource BoolToVisibility}}" Margin="0,2,0,0" />
+                            <web:WebView Visibility="{Binding HasWeb, Converter={StaticResource BoolToVisibility}}" Margin="0,2,0,0" />
                         </Grid>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

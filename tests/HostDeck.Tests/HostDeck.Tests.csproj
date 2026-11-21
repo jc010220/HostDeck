@@ -13,6 +13,7 @@
     <ProjectReference Include="..\..\src\HostDeck.Storage\HostDeck.Storage.csproj" />
     <ProjectReference Include="..\..\src\HostDeck.Protocols.Ssh\HostDeck.Protocols.Ssh.csproj" />
     <ProjectReference Include="..\..\src\HostDeck.Protocols.Rdp\HostDeck.Protocols.Rdp.csproj" />
+    <ProjectReference Include="..\..\src\HostDeck.Protocols.Vnc\HostDeck.Protocols.Vnc.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Fixtures\**\*" CopyToOutputDirectory="PreserveNewest" />

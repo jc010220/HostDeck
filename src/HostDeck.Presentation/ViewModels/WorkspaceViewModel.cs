@@ -56,8 +56,26 @@ public sealed partial class SessionTabViewModel : ObservableObject
     /// <summary>RDP-Engine (Phase 4b); bei anderen Protokollen null.</summary>
     [ObservableProperty] private RdpSessionViewModel? _rdp;
 
+    /// <summary>HTTP/HTTPS-Engine; bei anderen Protokollen null.</summary>
+    [ObservableProperty] private WebSessionViewModel? _web;
+    public bool HasWeb => Web is not null;
+    partial void OnWebChanged(WebSessionViewModel? value)
+    {
+        OnPropertyChanged(nameof(HasEngine));
+        OnPropertyChanged(nameof(HasWeb));
+    }
+
+    /// <summary>VNC-Engine; bei anderen Protokollen null.</summary>
+    [ObservableProperty] private VncSessionViewModel? _vnc;
+    public bool HasVnc => Vnc is not null;
+    partial void OnVncChanged(VncSessionViewModel? value)
+    {
+        OnPropertyChanged(nameof(HasEngine));
+        OnPropertyChanged(nameof(HasVnc));
+    }
+
     /// <summary>Für die View: Platzhalter nur, solange keine Engine existiert.</summary>
-    public bool HasEngine => Terminal is not null || Rdp is not null;
+    public bool HasEngine => Terminal is not null || Rdp is not null || Web is not null || Vnc is not null;
     public bool HasTerminal => Terminal is not null;
     public bool HasRdp => Rdp is not null;
 
@@ -196,6 +214,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject
         pane.Tabs.RemoveAt(index);
         if (pane.SelectedTab == tab) pane.SelectedTab = null;
         if (tab.Terminal is { } terminal) _ = terminal.DisposeAsync().AsTask(); // Verbindung trennen
+        if (tab.Vnc is { } vnc) _ = vnc.DisposeAsync().AsTask();
         tab.RaiseClosed();
         if (pane.SelectedTab is null || pane.SelectedTab == tab)
             pane.SelectedTab = pane.Tabs.Count == 0 ? null : pane.Tabs[Math.Min(index, pane.Tabs.Count - 1)];

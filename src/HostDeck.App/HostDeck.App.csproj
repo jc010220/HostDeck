@@ -22,6 +22,7 @@
     <ProjectReference Include="..\HostDeck.Presentation\HostDeck.Presentation.csproj" />
     <ProjectReference Include="..\HostDeck.Storage\HostDeck.Storage.csproj" />
     <ProjectReference Include="..\HostDeck.Protocols.Rdp\HostDeck.Protocols.Rdp.csproj" />
+    <ProjectReference Include="..\HostDeck.Protocols.Vnc\HostDeck.Protocols.Vnc.csproj" />
   </ItemGroup>
   <ItemGroup>
     <!-- WinForms nur gezielt im RDP-Code verwenden, keine globalen Namenskonflikte mit WPF -->

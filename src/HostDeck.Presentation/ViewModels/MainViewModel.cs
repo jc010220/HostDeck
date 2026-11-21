@@ -65,6 +65,14 @@ public sealed partial class MainViewModel : ObservableObject
         {
             tab.Rdp = new RdpSessionViewModel(tab); // verbindet, sobald die View ihr Fenster-Handle hat
         }
+        else if (tab.Protocol is ProtocolKind.Http or ProtocolKind.Https)
+        {
+            tab.Web = new WebSessionViewModel(tab);
+        }
+        else if (tab.Protocol == ProtocolKind.Vnc)
+        {
+            tab.Vnc = new VncSessionViewModel(tab, _dialogs);
+        }
         return tab;
     }
 

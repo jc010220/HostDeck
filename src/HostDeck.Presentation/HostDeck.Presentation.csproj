@@ -7,6 +7,7 @@
     <ProjectReference Include="..\HostDeck.Import.MRemoteNG\HostDeck.Import.MRemoteNG.csproj" />
     <ProjectReference Include="..\HostDeck.Protocols.Ssh\HostDeck.Protocols.Ssh.csproj" />
     <ProjectReference Include="..\HostDeck.Protocols.Rdp\HostDeck.Protocols.Rdp.csproj" />
+    <ProjectReference Include="..\HostDeck.Protocols.Vnc\HostDeck.Protocols.Vnc.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="CommunityToolkit.Mvvm" />

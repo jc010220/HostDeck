@@ -25,15 +25,15 @@
             <Grid Margin="0,0,0,4">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="220" /><ColumnDefinition /></Grid.ColumnDefinitions>
                 <TextBlock Text="Quick connect default protocol" VerticalAlignment="Center" />
-                <ComboBox Grid.Column="1" ItemsSource="{Binding Protocols}" SelectedItem="{Binding DefaultProtocol}" />
+                <ComboBox Grid.Column="1" ItemsSource="{Binding Protocols}" SelectedItem="{Binding DefaultProtocol}" ItemTemplate="{StaticResource EnumDisplayTemplate}" />
             </Grid>
             <CheckBox Content="Restore open sessions on startup" IsChecked="{Binding RestoreWorkspace}" Margin="0,4,0,0" />
             <CheckBox Content="SFTP browser follows the terminal directory" IsChecked="{Binding SftpFollows}" Margin="0,4,0,0" />
             <Grid Margin="0,8,0,4">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="220" /><ColumnDefinition /></Grid.ColumnDefinitions>
                 <TextBlock Text="mRemoteNG import: credentials" VerticalAlignment="Center" TextWrapping="Wrap" />
-                <ComboBox Grid.Column="1" ItemsSource="{Binding ExtractionModes}" SelectedItem="{Binding CredentialExtraction}"
-                          ToolTip="SharedOnly: logins used more than once become vault entries" />
+                <ComboBox Grid.Column="1" ItemsSource="{Binding ExtractionModes}" SelectedItem="{Binding CredentialExtraction}" ItemTemplate="{StaticResource EnumDisplayTemplate}"
+                          ToolTip="How logins from imported mRemoteNG files are stored" />
             </Grid>
 
             <TextBlock Text="Team library" FontWeight="SemiBold" Margin="0,16,0,6" />

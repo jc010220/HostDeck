@@ -105,7 +105,7 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
                 Kind = PaletteItemKind.Connection,
                 Title = c.Name,
                 Subtitle = $"{ParentPath(c)}{(c.Hostname.Length > 0 ? "  ·  " + c.Hostname : "")}",
-                Badge = resolved.Protocol?.ToString().ToUpperInvariant() ?? "",
+                Badge = resolved.Protocol?.DisplayName().ToUpperInvariant() ?? "",
                 Protocol = resolved.Protocol ?? ProtocolKind.Rdp,
                 IsFavorite = favorite,
                 IsRecent = isRecent,
@@ -124,8 +124,8 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
             {
                 Kind = PaletteItemKind.QuickConnect,
                 Title = $"Connect: {target!.DisplayName}",
-                Subtitle = $"{target.Protocol} → {target.Host}:{target.EffectivePort} (quick connect, not saved)",
-                Badge = target.Protocol.ToString().ToUpperInvariant(),
+                Subtitle = $"{target.Protocol.DisplayName()} → {target.Host}:{target.EffectivePort} (quick connect, not saved)",
+                Badge = target.Protocol.DisplayName().ToUpperInvariant(),
                 Protocol = target.Protocol,
                 QuickConnect = target,
             };

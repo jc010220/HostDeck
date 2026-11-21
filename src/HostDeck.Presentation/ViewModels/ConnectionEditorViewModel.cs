@@ -202,7 +202,7 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
         RdpSoundRedirection snd => snd switch { RdpSoundRedirection.BringToThisComputer => "On this PC", RdpSoundRedirection.LeaveAtRemoteComputer => "On the server", _ => "Don't play" },
         RdpDiskDrives dd => dd switch { RdpDiskDrives.None => "None", RdpDiskDrives.Local => "Local drives", RdpDiskDrives.All => "All (incl. USB)", _ => "Custom" },
         RdGatewayUsage g => g switch { RdGatewayUsage.Never => "Never", RdGatewayUsage.Always => "Always", _ => "Detect automatically" },
-        ProtocolKind p => p switch { ProtocolKind.Ssh2 => "SSH", ProtocolKind.Rdp => "RDP", _ => p.ToString().ToUpperInvariant() },
+        ProtocolKind p => p.DisplayName(),
         _ => value.ToString()!,
     };
 }

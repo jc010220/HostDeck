@@ -263,4 +263,46 @@ public sealed class TeamLibraryTests : IDisposable
             foreach (var (id, entry) in a) Assert.Equal(entry, b[id]);
         }
     }
+
+    [Fact]
+    public async Task Team_password_can_be_set_from_HostDeck_and_colleagues_are_asked_once()
+    {
+        WriteTeamFile(Sample());
+        var (alice, aliceDialogs, _) = User("alice");
+        var (bob, bobDialogs, _) = User("bob");
+
+        aliceDialogs.PromptAnswer = _ => "short";
+        await alice.SetTeamPasswordCommand.ExecuteAsync(null);
+        Assert.Contains(aliceDialogs.Errors, e => e.Contains("10 characters"));
+        Assert.False(new ConfConsImporter().ImportFile(TeamFile).File.CustomMasterPassword);
+
+        aliceDialogs.PromptAnswer = _ => "Team-Secret#2026";
+        await alice.SetTeamPasswordCommand.ExecuteAsync(null);
+
+        // Datei ist jetzt geschützt (wie mRemoteNG „Password protect“), mit mehr KDF-Iterationen, Inhalt unverändert
+        Assert.Throws<ConfConsAuthenticationException>(() => new ConfConsImporter().ImportFile(TeamFile));
+        var reread = new ConfConsImporter(new ConfConsImportOptions { MasterPassword = "Team-Secret#2026" }).ImportFile(TeamFile);
+        Assert.True(reread.File.CustomMasterPassword);
+        Assert.True(reread.File.KdfIterations >= 10_000);
+        Assert.Equal("Geheim!1", reread.Tree.Connections.Single(c => c.Name == "dc01").Settings.Password);
+
+        // Alice synchronisiert weiter ohne Rückfrage
+        Edit(alice, () => Conn(alice, "sw01").Hostname = "10.0.0.77");
+        Assert.True(alice.SyncTeam(write: true));
+
+        // Bob wird einmal gefragt, danach nicht mehr
+        bobDialogs.Passwords.Enqueue("Team-Secret#2026");
+        Assert.True(bob.SyncTeam(write: false));
+        Assert.Equal("10.0.0.77", Conn(bob, "sw01").Hostname);
+        Assert.True(bob.SyncTeam(write: false));
+        Assert.Empty(bobDialogs.Passwords);
+    }
+
+    [Theory]
+    [InlineData("kurz", false)]
+    [InlineData("Lang-genug-123", true)]
+    [InlineData("Passwort-mit-€-Zeichen", false)] // € liegt außerhalb von Latin-1
+    [InlineData("Grüße-aus-Zürich", true)]        // Umlaute sind Latin-1
+    public void Team_password_rules_match_mRemoteNG(string password, bool ok)
+        => Assert.Equal(ok, MainViewModel.TeamPasswordProblem(password) is null);
 }

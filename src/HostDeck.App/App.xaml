@@ -17,6 +17,10 @@
             <conv:EnumEqualsConverter x:Key="EnumEquals" />
             <conv:CountToVisibilityConverter x:Key="CountToVisibility" />
             <conv:ThemeIconConverter x:Key="ThemeIcon" />
+            <conv:EnumDisplayConverter x:Key="EnumDisplay" />
+            <DataTemplate x:Key="EnumDisplayTemplate">
+                <TextBlock Text="{Binding Converter={StaticResource EnumDisplay}}" />
+            </DataTemplate>
             <conv:NullToVisibilityConverter x:Key="NullToVisibility" />
             <conv:FileSizeConverter x:Key="FileSize" />
             <conv:InverseBoolConverter x:Key="InverseBool" />

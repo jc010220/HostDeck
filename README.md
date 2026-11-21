@@ -65,7 +65,8 @@ Like a shared KeePass database: everyone works on the same `confCons.xml` on the
 - **mRemoteNG-compatible:** the file's format, encryption and master password are preserved. Note: mRemoteNG itself does
   not merge; when a colleague saves with mRemoteNG, the file is overwritten with their version.
 - **Important:** without its own master password, mRemoteNG uses a publicly known key, so anyone with read access can read
-  the passwords in the file. Set a master password (HostDeck asks for it once) or use personal logins from the vault.
+  the passwords in the file. Protect it via Ctrl+K → "Set team file password …" (in mRemoteNG: root node "Connections" →
+  property "Password protect"); everyone is asked for it once. Personal logins belong in the vault.
 
 ## Security
 

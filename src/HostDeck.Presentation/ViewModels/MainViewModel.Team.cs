@@ -199,6 +199,41 @@ public sealed partial class MainViewModel
         }
     }
 
+    private const int TeamKdfIterations = 10_000;
+
+    /// <summary>
+    /// Master-Passwort der Team-Datei setzen oder ändern (in mRemoteNG: Wurzelknoten „Connections“ → „Password protect“).
+    /// Danach fragen HostDeck und mRemoteNG jeden Kollegen einmal nach diesem Passwort.
+    /// </summary>
+    [RelayCommand]
+    private async Task SetTeamPassword()
+    {
+        if (!HasTeamLibrary) return;
+        if (Settings.TeamReadOnly)
+        {
+            _dialogs.ShowInfo("Team library", "This copy is read-only (e.g. jump host). Please set the password on your workstation.");
+            return;
+        }
+        var first = _dialogs.Prompt("Team file password",
+            "New master password for the shared team file (at least 10 characters).\n\n" +
+            "Everyone using the file – in HostDeck or mRemoteNG – will be asked for it once. Share it only through a safe channel.",
+            secret: true);
+        if (first is null) return;
+        if (TeamPasswordProblem(first) is { } problem) { _dialogs.ShowError("Team file password", problem); return; }
+        var second = _dialogs.Prompt("Team file password", "Repeat the password:", secret: true);
+        if (second is null) return;
+        if (second != first) { _dialogs.ShowError("Team file password", "The passwords do not match."); return; }
+
+        if (await SyncTeamAsync(write: true, interactive: true, newPassword: first))
+            _dialogs.ShowInfo("Team file password", "The team file is now protected with the new password.\n\nColleagues will be asked for it the next time they open or sync the file.");
+    }
+
+    /// <summary>mRemoteNG/BouncyCastle verarbeitet nur Latin-1-Zeichen (1 Byte pro Zeichen).</summary>
+    internal static string? TeamPasswordProblem(string password) =>
+        password.Length < 10 ? "The password must be at least 10 characters long."
+        : password.Any(c => c > '\u00FF') ? "The password may only contain Latin-1 characters (mRemoteNG limitation) – no emoji or special Unicode characters."
+        : null;
+
     // ---- Synchronisieren --------------------------------------------------------------------------
 
     /// <summary>Strg+S: Änderungen anderer übernehmen und eigene in die Team-Datei schreiben.</summary>
@@ -209,7 +244,7 @@ public sealed partial class MainViewModel
     /// Kern der Synchronisation. <paramref name="write"/> = eigene Änderungen speichern (Strg+S), sonst nur
     /// Änderungen aus der Datei übernehmen (automatisch). Konflikte werden nur beim Speichern abgefragt.
     /// </summary>
-    public async Task<bool> SyncTeamAsync(bool write, bool interactive)
+    public async Task<bool> SyncTeamAsync(bool write, bool interactive, string? newPassword = null)
     {
         if (!HasTeamLibrary || !_loadSucceeded || _teamBusy) return false;
         if (TeamContainer is null)
@@ -283,17 +318,24 @@ public sealed partial class MainViewModel
                 var newBase = merge.NewBase;
                 var newHash = remote.Hash;
                 var wrote = false;
-                if (write && merge.LocalChanges > 0)
+                if (write && (merge.LocalChanges > 0 || newPassword is not null))
                 {
                     try
                     {
-                        var format = remote.Info;
-                        var password = remote.Password;
+                        // Neues Team-Passwort: gleich etwas mehr KDF-Iterationen (mRemoteNG liest den Wert aus der Datei)
+                        var format = newPassword is null ? remote.Info
+                            : remote.Info with { KdfIterations = Math.Max(remote.Info.KdfIterations ?? 1000, TeamKdfIterations) };
+                        var password = newPassword ?? remote.Password;
                         var merged = children;
                         (newHash, var written) = await Io(() => TeamLibraryFile.Write(path, merged, format, password, remote.Hash, BackupTeamFile));
                         children = TreeMerge.WithPersonalFrom(written, merged);
                         newBase = TreeMerge.Snapshot(children);
                         wrote = true;
+                        if (newPassword is not null)
+                        {
+                            _store.WriteDocument(TeamPasswordDocument, newPassword);
+                            newPassword = null; // erledigt – bei einem erneuten Durchlauf nicht noch einmal erzwingen
+                        }
                     }
                     catch (TeamFileChangedException)
                     {
@@ -492,8 +534,9 @@ public sealed partial class MainViewModel
         _dialogs.ShowInfo("Security notice",
             $"The team file contains {withPasswords} stored passwords but is not protected by its own master password.\n\n" +
             "mRemoteNG then uses a publicly known default key – anyone with read access to the file can extract the passwords.\n\n" +
-            "Recommendation: set a master password for the file in mRemoteNG under Options → Security (HostDeck asks for it once) " +
-            "or store personal logins (e.g. RADIUS) in your own vault instead of in the file.");
+            "Recommendation: protect the file with a password – in HostDeck via Ctrl+K → “Set team file password …” " +
+            "(in mRemoteNG: select the root node “Connections” → property “Password protect”). " +
+            "Personal logins (e.g. RADIUS) belong in your own vault instead of the file.");
     }
 
     private static IEnumerable<TreeNode> Flatten(IEnumerable<TreeNode> nodes) =>

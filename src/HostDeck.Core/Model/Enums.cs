@@ -21,6 +21,31 @@ public enum ProtocolKind
     ExternalApp,
 }
 
+public static class ProtocolNames
+{
+    /// <summary>Anzeigename, wie man ihn kennt („SSH“, „RDP“, „VNC“ statt „Ssh2“, „Rdp“, „Vnc“).</summary>
+    public static string DisplayName(this ProtocolKind protocol) => protocol switch
+    {
+        ProtocolKind.Rdp => "RDP",
+        ProtocolKind.Ssh2 => "SSH",
+        ProtocolKind.Ssh1 => "SSH1",
+        ProtocolKind.Telnet => "Telnet",
+        ProtocolKind.Rlogin => "Rlogin",
+        ProtocolKind.Raw => "Raw TCP",
+        ProtocolKind.Vnc => "VNC",
+        ProtocolKind.Http => "HTTP",
+        ProtocolKind.Https => "HTTPS",
+        ProtocolKind.PowerShell => "PowerShell",
+        ProtocolKind.Wsl => "WSL",
+        ProtocolKind.Ard => "ARD",
+        ProtocolKind.Terminal => "Terminal",
+        ProtocolKind.AnyDesk => "AnyDesk",
+        ProtocolKind.Ica => "ICA",
+        ProtocolKind.ExternalApp => "External app",
+        _ => protocol.ToString(),
+    };
+}
+
 public static class ProtocolDefaults
 {
     public static int DefaultPort(ProtocolKind protocol) => protocol switch

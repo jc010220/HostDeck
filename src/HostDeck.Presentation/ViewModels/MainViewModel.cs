@@ -222,6 +222,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             yield return ("Sync team library  (Ctrl+S)", "team sync synchronisieren speichern share laufwerk", () => SyncTeamCommand.Execute(null));
             yield return ("Disconnect team library", "team trennen disconnect", () => DisconnectTeamLibraryCommand.Execute(null));
+            yield return ("Set team file password …", "team password passwort schützen protect master", () => SetTeamPasswordCommand.Execute(null));
         }
         yield return (HasTeamLibrary ? "Reconnect team library …" : "Connect team library (shared confCons.xml) …",
             "team bibliothek library share laufwerk gemeinsam confcons keepass", () => ConnectTeamLibraryCommand.Execute(null));
@@ -309,7 +310,7 @@ public sealed partial class MainViewModel : ObservableObject
                 break;
             case PaletteItemKind.QuickConnect:
                 FocusedWorkspace.Open(CreateTab(item.QuickConnect!.ToConnection(), new CredentialVault(), transient: true), pane);
-                StatusText = $"Quick-Connect: {item.QuickConnect.Protocol} → {item.QuickConnect.Host}:{item.QuickConnect.EffectivePort}";
+                StatusText = $"Quick connect: {item.QuickConnect.Protocol.DisplayName()} → {item.QuickConnect.Host}:{item.QuickConnect.EffectivePort}";
                 break;
             case PaletteItemKind.Action:
                 item.Action!();
@@ -548,7 +549,7 @@ public sealed partial class MainViewModel : ObservableObject
         else if (QuickConnectParser.TryParse(text, Settings.QuickConnectDefaultProtocol, out var target))
         {
             Workspace.Open(CreateTab(target!.ToConnection(), new CredentialVault(), transient: true));
-            StatusText = $"Quick-Connect: {target.Protocol} → {target.Host}:{target.EffectivePort}";
+            StatusText = $"Quick connect: {target.Protocol.DisplayName()} → {target.Host}:{target.EffectivePort}";
         }
         else
         {

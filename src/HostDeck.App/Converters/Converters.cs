@@ -42,6 +42,21 @@ public sealed class BoolToVisibilityConverter : IValueConverter
 }
 
 /// <summary>Vergleicht ein Enum mit dem ConverterParameter (für Layout-Toggle-Buttons).</summary>
+/// <summary>Lesbare Namen für Enum-Werte in Auswahllisten („SSH“ statt „Ssh2“).</summary>
+public sealed class EnumDisplayConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value switch
+    {
+        ProtocolKind p => p.DisplayName(),
+        HostDeck.Import.MRemoteNG.CredentialExtractionMode.Disabled => "Keep inline on each connection",
+        HostDeck.Import.MRemoteNG.CredentialExtractionMode.SharedOnly => "Shared logins become vault entries",
+        HostDeck.Import.MRemoteNG.CredentialExtractionMode.All => "All logins become vault entries",
+        _ => value?.ToString() ?? "",
+    };
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
+}
+
 public sealed class ThemeIconConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value switch

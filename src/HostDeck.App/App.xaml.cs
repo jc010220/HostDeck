@@ -96,11 +96,15 @@ public partial class App : Application
             var dir = Path.Combine(Path.GetDirectoryName(store.DatabasePath)!, "backups");
             Directory.CreateDirectory(dir);
             var today = DateTime.Now.ToString("yyyyMMdd");
-            if (Directory.EnumerateFiles(dir, $"HostDeck-Sicherung-{today}-*.hdk").Any()) return;
+            if (Directory.EnumerateFiles(dir, $"{EncryptedConnectionStore.BackupPrefix}{today}-*.hdk").Any()
+                || Directory.EnumerateFiles(dir, $"HostDeck-Sicherung-{today}-*.hdk").Any()) return;
             if (store.CountConnections() == 0) return; // nichts Sicherungswürdiges (und keine leeren Sicherungen anhäufen)
             Log.Info($"Daily backup: {store.Backup(dir)}");
 
-            foreach (var old in Directory.EnumerateFiles(dir, "HostDeck-Sicherung-*.hdk").OrderByDescending(f => f).Skip(10))
+            // die 10 neuesten behalten (auch ältere Sicherungen mit dem früheren deutschen Namen zählen mit)
+            var all = Directory.EnumerateFiles(dir, $"{EncryptedConnectionStore.BackupPrefix}*.hdk")
+                .Concat(Directory.EnumerateFiles(dir, "HostDeck-Sicherung-*.hdk"));
+            foreach (var old in all.OrderByDescending(File.GetLastWriteTimeUtc).Skip(10))
             {
                 File.Delete(old);
                 File.Delete(old + ".key");

@@ -19,6 +19,7 @@ public sealed class StoreAdapter(EncryptedConnectionStore store, IDeviceKeyProte
 
     public int CountConnections() { lock (_lock) return store.CountConnections(); }
     public string Backup(string targetDirectory) { lock (_lock) return store.Backup(targetDirectory); }
+    public string BackupTo(string targetFile) { lock (_lock) return store.BackupTo(targetFile, overwrite: true); } // Dialog hat Überschreiben bestätigt
     public string? ReadDocument(string name) { lock (_lock) return store.ReadDocument(name); }
     public void WriteDocument(string name, string json) { lock (_lock) store.WriteDocument(name, json); }
 

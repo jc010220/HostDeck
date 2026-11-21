@@ -54,6 +54,8 @@ public interface IConnectionStore : IKnownHosts
     string? ReadDocument(string name);
     /// <summary>Verschlüsselte Sicherung in einen Ordner; liefert den Dateipfad.</summary>
     string Backup(string targetDirectory);
+    /// <summary>Sicherung unter einem vom Benutzer gewählten Dateinamen (Schlüsseldatei daneben als *.key).</summary>
+    string BackupTo(string targetFile);
     /// <summary>Anzahl der aktuell gespeicherten Verbindungen.</summary>
     int CountConnections();
     void WriteDocument(string name, string json);

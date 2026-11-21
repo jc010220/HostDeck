@@ -320,15 +320,24 @@ public sealed class EncryptedConnectionStore : IDisposable
     /// Konsistente Sicherung: WAL in die Datenbank zurückschreiben, dann Datenbank + Schlüsseldatei kopieren.
     /// Die Sicherung bleibt verschlüsselt und wird mit demselben Master-Passwort geöffnet.
     /// </summary>
+    /// <summary>Automatische Sicherungen heißen <c>HostDeck-Backup_yyyyMMdd-HHmmss.hdk</c>.</summary>
+    public const string BackupPrefix = "HostDeck-Backup_";
+
+    /// <summary>Sicherung in einen Ordner (Name mit Zeitstempel) – Datenbank + Schlüsseldatei.</summary>
     public string Backup(string targetDirectory)
     {
-        Directory.CreateDirectory(targetDirectory);
-        Execute(Connection, null, "PRAGMA wal_checkpoint(TRUNCATE);");
         var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
-        var target = Path.Combine(targetDirectory, $"HostDeck-Sicherung-{stamp}.hdk");
-        File.Copy(_path, target, overwrite: false);
-        File.Copy(KeyFilePath, target + KeyFileSuffix, overwrite: false);
-        return target;
+        return BackupTo(Path.Combine(targetDirectory, $"{BackupPrefix}{stamp}.hdk"), overwrite: false);
+    }
+
+    /// <summary>Sicherung unter einem gewählten Dateinamen; die Schlüsseldatei liegt daneben als <c>*.hdk.key</c>.</summary>
+    public string BackupTo(string targetFile, bool overwrite)
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(targetFile))!);
+        Execute(Connection, null, "PRAGMA wal_checkpoint(TRUNCATE);");
+        File.Copy(_path, targetFile, overwrite);
+        File.Copy(KeyFilePath, targetFile + KeyFileSuffix, overwrite);
+        return targetFile;
     }
 
     // ---- Beliebige verschlüsselte Dokumente (z. B. Snippets) ---------------------------------------------

@@ -569,6 +569,16 @@ public sealed partial class MainViewModel
     public async Task SyncTeamSnippetsAsync()
     {
         if (!HasTeamLibrary || TeamSnippetPath is not { } path) return;
+        // Abgleiche nacheinander: gleichzeitige Läufe würden sich sonst an der eigenen Sperrdatei abweisen
+        await _snippetGate.WaitAsync();
+        try { await SyncTeamSnippetsCoreAsync(path); }
+        finally { _snippetGate.Release(); }
+    }
+
+    private readonly SemaphoreSlim _snippetGate = new(1, 1);
+
+    private async Task SyncTeamSnippetsCoreAsync(string path)
+    {
         var password = TeamPassword;
         var pending = LoadSnippetDoc(TeamSnippetsPendingDocument);
         try

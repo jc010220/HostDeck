@@ -241,7 +241,8 @@ public class MainViewModelTests
         public (string, string)? PasswordChange;
         public string? OpenFile(string title, string filter) => FileToOpen;
         public string? SaveFileAnswer;
-        public string? SaveFile(string title, string filter, string defaultFileName) => SaveFileAnswer;
+        public string? LastSuggestedFileName;
+        public string? SaveFile(string title, string filter, string defaultFileName) { LastSuggestedFileName = defaultFileName; return SaveFileAnswer; }
         public List<int> PasswordPromptThreads = [];
         public string? AskMasterPassword(string? s, bool failed, int attempt, int max)
         {
@@ -297,6 +298,7 @@ public class MainViewModelTests
         public string? ReadDocument(string name) => Documents.GetValueOrDefault(name);
         public List<string> Backups = [];
         public string Backup(string targetDirectory) { Backups.Add(targetDirectory); return Path.Combine(targetDirectory, "backup.hdk"); }
+        public string BackupTo(string targetFile) { Backups.Add(targetFile); return targetFile; }
         public int CountConnections() => LastSavedCount; // wie die echte DB: Stand des letzten Speicherns
         public Exception? LoadFailure;
         public void WriteDocument(string name, string json) => Documents[name] = json;

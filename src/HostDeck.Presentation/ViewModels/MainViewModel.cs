@@ -781,11 +781,13 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void Backup()
     {
-        if (_dialogs.PickFolder("Target folder for the backup") is not { } folder) return;
+        // Namensvorschlag: Dateiname_Datum.Endung, z. B. HostDeck-Backup_20261122.hdk
+        var suggested = $"HostDeck-Backup_{DateTime.Now:yyyyMMdd}.hdk";
+        if (_dialogs.SaveFile("Create backup", "HostDeck backup (*.hdk)|*.hdk", suggested) is not { } target) return;
         try
         {
             Persist();
-            var file = _store.Backup(folder);
+            var file = _store.BackupTo(target);
             _dialogs.ShowInfo("Backup created",
                 $"{file}\n{file}.key\n\nBoth files belong together. To restore: close HostDeck and copy the files as " +
                 "connections.hdk / connections.hdk.key to %APPDATA%\\HostDeck. They open with the master password that was valid at the time of the backup.");

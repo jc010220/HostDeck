@@ -47,6 +47,11 @@ public sealed class VncView : Grid
 
         var bar = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(6), Opacity = 0.85 };
         bar.Children.Add(BarButton("Ctrl+Alt+Del", () => _ = _vm?.CtrlAltDelCommand.ExecuteAsync(null)));
+        // Zwischenablage standardmäßig AUS: sonst ginge z. B. ein gerade kopiertes Passwort beim Klick in die Ansicht
+        // an den Server, und der Server könnte die lokale Zwischenablage überschreiben. Je Richtung einzeln freigeben.
+        bar.Children.Add(BarButton("Paste clipboard", SendClipboardOnce));
+        bar.Children.Add(ToggleButton("Receive clipboard", on => _receiveClipboard = on,
+            "Let the remote computer write into your Windows clipboard (off by default)"));
         bar.Children.Add(BarButton("1:1 / fit", () =>
         {
             _image.Stretch = _image.Stretch == Stretch.Uniform ? Stretch.None : Stretch.Uniform;
@@ -79,7 +84,27 @@ public sealed class VncView : Grid
         PreviewKeyDown += (_, e) => OnKey(e, true);
         PreviewKeyUp += (_, e) => OnKey(e, false);
         PreviewTextInput += OnText;
-        GotKeyboardFocus += (_, _) => SyncClipboardToServer();
+    }
+
+    private bool _receiveClipboard;
+
+    private static System.Windows.Controls.Primitives.ToggleButton ToggleButton(string text, Action<bool> changed, string tip)
+    {
+        var t = new System.Windows.Controls.Primitives.ToggleButton
+        {
+            Content = text, Margin = new Thickness(4, 0, 0, 0), Padding = new Thickness(8, 3, 8, 3), FontSize = 11, Focusable = false, ToolTip = tip,
+        };
+        t.Checked += (_, _) => changed(true);
+        t.Unchecked += (_, _) => changed(false);
+        return t;
+    }
+
+    /// <summary>Text der Windows-Zwischenablage einmalig an den Server senden (bewusste Aktion).</summary>
+    private void SendClipboardOnce()
+    {
+        _lastClipboard = null; // bewusst senden, auch wenn derselbe Text schon einmal übertragen wurde
+        SyncClipboardToServer();
+        Focus();
     }
 
     private static Wpf.Ui.Controls.Button BarButton(string text, Action click)
@@ -252,6 +277,7 @@ public sealed class VncView : Grid
 
     private void OnClipboardReceived(string text) => Dispatcher.BeginInvoke(() =>
     {
+        if (!_receiveClipboard) return;
         _lastClipboard = text;
         try { Clipboard.SetText(text); } catch (System.Runtime.InteropServices.COMException) { }
     });

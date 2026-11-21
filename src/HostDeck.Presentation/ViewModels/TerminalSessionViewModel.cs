@@ -136,7 +136,13 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
         var port = _tab.Settings.Port ?? (raw ? 23 : 23);
         SetState(SessionState.Connecting);
         WriteStatus($"Connecting ({(raw ? "raw TCP" : "Telnet")}) to {host}:{port} …" + (raw ? "" : "  (unencrypted!)") + "  – Esc cancels");
-        var session = new TelnetSession(host, port, raw, _tab.Credentials.Username, _tab.Credentials.Password)
+        // Raw-TCP: niemals automatisch Zugangsdaten senden (unverschlüsselt, kein Login-Protokoll).
+        // Telnet: gespeichertes Passwort nur nach ausdrücklicher Zustimmung je Eintrag (Klartext im Netz!).
+        var username = raw ? null : NullIfEmpty(_tab.Credentials.Username);
+        var password = raw ? null : NullIfEmpty(_tab.Credentials.Password);
+        if (password is not null && !PlaintextConsent.Ask(_knownHosts, _dialogs, _tab.Connection.Id, host, "Telnet", OnUiAndWait))
+            password = null;
+        var session = new TelnetSession(host, port, raw, username, password)
         {
             HighlightingEnabled = _settings.TerminalHighlighting,
         };
@@ -214,6 +220,8 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
             PrivateKeyPassphrase = c.VaultEntry?.PrivateKeyPassphrase,
         };
     }
+
+    private static string? NullIfEmpty(string? value) => string.IsNullOrEmpty(value) ? null : value;
 
     private static string Describe(Exception ex) => ex switch
     {

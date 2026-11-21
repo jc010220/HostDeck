@@ -16,8 +16,14 @@ public sealed partial class WebSessionViewModel(SessionTabViewModel tab) : Obser
     /// <summary>Zugangsdaten nur einmal automatisch senden – bei Ablehnung fragt der Browser selbst.</summary>
     public bool CredentialsUsed { get; set; }
 
-    /// <summary>Hosts, deren ungültiges Zertifikat der Benutzer in diesem Tab akzeptiert hat (nicht dauerhaft).</summary>
-    public HashSet<string> AcceptedCertificateHosts { get; } = new(StringComparer.OrdinalIgnoreCase);
+    /// <summary>
+    /// Akzeptierte ungültige Zertifikate in diesem Tab (nicht dauerhaft) – gebunden an Host, Port UND das konkrete
+    /// Zertifikat (Fingerabdruck), damit ein anderes Zertifikat desselben Hosts erneut nachfragt.
+    /// </summary>
+    public HashSet<string> AcceptedCertificates { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>Zustimmung für das Senden gespeicherter Zugangsdaten über unverschlüsseltes HTTP (gesetzt vom MainViewModel).</summary>
+    public Func<bool>? ConfirmPlaintextCredentials { get; init; }
 
     public string? Username => string.IsNullOrEmpty(Tab.Credentials.Username) ? null
         : string.IsNullOrEmpty(Tab.Credentials.Domain) ? Tab.Credentials.Username : $"{Tab.Credentials.Domain}\\{Tab.Credentials.Username}";

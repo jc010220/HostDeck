@@ -25,6 +25,12 @@ public sealed class ConfConsExportOptions
     public ConfConsCipherMode Mode { get; init; } = ConfConsCipherMode.GCM;
     public int KdfIterations { get; init; } = ConfConsDefaults.DefaultKdfIterations;
 
+    /// <summary>
+    /// Passwörter/Tokens mitschreiben. <c>false</c> ⇒ alle geheimen Felder bleiben leer (sicherer Standard für Exporte
+    /// ohne eigenes Passwort – der mRemoteNG-Standardschlüssel „mR3m“ ist öffentlich bekannt).
+    /// </summary>
+    public bool IncludeSecrets { get; init; } = true;
+
     /// <summary>Beim Import aufbewahrte Fremdattribute ("mrng:…") zurückschreiben.</summary>
     public bool WriteExtensions { get; init; } = true;
 }
@@ -53,7 +59,7 @@ public sealed class ConfConsExporter(ConfConsExportOptions? options = null)
 
         var cipher = new AeadConfConsCipher(_options.Engine, _options.Mode, _options.KdfIterations);
         var password = string.IsNullOrEmpty(_options.MasterPassword) ? ConfConsDefaults.DefaultPassword : _options.MasterPassword;
-        var ctx = new WriteContext(_options.ConfVersion, plain => cipher.Encrypt(plain, password));
+        var ctx = new WriteContext(_options.ConfVersion, plain => _options.IncludeSecrets ? cipher.Encrypt(plain, password) : "");
 
         var root = new XElement(Mrng + "Connections",
             new XAttribute(XNamespace.Xmlns + "mrng", Mrng),

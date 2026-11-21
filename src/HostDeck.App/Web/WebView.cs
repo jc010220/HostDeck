@@ -94,6 +94,24 @@ public sealed class WebView : DockPanel
                 || !string.Equals(target.Host, vm.StartUri.Host, StringComparison.OrdinalIgnoreCase)
                 || target.Port != vm.StartUri.Port || target.Scheme != vm.StartUri.Scheme)
                 return;
+            if (target.Scheme == Uri.UriSchemeHttp)
+            {
+                // HTTP Basic überträgt das Passwort lesbar – nur nach ausdrücklicher Zustimmung
+                var deferral = e.GetDeferral();
+                var username = vm.Username;
+                var password = vm.Password ?? "";
+                Dispatcher.BeginInvoke(() =>
+                {
+                    using (deferral)
+                    {
+                        if (vm.ConfirmPlaintextCredentials?.Invoke() != true) return; // Browser fragt selbst
+                        vm.CredentialsUsed = true;
+                        e.Response.UserName = username;
+                        e.Response.Password = password;
+                    }
+                });
+                return;
+            }
             vm.CredentialsUsed = true;
             e.Response.UserName = vm.Username;
             e.Response.Password = vm.Password ?? "";
@@ -111,8 +129,22 @@ public sealed class WebView : DockPanel
     private void OnCertificateError(object? sender, CoreWebView2ServerCertificateErrorDetectedEventArgs e)
     {
         if (_vm is null) return;
-        var host = new Uri(e.RequestUri).Host;
-        if (_vm.AcceptedCertificateHosts.Contains(host))
+        var uri = new Uri(e.RequestUri);
+        var host = uri.Host;
+        string fingerprint;
+        try
+        {
+            using var x509 = e.ServerCertificate.ToX509Certificate2();
+            fingerprint = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(x509.RawData));
+        }
+        catch (Exception ex) when (ex is System.Runtime.InteropServices.COMException or System.Security.Cryptography.CryptographicException or InvalidOperationException)
+        {
+            e.Action = CoreWebView2ServerCertificateErrorAction.Cancel; // ohne prüfbares Zertifikat keine Ausnahme
+            return;
+        }
+        // Ausnahme gilt nur für genau dieses Zertifikat an genau diesem Host und Port
+        var key = $"{host}:{uri.Port}:{fingerprint}";
+        if (_vm.AcceptedCertificates.Contains(key))
         {
             e.Action = CoreWebView2ServerCertificateErrorAction.AlwaysAllow;
             return;
@@ -124,12 +156,13 @@ public sealed class WebView : DockPanel
             {
                 var cert = e.ServerCertificate;
                 var message = $"The certificate of {host} is not trusted ({e.ErrorStatus}).\n\n" +
-                              $"Issued to: {cert.Subject}\nIssuer: {cert.Issuer}\nValid until: {cert.ValidTo:d}\n\n" +
+                              $"Issued to: {cert.Subject}\nIssuer: {cert.Issuer}\nValid until: {cert.ValidTo:d}\n" +
+                              $"SHA-256: {fingerprint}\n\n" +
                               "This is common for devices with a self-signed certificate (switch, firewall, iLO/iDRAC). " +
                               "For public websites it can be an attack.\n\nContinue anyway for this tab?";
                 var ok = System.Windows.MessageBox.Show(Window.GetWindow(this)!, message, "Certificate warning",
                     MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
-                if (ok) _vm.AcceptedCertificateHosts.Add(host);
+                if (ok) _vm.AcceptedCertificates.Add(key);
                 e.Action = ok ? CoreWebView2ServerCertificateErrorAction.AlwaysAllow : CoreWebView2ServerCertificateErrorAction.Cancel;
             }
         });

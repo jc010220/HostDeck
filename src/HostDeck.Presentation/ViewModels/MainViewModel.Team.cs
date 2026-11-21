@@ -425,6 +425,7 @@ public sealed partial class MainViewModel
     private void ApplyTeamChildren(IReadOnlyList<TreeNode> children)
     {
         if (TeamContainer is not { } container) return;
+        RememberTargetsBeforeTeamChange(container, children);
         foreach (var old in container.Children.ToList()) container.Remove(old);
         foreach (var child in children) container.Add(child);
 
@@ -433,6 +434,93 @@ public sealed partial class MainViewModel
         else SessionTree.Load(SessionTree.Tree);
         Persist();
         Reachability?.Invalidate();
+    }
+
+    // ---- Ziel-Bindung persönlicher Logins ----------------------------------------------------------
+    //
+    // Ein Team-Mitglied mit Schreibrechten könnte den Host eines Eintrags auf einen eigenen Server ändern.
+    // Wer dort sein persönliches Vault-Login (z. B. RADIUS) zugewiesen hat, würde es sonst beim nächsten
+    // Verbinden automatisch dorthin senden. Daher merkt sich HostDeck je Eintrag das bestätigte Ziel
+    // (Protokoll|Host|Port) und fragt nach, bevor ein persönliches Login an ein geändertes Ziel geht.
+
+    internal const string TrustedTargetsDocument = "team-trusted-targets";
+
+    private static string TargetKey(ConnectionNode connection)
+    {
+        var s = Core.Inheritance.SettingsResolver.Resolve(connection);
+        var protocol = s.Protocol ?? ProtocolKind.Rdp;
+        return $"{protocol}|{connection.Hostname.Trim().ToLowerInvariant()}|{s.Port ?? ProtocolDefaults.DefaultPort(protocol)}";
+    }
+
+    private Dictionary<Guid, string> LoadTrustedTargets()
+    {
+        try { return JsonSerializer.Deserialize<Dictionary<Guid, string>>(_store.ReadDocument(TrustedTargetsDocument) ?? "{}") ?? []; }
+        catch (JsonException) { return []; }
+    }
+
+    private void SaveTrustedTargets(Dictionary<Guid, string> trusted) =>
+        _store.WriteDocument(TrustedTargetsDocument, JsonSerializer.Serialize(trusted));
+
+    private bool UsesPersonalLogin(ConnectionNode connection, CredentialVault vault) =>
+        Core.Inheritance.CredentialResolver.Resolve(connection, vault).VaultEntry is not null;
+
+    private bool InTeam(TreeNode node) => TeamContainer is { } c && node.Ancestors().Contains(c);
+
+    /// <summary>Vor dem Verbinden: liefert false, wenn das persönliche Login NICHT gesendet werden soll.</summary>
+    private bool ConfirmTeamTarget(ConnectionNode connection, CredentialVault vault)
+    {
+        if (!HasTeamLibrary || !InTeam(connection) || !UsesPersonalLogin(connection, vault)) return true;
+        var trusted = LoadTrustedTargets();
+        var current = TargetKey(connection);
+        if (!trusted.TryGetValue(connection.Id, out var known))
+        {
+            trusted[connection.Id] = current; // erste Verbindung mit persönlichem Login
+            SaveTrustedTargets(trusted);
+            return true;
+        }
+        if (known == current) return true;
+
+        static string Show(string key) => key.Split('|') is [var p, var h, var port] ? $"{h}:{port} ({p})" : key;
+        var entry = Core.Inheritance.CredentialResolver.Resolve(connection, vault).VaultEntry!;
+        if (!_dialogs.Confirm("Team entry target changed",
+                $"The target of “{connection.Name}” was changed in the team library:\n\n" +
+                $"before: {Show(known)}\nnow:    {Show(current)}\n\n" +
+                $"Your personal login “{entry.Name}” would be sent to the new target. " +
+                "Only continue if you know about this change.\n\nSend your login to the new target?"))
+        {
+            StatusText = $"“{connection.Name}”: connecting without your personal login (target changed)";
+            return false;
+        }
+        trusted[connection.Id] = current;
+        SaveTrustedTargets(trusted);
+        return true;
+    }
+
+    /// <summary>Beim Übernehmen von Team-Änderungen: bisheriges Ziel festhalten, damit eine Änderung auffällt.</summary>
+    private void RememberTargetsBeforeTeamChange(FolderNode container, IReadOnlyList<TreeNode> incoming)
+    {
+        var vault = SessionTree.Tree.Vault;
+        var trusted = LoadTrustedTargets();
+        var changed = false;
+        var newById = incoming.SelectMany(n => n is FolderNode f ? f.Descendants().Prepend(n) : [n]).ToDictionary(n => n.Id);
+        foreach (var old in container.Descendants().OfType<ConnectionNode>())
+        {
+            if (trusted.ContainsKey(old.Id) || !UsesPersonalLogin(old, vault)) continue;
+            if (!newById.TryGetValue(old.Id, out var updated) || updated is not ConnectionNode) continue;
+            trusted[old.Id] = TargetKey(old);
+            changed = true;
+        }
+        if (changed) SaveTrustedTargets(trusted);
+    }
+
+    /// <summary>Eigene Änderungen gelten als bestätigt (Eintrag bzw. alle Verbindungen eines Ordners).</summary>
+    private void TrustCurrentTeamTargets(TreeNode node)
+    {
+        if (!HasTeamLibrary || !InTeam(node) && node != TeamContainer) return;
+        var trusted = LoadTrustedTargets();
+        foreach (var c in (node is FolderNode f ? f.Descendants() : [node]).OfType<ConnectionNode>())
+            trusted[c.Id] = TargetKey(c);
+        SaveTrustedTargets(trusted);
     }
 
     // ---- Automatisch nachladen --------------------------------------------------------------------

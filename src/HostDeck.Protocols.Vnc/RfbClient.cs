@@ -132,7 +132,8 @@ public sealed class RfbClient : IAsyncDisposable
         var width = BinaryPrimitives.ReadUInt16BigEndian(init.AsSpan(0));
         var height = BinaryPrimitives.ReadUInt16BigEndian(init.AsSpan(2));
         var nameLength = BinaryPrimitives.ReadUInt32BigEndian(init.AsSpan(20));
-        DesktopName = Encoding.UTF8.GetString(await ReadExactAsync((int)Math.Min(nameLength, 4096), ct).ConfigureAwait(false));
+        if (nameLength > MaxNameLength) throw new InvalidDataException("Desktop name too long.");
+        DesktopName = Encoding.UTF8.GetString(await ReadExactAsync((int)nameLength, ct).ConfigureAwait(false));
         Resize(width, height);
 
         // Eigenes Pixelformat: 32 bpp, Tiefe 24, Little Endian, True Color, R<<16 G<<8 B ⇒ Speicher BGRA
@@ -171,8 +172,17 @@ public sealed class RfbClient : IAsyncDisposable
         return r;
     }
 
+    // Obergrenzen gegen fehlerhafte/bösartige Server (sonst Speicher erschöpfbar: 65535² × 4 Byte ≈ 17 GB)
+    internal const int MaxDimension = 16_384;
+    internal const long MaxPixels = 50_000_000;          // z. B. 8K × 3 Monitore, ≈ 200 MB Framebuffer
+    internal const int MaxZrleChunk = 64 * 1024 * 1024;
+    internal const int MaxClipboardBytes = 1024 * 1024;
+    internal const int MaxNameLength = 4096;
+
     private void Resize(int width, int height)
     {
+        if (width is <= 0 or > MaxDimension || height is <= 0 or > MaxDimension || (long)width * height > MaxPixels)
+            throw new InvalidDataException($"Unsupported desktop size {width}×{height}.");
         lock (_fbLock)
         {
             Width = width;
@@ -202,7 +212,12 @@ public sealed class RfbClient : IAsyncDisposable
                     case 3:
                         var cut = await ReadExactAsync(7, ct).ConfigureAwait(false);
                         var len = BinaryPrimitives.ReadUInt32BigEndian(cut.AsSpan(3));
-                        var text = Encoding.Latin1.GetString(await ReadExactAsync((int)Math.Min(len, 10_000_000), ct).ConfigureAwait(false));
+                        if (len > MaxClipboardBytes)
+                        {
+                            await SkipAsync(len, ct).ConfigureAwait(false); // zu groß ⇒ verwerfen, Datenstrom bleibt synchron
+                            break;
+                        }
+                        var text = Encoding.Latin1.GetString(await ReadExactAsync((int)len, ct).ConfigureAwait(false));
                         ClipboardReceived?.Invoke(text);
                         break;
                     default: throw new IOException($"Unknown server message {type}.");
@@ -247,8 +262,9 @@ public sealed class RfbClient : IAsyncDisposable
                     await DecodeHextileAsync(x, y, w, h, ct).ConfigureAwait(false);
                     break;
                 case EncZrle:
-                    var length = (int)await ReadU32Async(ct).ConfigureAwait(false);
-                    var data = await ReadExactAsync(length, ct).ConfigureAwait(false);
+                    var length = await ReadU32Async(ct).ConfigureAwait(false);
+                    if (length > MaxZrleChunk) throw new InvalidDataException("ZRLE data block too large.");
+                    var data = await ReadExactAsync((int)length, ct).ConfigureAwait(false);
                     DecodeZrle(data, x, y, w, h);
                     break;
                 default:
@@ -511,6 +527,17 @@ public sealed class RfbClient : IAsyncDisposable
         var buffer = new byte[count];
         if (count > 0) await _stream!.ReadExactlyAsync(buffer, ct).ConfigureAwait(false);
         return buffer;
+    }
+
+    private async Task SkipAsync(long count, CancellationToken ct)
+    {
+        var buffer = new byte[64 * 1024];
+        while (count > 0)
+        {
+            var n = (int)Math.Min(count, buffer.Length);
+            await _stream!.ReadExactlyAsync(buffer.AsMemory(0, n), ct).ConfigureAwait(false);
+            count -= n;
+        }
     }
 
     private async Task<uint> ReadU32Async(CancellationToken ct) => BinaryPrimitives.ReadUInt32BigEndian(await ReadExactAsync(4, ct).ConfigureAwait(false));

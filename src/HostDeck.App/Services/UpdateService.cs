@@ -18,6 +18,7 @@ public sealed class UpdateService(MainViewModel vm, IDialogService dialogs, ICon
     private const string TokenDocument = SettingsViewModel.UpdateTokenDocument;
     private UpdateManager? _manager;
     private string? _managerSource;
+    private string? _sourceError;
     private UpdateInfo? _pending;
 
     public void Register()
@@ -50,8 +51,8 @@ public sealed class UpdateService(MainViewModel vm, IDialogService dialogs, ICon
             var key = source + "|" + (IsGithub(source) ? store.ReadDocument(TokenDocument) : null);
             if (_manager is not null && _managerSource == key) return _manager;
             _managerSource = key;
-            try { _manager = new UpdateManager(CreateSource(source)); }
-            catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException) { _manager = null; }
+            try { _manager = new UpdateManager(CreateSource(source)); _sourceError = null; }
+            catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException) { _manager = null; _sourceError = ex.Message; }
             return _manager;
         }
     }
@@ -64,7 +65,10 @@ public sealed class UpdateService(MainViewModel vm, IDialogService dialogs, ICon
         source = source.Trim();
         if (source.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase))
             return new GithubSource(source.TrimEnd('/'), store.ReadDocument(TokenDocument), prerelease: false);
-        if (Uri.TryCreate(source, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https")
+        if (Uri.TryCreate(source, UriKind.Absolute, out var uri) && uri.Scheme == Uri.UriSchemeHttp)
+            // Unverschlüsseltes HTTP: jeder im Netzwerkpfad könnte ein manipuliertes Update unterschieben
+            throw new NotSupportedException("HTTP update sources are not allowed (anyone on the network path could inject a manipulated update). Use HTTPS, GitHub or a network share.");
+        if (uri is { Scheme: "https" })
             return new SimpleWebSource(source);
         return new SimpleFileSource(new DirectoryInfo(source)); // lokaler Ordner oder \\server\freigabe
     }
@@ -83,7 +87,7 @@ public sealed class UpdateService(MainViewModel vm, IDialogService dialogs, ICon
         var manager = Manager;
         if (manager is null)
         {
-            if (interactive) dialogs.ShowInfo("Updates", "No update source is set (Ctrl+K → “Set update source”).");
+            if (interactive) dialogs.ShowInfo("Updates", _sourceError is { } error ? $"The update source cannot be used: {error}" : "No update source is set (Ctrl+K → “Set update source”).");
             return;
         }
         if (!manager.IsInstalled)

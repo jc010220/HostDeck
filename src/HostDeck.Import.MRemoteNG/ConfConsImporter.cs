@@ -16,6 +16,9 @@ public sealed class ConfConsImporter(ConfConsImportOptions? options = null)
     /// <summary>Höchste getestete ConfVersion (mRemoteNG 1.8-Entwicklungszweig, Stand Nov. 2026).</summary>
     public const double MaxKnownConfVersion = 2.9;
 
+    /// <summary>Höchste akzeptierte PBKDF2-Iterationszahl (mRemoteNG bietet bis 50.000 an).</summary>
+    public const int MaxKdfIterations = 100_000;
+
     private const string ExtensionPrefix = "mrng:";
     private static readonly XNamespace MrngNamespace = "http://mremoteng.org";
 
@@ -354,7 +357,12 @@ public sealed class ConfConsImporter(ConfConsImportOptions? options = null)
         private int ParseIterations(string? raw)
         {
             if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var it) && it >= 1000)
+            {
+                // Obergrenze: eine manipulierte Datei könnte sonst mit riesigen Werten die App minutenlang blockieren
+                if (it > MaxKdfIterations)
+                    throw new ConfConsFormatException($"KdfIterations {it} exceeds the supported maximum of {MaxKdfIterations}.");
                 return it;
+            }
             _warnings.Add($"KdfIterations '{raw}' invalid – using {ConfConsDefaults.DefaultKdfIterations}.");
             return ConfConsDefaults.DefaultKdfIterations;
         }

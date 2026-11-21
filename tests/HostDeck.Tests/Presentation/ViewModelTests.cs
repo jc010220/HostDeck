@@ -240,7 +240,8 @@ public class MainViewModelTests
         public int ConfirmCalls;
         public (string, string)? PasswordChange;
         public string? OpenFile(string title, string filter) => FileToOpen;
-        public string? SaveFile(string title, string filter, string defaultFileName) => null;
+        public string? SaveFileAnswer;
+        public string? SaveFile(string title, string filter, string defaultFileName) => SaveFileAnswer;
         public List<int> PasswordPromptThreads = [];
         public string? AskMasterPassword(string? s, bool failed, int attempt, int max)
         {

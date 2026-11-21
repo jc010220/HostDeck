@@ -24,6 +24,8 @@ public sealed partial class MainViewModel : ObservableObject
         _theme = theme;
         _store = store;
         Settings = settingsStore.Load();
+        // Altlast: früher konnte „user:passwort@host“ im Klartext-Verlauf landen ⇒ beim Start entfernen
+        if (Settings.QuickConnectHistory.RemoveAll(QuickConnectParser.LooksLikeInlinePassword) > 0) SaveSettings();
         _currentTheme = Settings.Theme;
         _isDeviceUnlockEnabled = store.HasDeviceUnlock;
         SessionTree.Changed += (_, _) => Persist();
@@ -56,6 +58,8 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Tab erzeugen; SSH-Tabs bekommen eine Terminal-Engine und verbinden sofort.</summary>
     private SessionTabViewModel CreateTab(ConnectionNode connection, CredentialVault vault, bool transient)
     {
+        // Persönliche Vault-Logins nie unbemerkt an ein Ziel senden, das die Team-Datei geändert hat
+        if (!transient && !ConfirmTeamTarget(connection, vault)) vault = new CredentialVault();
         var tab = new SessionTabViewModel(connection, vault, transient);
         tab.ActionRequested += OnTabAction;
         if (!transient) RememberRecent(connection.Id);
@@ -70,7 +74,10 @@ public sealed partial class MainViewModel : ObservableObject
         }
         else if (tab.Protocol is ProtocolKind.Http or ProtocolKind.Https)
         {
-            tab.Web = new WebSessionViewModel(tab);
+            tab.Web = new WebSessionViewModel(tab)
+            {
+                ConfirmPlaintextCredentials = () => PlaintextConsent.Ask(_store, _dialogs, connection.Id, connection.Hostname, "HTTP", f => f()),
+            };
         }
         else if (tab.Protocol == ProtocolKind.Vnc)
         {
@@ -548,10 +555,17 @@ public sealed partial class MainViewModel : ObservableObject
             Workspace.Open(CreateTab(existing, SessionTree.Tree.Vault, transient: false));
             StatusText = $"Opened: {existing.Path}";
         }
+        else if (QuickConnectParser.LooksLikeInlinePassword(text))
+        {
+            QuickConnectText = "";
+            StatusText = "Quick connect: passwords can't be entered here (they would end up in the history). Use user@host – you will be asked for the password.";
+            return;
+        }
         else if (QuickConnectParser.TryParse(text, Settings.QuickConnectDefaultProtocol, out var target))
         {
             Workspace.Open(CreateTab(target!.ToConnection(), new CredentialVault(), transient: true));
             StatusText = $"Quick connect: {target.Protocol.DisplayName()} → {target.Host}:{target.EffectivePort}";
+            text = target.HistoryText; // nur geprüfte Felder speichern
         }
         else
         {
@@ -669,6 +683,7 @@ public sealed partial class MainViewModel : ObservableObject
         item.NotifyNameChanged();
         item.RefreshDisplay(); // Ordner: Kinder erben ggf. neue Werte
         SessionTree.ApplyFilter();
+        TrustCurrentTeamTargets(item.Node); // eigene Änderung ⇒ neues Ziel ist bestätigt
         Persist();
         StatusText = $"Saved: {item.Node.Path}";
         return true;
@@ -926,12 +941,34 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void ExportMRemoteNG()
     {
+        // Ohne eigenes Passwort wären exportierte Passwörter mit dem öffentlich bekannten mRemoteNG-Schlüssel lesbar
+        var exportPassword = _dialogs.Prompt("Export as mRemoteNG file",
+            "To include stored passwords (also from the vault), enter a password that protects the exported file – " +
+            "mRemoteNG will ask for it when opening.\n\nLeave empty to export WITHOUT any passwords.",
+            secret: true);
+        if (exportPassword is null) return;
+        if (exportPassword.Length > 0)
+        {
+            if (TeamPasswordProblem(exportPassword) is { } problem) { _dialogs.ShowError("Export", problem); return; }
+            if (_dialogs.Prompt("Export as mRemoteNG file", "Repeat the export password:", secret: true) != exportPassword)
+            {
+                _dialogs.ShowError("Export", "The passwords do not match.");
+                return;
+            }
+        }
         var path = _dialogs.SaveFile("Export as mRemoteNG file", "mRemoteNG (confCons.xml)|*.xml", "confCons.xml");
         if (path is null) return;
         try
         {
-            new ConfConsExporter().ExportFile(SessionTree.Tree, path);
-            StatusText = $"Exported: {path}";
+            var withSecrets = exportPassword.Length > 0;
+            new ConfConsExporter(new ConfConsExportOptions
+            {
+                IncludeSecrets = withSecrets,
+                MasterPassword = withSecrets ? exportPassword : null,
+                FullFileEncryption = withSecrets,
+                KdfIterations = withSecrets ? 10_000 : Import.MRemoteNG.Crypto.ConfConsDefaults.DefaultKdfIterations,
+            }).ExportFile(SessionTree.Tree, path);
+            StatusText = withSecrets ? $"Exported with password-protected credentials: {path}" : $"Exported without passwords: {path}";
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {

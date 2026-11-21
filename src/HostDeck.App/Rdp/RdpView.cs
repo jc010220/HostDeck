@@ -172,17 +172,20 @@ public sealed class RdpView : Grid
 
         foreach (var p in plan.Properties)
         {
-            switch (p.Scope)
+            var applied = p.Scope switch
             {
-                case RdpScope.Client: Dispatch.TrySet(ocx, p.Name, p.Value); break;
-                case RdpScope.Advanced when advanced is not null: Dispatch.TrySet(advanced, p.Name, p.Value); break;
-                case RdpScope.Secured when secured is not null: Dispatch.TrySet(secured, p.Name, p.Value); break;
-                case RdpScope.Transport when transport is not null: Dispatch.TrySet(transport, p.Name, p.Value); break;
-                case RdpScope.Extended:
-                    try { var value = p.Value; ((IMsRdpExtendedSettings)ocx).SetProperty(p.Name, ref value); }
-                    catch (Exception ex) when (ex is COMException or InvalidCastException or ArgumentException) { /* ältere Clients */ }
-                    break;
-            }
+                RdpScope.Client => Dispatch.TrySet(ocx, p.Name, p.Value),
+                RdpScope.Advanced => advanced is not null && Dispatch.TrySet(advanced, p.Name, p.Value),
+                RdpScope.Secured => secured is not null && Dispatch.TrySet(secured, p.Name, p.Value),
+                RdpScope.Transport => transport is not null && Dispatch.TrySet(transport, p.Name, p.Value),
+                RdpScope.Extended => TrySetExtended(ocx, p.Name, p.Value),
+                _ => false,
+            };
+            // Ausdrücklich angeforderte Schutzoptionen dürfen nicht still entfallen ⇒ lieber nicht verbinden
+            if (!applied && SecurityCritical.Contains(p.Name))
+                throw new InvalidOperationException(
+                    $"The security option “{p.Name}” could not be enabled on this Windows RDP client, so the connection was not started. " +
+                    "Update Windows/the RDP client or turn the option off in the connection's properties.");
         }
 
         if (ocx is IMsRdpClientNonScriptable5 ns)
@@ -200,6 +203,18 @@ public sealed class RdpView : Grid
         // Passwort ausschließlich über die nicht-skriptbare Schnittstelle (nie in .rdp-Dateien/Logs)
         if (plan.Password is { } password)
             ((IMsTscNonScriptable)ocx).SetClearTextPassword(password);
+    }
+
+    /// <summary>Optionen, deren Ausfall die Sicherheit senkt (Zertifikatsprüfung, Restricted Admin, Remote Credential Guard).</summary>
+    private static readonly HashSet<string> SecurityCritical = new(StringComparer.Ordinal)
+    {
+        "AuthenticationLevel", "RestrictedLogon", "DisableCredentialsDelegation", "RedirectedAuthentication",
+    };
+
+    private static bool TrySetExtended(object ocx, string name, object value)
+    {
+        try { ((IMsRdpExtendedSettings)ocx).SetProperty(name, ref value); return true; }
+        catch (Exception ex) when (ex is COMException or InvalidCastException or ArgumentException) { return false; } // ältere Clients
     }
 
     private static object? FirstAvailable(object ocx, params string[] names)

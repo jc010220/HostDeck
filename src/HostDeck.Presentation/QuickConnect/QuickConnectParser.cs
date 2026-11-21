@@ -11,6 +11,23 @@ public sealed record QuickConnectTarget(ProtocolKind Protocol, string Host, int?
 
     public string DisplayName => Username is { Length: > 0 } u ? $"{u}@{Host}" : Host;
 
+    /// <summary>Normierte Form für den Verlauf – nur geprüfte Felder, niemals ein Passwort.</summary>
+    public string HistoryText
+    {
+        get
+        {
+            var scheme = Protocol switch
+            {
+                ProtocolKind.Ssh2 or ProtocolKind.Ssh1 => "ssh", ProtocolKind.Rdp => "rdp", ProtocolKind.Telnet => "telnet",
+                ProtocolKind.Vnc => "vnc", ProtocolKind.Http => "http", ProtocolKind.Https => "https",
+                ProtocolKind.Rlogin => "rlogin", ProtocolKind.Raw => "raw", _ => Protocol.ToString().ToLowerInvariant(),
+            };
+            var user = Username is { Length: > 0 } u ? (Domain is { Length: > 0 } d ? $"{d}\\{u}@" : $"{u}@") : "";
+            var host = Host.Contains(':') ? $"[{Host}]" : Host;
+            return $"{scheme} {user}{host}" + (Port is { } p ? $":{p}" : "");
+        }
+    }
+
     /// <summary>Erzeugt eine temporäre (nicht gespeicherte) Verbindung.</summary>
     public ConnectionNode ToConnection()
     {
@@ -54,6 +71,10 @@ public static partial class QuickConnectParser
     // [user@]host[:port] – host darf [IPv6] in eckigen Klammern sein
     [GeneratedRegex(@"^(?:(?<user>[^@\s]+)@)?(?<host>\[[0-9a-fA-F:.]+\]|[^\s:/@\[\]]+)(?::(?<port>\d{1,5}))?/?$")]
     private static partial Regex TargetRegex();
+
+    /// <summary>Erkennt „user:passwort@host“ (auch als URL) – solche Eingaben werden abgelehnt und nicht gespeichert.</summary>
+    public static bool LooksLikeInlinePassword(string? input) =>
+        input is not null && System.Text.RegularExpressions.Regex.IsMatch(input, @"(^|[\s/])[^\s@/:]+:[^\s@/]*@");
 
     public static bool TryParse(string? input, ProtocolKind defaultProtocol, out QuickConnectTarget? target)
     {
@@ -110,6 +131,8 @@ public static partial class QuickConnectParser
         if (m.Groups["user"].Success)
         {
             user = Uri.UnescapeDataString(m.Groups["user"].Value);
+            // „user:passwort@host“ wird bewusst nicht unterstützt – das Passwort landete sonst im Verlauf (settings.json)
+            if (user.Contains(':')) return false;
             // CORP\admin  bzw.  CORP;admin (URL-Schreibweise von rdp://)
             var sep = user.IndexOfAny(['\\', ';']);
             if (sep > 0)

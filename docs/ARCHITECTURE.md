@@ -107,7 +107,18 @@ ConnectionSettings  (all fields nullable)
   never overwritten, and downloaded files get the "Mark of the Web" (`Zone.Identifier`, zone 3) so SmartScreen/Office warn.
 * Terminal WebView: navigation is locked to the embedded page, messages are only accepted from that origin, links open only
   http(s) in the default browser, multi-line paste asks for confirmation.
-* Web tabs: only http(s), external protocol handlers are blocked, stored credentials are only sent to the configured host/port/scheme.
+* Web tabs: only http(s), external protocol handlers are blocked, stored credentials are only sent to the configured host/port/scheme,
+  over plain HTTP only after consent. Certificate exceptions are keyed by host, port and SHA-256 of the certificate.
+* **Target binding for personal logins:** for team entries that resolve to a vault credential, the confirmed target
+  (`protocol|host|port`) is stored per entry (`team-trusted-targets`). Pulls remember the previous target; a changed target
+  requires explicit confirmation before the login is sent, otherwise the session opens without the personal login.
+* **Plain-text protocols:** Telnet sends a stored password only after per-entry/host consent (`plaintext-consent`); raw TCP never auto-logs in.
+* **RDP:** security-critical properties (`AuthenticationLevel`, `RestrictedLogon`, `DisableCredentialsDelegation`,
+  `RedirectedAuthentication`) must apply, otherwise the connection is aborted.
+* **Export:** secrets are only written with an export password, which also enables full-file encryption and 10,000 KDF iterations.
+* **Limits:** VNC desktop ≤ 16384 px per side and ≤ 50 M pixels, ZRLE blocks ≤ 64 MB, clipboard ≤ 1 MB (larger is skipped);
+  imported `KdfIterations` ≤ 100,000. Quick-connect input with `user:password@` is rejected and never stored.
+* **Updates:** plain HTTP sources are rejected. SQLite3MC 2.7.1 (SQLite 3.54.1) is bundled (CVE-2025-6965 fixed).
 
 ## 6. UI layer
 

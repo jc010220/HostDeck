@@ -78,7 +78,17 @@ Like a shared KeePass database: everyone works on the same `confCons.xml` on the
   never overwritten, downloads are marked as "from the internet" (SmartScreen warns for programs).
 - RDP: the server certificate is verified (warning); drives, printers and ports are not redirected by default.
 - Terminal: multi-line paste asks for confirmation; links open only http(s) in the default browser.
-- Web tabs: only http(s), no external protocol handlers, stored credentials are only sent to the configured device.
+- Web tabs: only http(s), no external protocol handlers, stored credentials are only sent to the configured device; over
+  plain HTTP only after explicit consent. Certificate exceptions are bound to host, port and the exact certificate.
+- Personal vault logins in team entries are bound to the confirmed target (protocol/host/port). If the team file changes the
+  target, HostDeck asks before sending your login there.
+- Telnet sends a stored password only after consent per entry; raw TCP never sends credentials automatically.
+- RDP: if a requested protection (certificate check, Restricted Admin, Remote Credential Guard) cannot be enabled, the
+  connection is not started.
+- mRemoteNG export: without an export password no passwords are written; with one, the whole file is encrypted.
+- Quick connect never stores passwords in the history; VNC clipboard sharing is off by default (explicit "Paste clipboard",
+  opt-in "Receive clipboard"); resource limits for VNC servers and imported files.
+- Updates: HTTPS, GitHub or network share only (no plain HTTP). Releases are not code-signed yet – see [Code signing](#code-signing).
 
 ## Data and backups
 

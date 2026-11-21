@@ -13,12 +13,24 @@ namespace HostDeck.App.Services;
 /// </summary>
 public sealed class UpdateService(MainViewModel vm, IDialogService dialogs, IConnectionStore store)
 {
-    private const string TokenDocument = "github-update-token";
+    /// <summary>Standardquelle: Releases des HostDeck-Repos (privat ⇒ Token nötig).</summary>
+    public const string DefaultSource = "https://github.com/jc010220/HostDeck";
+    private const string TokenDocument = SettingsViewModel.UpdateTokenDocument;
     private UpdateManager? _manager;
+    private string? _managerSource;
     private UpdateInfo? _pending;
 
     public void Register()
     {
+        // Einmalig die Standardquelle eintragen; leert der Benutzer sie später, bleibt sie leer.
+        if (!vm.Settings.UpdateSourceDefaulted)
+        {
+            vm.Settings.UpdateSource ??= DefaultSource;
+            vm.Settings.UpdateSourceDefaulted = true;
+            vm.SaveSettings();
+        }
+        vm.SettingsApplied += () => _ = CheckAsync(interactive: false);
+
         vm.AppActions.Add(("Nach Updates suchen", "update aktualisieren version", () => _ = CheckAsync(interactive: true)));
         vm.AppActions.Add(("Update-Quelle festlegen …", "update quelle source share freigabe github", ConfigureSource));
         vm.AppActions.Add(($"Version anzeigen ({CurrentVersion})", "version info about über", () =>
@@ -32,12 +44,20 @@ public sealed class UpdateService(MainViewModel vm, IDialogService dialogs, ICon
     {
         get
         {
-            if (_manager is not null || string.IsNullOrWhiteSpace(vm.Settings.UpdateSource)) return _manager;
-            try { _manager = new UpdateManager(CreateSource(vm.Settings.UpdateSource!)); }
+            var source = vm.Settings.UpdateSource;
+            if (string.IsNullOrWhiteSpace(source)) return null;
+            // Quelle/Token können sich über die Einstellungen ändern ⇒ dann neu aufbauen
+            var key = source + "|" + (IsGithub(source) ? store.ReadDocument(TokenDocument) : null);
+            if (_manager is not null && _managerSource == key) return _manager;
+            _managerSource = key;
+            try { _manager = new UpdateManager(CreateSource(source)); }
             catch (Exception ex) when (ex is ArgumentException or IOException or NotSupportedException) { _manager = null; }
             return _manager;
         }
     }
+
+    private static bool IsGithub(string? source) =>
+        source?.Trim().StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase) == true;
 
     private IUpdateSource CreateSource(string source)
     {
@@ -88,10 +108,12 @@ public sealed class UpdateService(MainViewModel vm, IDialogService dialogs, ICon
             if (!vm.AppActions.Any(a => a.Title.StartsWith("Jetzt aktualisieren", StringComparison.Ordinal)))
                 vm.AppActions.Insert(0, ($"Jetzt aktualisieren auf {info.TargetFullRelease.Version} (Neustart)", "update neustart restart", ApplyNow));
         }
-        catch (Exception ex) when (ex is IOException or System.Net.Http.HttpRequestException or UnauthorizedAccessException or InvalidOperationException)
+        catch (Exception ex) // Hintergrundprüfung darf nie die App stören (Velopack wirft teils eigene Typen)
         {
-            if (interactive) dialogs.ShowError("Updates", $"Update-Prüfung fehlgeschlagen: {ex.Message}");
-            else vm.StatusText = "Update-Prüfung fehlgeschlagen.";
+            var missingToken = IsGithub(vm.Settings.UpdateSource) && string.IsNullOrEmpty(store.ReadDocument(TokenDocument));
+            var hint = missingToken ? " Für das private GitHub-Repository fehlt der Zugriffstoken (Einstellungen → Updates)." : "";
+            if (interactive) dialogs.ShowError("Updates", $"Update-Prüfung fehlgeschlagen: {ex.Message}{hint}");
+            else vm.StatusText = "Update-Prüfung fehlgeschlagen." + hint;
         }
     }
 

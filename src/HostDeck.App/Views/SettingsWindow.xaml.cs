@@ -12,5 +12,9 @@ public partial class SettingsWindow : FluentWindow
         InitializeComponent();
     }
 
-    private void OnOk(object sender, RoutedEventArgs e) => DialogResult = true;
+    private void OnOk(object sender, RoutedEventArgs e)
+    {
+        ((SettingsViewModel)DataContext).UpdateToken = TokenBox.Password ?? "";
+        DialogResult = true;
+    }
 }

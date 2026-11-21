@@ -644,14 +644,23 @@ public sealed partial class MainViewModel : ObservableObject
         Persist();
     }
 
+    /// <summary>Nach „Einstellungen speichern“ (z. B. Update-Quelle neu prüfen).</summary>
+    public event Action? SettingsApplied;
+
     [RelayCommand]
     private void OpenSettings()
     {
-        var editor = new SettingsViewModel(Settings);
+        var editor = new SettingsViewModel(Settings, !string.IsNullOrEmpty(_store.ReadDocument(SettingsViewModel.UpdateTokenDocument)));
         if (!_dialogs.EditSettings(editor)) return;
         var themeChanged = editor.ThemeChanged;
         editor.Apply();
+        if (editor.UpdateToken.Trim() is { Length: > 0 } token)
+        {
+            _store.WriteDocument(SettingsViewModel.UpdateTokenDocument, token); // verschlüsselt in der Datenbank
+            Settings.LastUpdateCheckUtc = null;
+        }
         SaveSettings();
+        SettingsApplied?.Invoke();
         if (themeChanged) { CurrentTheme = Settings.Theme; _theme.Apply(Settings.Theme); }
         Reachability?.Invalidate();
         if (!Settings.ShowReachability) foreach (var i in SessionTree.AllItems) i.Reachability = Services.Reachability.Unknown;

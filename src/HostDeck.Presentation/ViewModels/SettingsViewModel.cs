@@ -10,8 +10,12 @@ public sealed partial class SettingsViewModel : ObservableObject
 {
     private readonly AppSettings _settings;
 
-    public SettingsViewModel(AppSettings settings)
+    /// <summary>Name des verschlüsselten Dokuments mit dem GitHub-Token für Updates aus privaten Repos.</summary>
+    public const string UpdateTokenDocument = "github-update-token";
+
+    public SettingsViewModel(AppSettings settings, bool hasUpdateToken = false)
     {
+        HasUpdateToken = hasUpdateToken;
         _settings = settings;
         _theme = settings.Theme;
         _defaultProtocol = settings.QuickConnectDefaultProtocol;
@@ -38,6 +42,11 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool _showReachability;
     [ObservableProperty] private int _fontSize;
     [ObservableProperty] private string _updateSource;
+    /// <summary>Neu eingegebener Token (leer = unverändert). Wird nie aus dem Speicher vorbefüllt.</summary>
+    [ObservableProperty] private string _updateToken = "";
+
+    public bool HasUpdateToken { get; }
+    public string UpdateTokenHint => HasUpdateToken ? "Token gespeichert – zum Ersetzen neu eingeben" : "Nur für private GitHub-Repos: Token mit Lesezugriff";
 
     public bool ThemeChanged => Theme != _settings.Theme;
 

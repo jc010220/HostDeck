@@ -92,6 +92,8 @@ public sealed class AppSettings
     public int TerminalFontSize { get; set; } = 14;
     /// <summary>Update-Quelle: Ordner/UNC-Pfad, HTTP(S)-URL oder GitHub-Repo-URL. Leer = keine Updates.</summary>
     public string? UpdateSource { get; set; }
+    /// <summary>Standard-Update-Quelle wurde einmalig eingetragen (danach gilt die Wahl des Benutzers, auch „leer“).</summary>
+    public bool UpdateSourceDefaulted { get; set; }
     public DateTime? LastUpdateCheckUtc { get; set; }
     /// <summary>Offene Sessions beim letzten Beenden (wird beim Start wiederhergestellt).</summary>
     public WorkspaceSnapshot? LastWorkspace { get; set; }

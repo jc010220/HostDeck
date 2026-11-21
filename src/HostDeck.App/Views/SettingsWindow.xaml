@@ -41,6 +41,9 @@
                         PlaceholderText="\\server\software\HostDeck  ·  https://…  ·  https://github.com/…" />
             <TextBlock Margin="0,4,0,0" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                        Text="Updates werden im Hintergrund geladen und beim Beenden installiert (nur bei Installation über Setup.exe)." />
+            <ui:PasswordBox x:Name="TokenBox" Margin="0,8,0,0" PlaceholderText="{Binding UpdateTokenHint}" />
+            <TextBlock Margin="0,4,0,0" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                       Text="GitHub → Settings → Developer settings → Fine-grained tokens: nur dieses Repository, Berechtigung „Contents: Read-only“. Wird verschlüsselt in der HostDeck-Datenbank gespeichert." />
 
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
                 <ui:Button Content="Abbrechen" IsCancel="True" MinWidth="96" Margin="0,0,8,0" />

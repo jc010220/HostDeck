@@ -3,6 +3,7 @@
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
                  xmlns:app="clr-namespace:HostDeck.App"
+                 xmlns:controls="clr-namespace:HostDeck.App.Controls"
                  xmlns:views="clr-namespace:HostDeck.App.Views"
                  xmlns:vm="clr-namespace:HostDeck.Presentation.ViewModels;assembly=HostDeck.Presentation"
                  xmlns:behaviors="clr-namespace:HostDeck.App.Behaviors"
@@ -69,19 +70,19 @@
                 <!-- Split-Screen -->
                 <ToggleButton ToolTip="Ein Bereich  (Strg+Alt+1)" Command="{Binding Workspace.SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.Single}"
                               IsChecked="{Binding Workspace.Layout, Mode=OneWay, Converter={StaticResource EnumEquals}, ConverterParameter=Single}">
-                    <ui:SymbolIcon Symbol="{x:Static app:Icons.LayoutSingle}" />
+                    <controls:LayoutGlyph Layout="Single" />
                 </ToggleButton>
                 <ToggleButton ToolTip="Zwei Bereiche nebeneinander  (Strg+Alt+2)" Command="{Binding Workspace.SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.TwoColumns}"
                               IsChecked="{Binding Workspace.Layout, Mode=OneWay, Converter={StaticResource EnumEquals}, ConverterParameter=TwoColumns}">
-                    <ui:SymbolIcon Symbol="{x:Static app:Icons.LayoutColumns}" />
+                    <controls:LayoutGlyph Layout="TwoColumns" />
                 </ToggleButton>
                 <ToggleButton ToolTip="Zwei Bereiche untereinander  (Strg+Alt+3)" Command="{Binding Workspace.SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.TwoRows}"
                               IsChecked="{Binding Workspace.Layout, Mode=OneWay, Converter={StaticResource EnumEquals}, ConverterParameter=TwoRows}">
-                    <ui:SymbolIcon Symbol="{x:Static app:Icons.LayoutRows}" />
+                    <controls:LayoutGlyph Layout="TwoRows" />
                 </ToggleButton>
                 <ToggleButton ToolTip="4er-Grid  (Strg+Alt+4)" Command="{Binding Workspace.SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.Grid}"
                               IsChecked="{Binding Workspace.Layout, Mode=OneWay, Converter={StaticResource EnumEquals}, ConverterParameter=Grid}">
-                    <ui:SymbolIcon Symbol="{x:Static app:Icons.LayoutGrid}" />
+                    <controls:LayoutGlyph Layout="Grid" />
                 </ToggleButton>
                 <Separator />
                 <ToggleButton IsChecked="{Binding IsMultiExecutionEnabled}"

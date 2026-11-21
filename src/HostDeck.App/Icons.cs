@@ -28,10 +28,6 @@ public static class Icons
     public static SymbolRegular Document => SymbolRegular.Document24;
     public static SymbolRegular Edit => SymbolRegular.Edit24;
 
-    public static SymbolRegular LayoutSingle => SymbolRegular.Square24;
-    public static SymbolRegular LayoutColumns => SymbolRegular.LayoutColumnTwo24;
-    public static SymbolRegular LayoutRows => SymbolRegular.LayoutRowTwo24;
-    public static SymbolRegular LayoutGrid => SymbolRegular.Grid24;
 
     public static SymbolRegular Desktop => SymbolRegular.Desktop24;
     public static SymbolRegular Console => SymbolRegular.WindowConsole20;

@@ -275,7 +275,7 @@ public class MainViewModelTests
         public ConnectionTree Saved = new();
         public int SaveCount;
         public string CurrentPassword = "altes-passwort";
-        public string Location => "memory";
+        public string Location { get; set; } = "memory";
         public ConnectionTree Load() => LoadFailure is null ? Saved : throw LoadFailure;
         public int LastSavedCount;
         public void Save(ConnectionTree tree) { Saved = tree; SaveCount++; LastSavedCount = tree.Connections.Count(); }

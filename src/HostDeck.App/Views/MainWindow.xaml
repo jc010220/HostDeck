@@ -90,6 +90,17 @@
                     <controls:LayoutGlyph Layout="Grid" />
                 </ToggleButton>
                 <Separator />
+                <ui:Button Command="{Binding SyncTeamCommand}" Visibility="{Binding HasTeamLibrary, Converter={StaticResource BoolToVisibility}}"
+                           ToolTip="Team-Bibliothek synchronisieren: Änderungen anderer übernehmen, eigene speichern  (Strg+S)">
+                    <StackPanel Orientation="Horizontal">
+                        <ui:SymbolIcon Symbol="{x:Static app:Icons.Sync}" Margin="0,0,6,0" />
+                        <TextBlock Text="Team" />
+                        <Border Margin="6,0,0,0" Padding="5,0" CornerRadius="7" Background="{DynamicResource AccentFillColorDefaultBrush}"
+                                Visibility="{Binding TeamPendingChanges, Converter={StaticResource CountToVisibility}}">
+                            <TextBlock Text="{Binding TeamPendingChanges}" FontSize="11" Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                        </Border>
+                    </StackPanel>
+                </ui:Button>
                 <ToggleButton IsChecked="{Binding IsMultiExecutionEnabled}"
                               ToolTip="Multi-Execution: Eingaben an alle Terminal-Tabs senden  (Strg+Umschalt+M)">
                     <StackPanel Orientation="Horizontal">
@@ -362,6 +373,8 @@
                     Visibility="{Binding IsMultiExecutionEnabled, Converter={StaticResource BoolToVisibility}}">
                 <TextBlock Text="MULTI-EXEC AKTIV" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
             </Border>
+            <TextBlock DockPanel.Dock="Right" Margin="0,0,12,0" Text="{Binding TeamStatus}" VerticalAlignment="Center"
+                       Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
             <TextBlock Text="{Binding StatusText}" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextTrimming="CharacterEllipsis" />
         </DockPanel>
     </Grid>

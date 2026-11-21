@@ -28,6 +28,8 @@ public static class Icons
     public static SymbolRegular Document => SymbolRegular.Document24;
     public static SymbolRegular Edit => SymbolRegular.Edit24;
     public static SymbolRegular Sidebar => SymbolRegular.PanelLeft24;
+    public static SymbolRegular Team => SymbolRegular.PeopleTeam24;
+    public static SymbolRegular Sync => SymbolRegular.ArrowSync24;
 
 
     public static SymbolRegular Desktop => SymbolRegular.Desktop24;

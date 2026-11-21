@@ -157,6 +157,7 @@ public partial class MainWindow : FluentWindow
         Bind(Key.P, ModifierKeys.Control | ModifierKeys.Shift, ShowPalette);
         Bind(Key.F, ModifierKeys.Control, FocusSearch);
         Bind(Key.B, ModifierKeys.Control | ModifierKeys.Shift, ToggleSidebar);
+        Bind(Key.S, ModifierKeys.Control, () => { if (_vm.HasTeamLibrary) _vm.SyncTeamCommand.Execute(null); });
         Bind(Key.L, ModifierKeys.Control, () => QuickConnectBox.Focus());
         Bind(Key.O, ModifierKeys.Control, () => _vm.ImportMRemoteNGCommand.Execute(null));
         Bind(Key.N, ModifierKeys.Control, () => _vm.NewConnectionCommand.Execute(null));

@@ -26,6 +26,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         _showReachability = settings.ShowReachability;
         _fontSize = FontSizes.Contains(settings.TerminalFontSize) ? settings.TerminalFontSize : 14;
         _updateSource = settings.UpdateSource ?? "";
+        _teamLibraryPath = settings.TeamLibraryPath ?? "";
+        _teamReadOnly = settings.TeamReadOnly;
     }
 
     public IReadOnlyList<AppTheme> Themes { get; } = Enum.GetValues<AppTheme>();
@@ -42,6 +44,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool _showReachability;
     [ObservableProperty] private int _fontSize;
     [ObservableProperty] private string _updateSource;
+    /// <summary>Wird nicht in <see cref="Apply"/> übernommen – das Verbinden erledigt das MainViewModel.</summary>
+    [ObservableProperty] private string _teamLibraryPath;
+    [ObservableProperty] private bool _teamReadOnly;
     /// <summary>Neu eingegebener Token (leer = unverändert). Wird nie aus dem Speicher vorbefüllt.</summary>
     [ObservableProperty] private string _updateToken = "";
 

@@ -36,6 +36,13 @@
                           ToolTip="SharedOnly: mehrfach verwendete Logins werden zu Vault-Einträgen" />
             </Grid>
 
+            <TextBlock Text="Team-Bibliothek" FontWeight="SemiBold" Margin="0,16,0,6" />
+            <ui:TextBox Text="{Binding TeamLibraryPath, UpdateSourceTrigger=PropertyChanged}"
+                        PlaceholderText="\\server\team\confCons.xml  ·  Jumphost: C:\HostDeck\Team" />
+            <CheckBox Content="Nur lesen (z. B. Jumphost mit lokaler Kopie)" IsChecked="{Binding TeamReadOnly}" Margin="0,6,0,0" />
+            <TextBlock Margin="0,4,0,0" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                       Text="Gemeinsame confCons.xml (bleibt mit mRemoteNG kompatibel). Änderungen anderer erscheinen automatisch, eigene speicherst du mit Strg+S. Ordner statt Datei: die neueste .xml darin wird verwendet." />
+
             <TextBlock Text="Updates" FontWeight="SemiBold" Margin="0,16,0,6" />
             <ui:TextBox Text="{Binding UpdateSource, UpdateSourceTrigger=PropertyChanged}"
                         PlaceholderText="\\server\software\HostDeck  ·  https://…  ·  https://github.com/…" />

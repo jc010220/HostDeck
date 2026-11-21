@@ -218,6 +218,13 @@ public sealed partial class MainViewModel : ObservableObject
         yield return ("Layout: zwei untereinander", "split horizontal rows 2", () => Workspace.SetLayout(WorkspaceLayout.TwoRows));
         yield return ("Layout: 4er-Grid", "grid quad 4", () => Workspace.SetLayout(WorkspaceLayout.Grid));
         yield return ("Multi-Execution umschalten", "multiexec broadcast", () => IsMultiExecutionEnabled = !IsMultiExecutionEnabled);
+        if (HasTeamLibrary)
+        {
+            yield return ("Team-Bibliothek synchronisieren  (Strg+S)", "team sync synchronisieren speichern share laufwerk", () => SyncTeamCommand.Execute(null));
+            yield return ("Team-Bibliothek trennen", "team trennen disconnect", () => DisconnectTeamLibraryCommand.Execute(null));
+        }
+        yield return (HasTeamLibrary ? "Team-Bibliothek neu verbinden …" : "Team-Bibliothek verbinden (gemeinsame confCons.xml) …",
+            "team bibliothek library share laufwerk gemeinsam confcons keepass", () => ConnectTeamLibraryCommand.Execute(null));
         yield return ("mRemoteNG-Datei importieren", "import confcons", () => ImportMRemoteNGCommand.Execute(null));
         yield return ("Als mRemoteNG-Datei exportieren", "export confcons", () => ExportMRemoteNGCommand.Execute(null));
         yield return ("Hell/Dunkel umschalten", "theme dark light dunkel hell", () => ToggleThemeCommand.Execute(null));
@@ -380,6 +387,8 @@ public sealed partial class MainViewModel : ObservableObject
         if (Settings.RestoreWorkspaceOnStart && Settings.LastWorkspace is { ConnectionCount: > 0 } last)
             RestoreWorkspace(last);
 
+        await StartTeamLibraryAsync();
+
         Reachability = new ReachabilityMonitor(SessionTree, () => Settings.ShowReachability && !IsImporting, SynchronizationContext.Current);
         Reachability.Start();
 
@@ -397,6 +406,7 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Beim Beenden: Stand (inkl. Auf-/Zuklapp-Zustand) speichern.</summary>
     public void Shutdown()
     {
+        OfferTeamSyncOnExit();
         Reachability?.Dispose();
         Settings.LastWorkspace = CaptureWorkspace();
         SaveSettings();
@@ -425,6 +435,8 @@ public sealed partial class MainViewModel : ObservableObject
                 AppLog.Info($"Automatische Sicherung vor Speichern ({before} → {after} Verbindungen): {backup}");
             }
             _store.Save(SessionTree.Tree);
+            _treeVersion++;
+            if (HasTeamLibrary) RefreshTeamPending();
             return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException
@@ -661,6 +673,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
         SaveSettings();
         SettingsApplied?.Invoke();
+        ApplyTeamSettings(editor.TeamLibraryPath.Trim(), editor.TeamReadOnly);
         if (themeChanged) { CurrentTheme = Settings.Theme; _theme.Apply(Settings.Theme); }
         Reachability?.Invalidate();
         if (!Settings.ShowReachability) foreach (var i in SessionTree.AllItems) i.Reachability = Services.Reachability.Unknown;

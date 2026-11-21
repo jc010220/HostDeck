@@ -19,6 +19,7 @@ public sealed class ProtocolIconConverter : IValueConverter, IMultiValueConverte
 
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value switch
     {
+        TreeItemViewModel { IsTeam: true } => Icons.Team,
         TreeItemViewModel { IsFolder: true, IsExpanded: true } => Icons.FolderOpen,
         TreeItemViewModel { IsFolder: true } => Icons.Folder,
         TreeItemViewModel item => Icons.ForProtocol(item.Protocol),
@@ -41,6 +42,15 @@ public sealed class BoolToVisibilityConverter : IValueConverter
 }
 
 /// <summary>Vergleicht ein Enum mit dem ConverterParameter (für Layout-Toggle-Buttons).</summary>
+/// <summary>Zahl &gt; 0 ⇒ sichtbar (z. B. Zähler-Badge).</summary>
+public sealed class CountToVisibilityConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)
+        => value is int n && n > 0 ? Visibility.Visible : Visibility.Collapsed;
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
+}
+
 public sealed class EnumEqualsConverter : IValueConverter
 {
     public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture)

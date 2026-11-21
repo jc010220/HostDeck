@@ -29,6 +29,8 @@ public sealed partial class TreeItemViewModel : ObservableObject
     public TreeItemViewModel? Parent { get; internal set; }
     public ObservableCollection<TreeItemViewModel> Children { get; } = [];
     public bool IsFolder => Node is FolderNode;
+    /// <summary>Ordner der gemeinsamen Team-Bibliothek.</summary>
+    public bool IsTeam => Node.Extensions.ContainsKey(HostDeck.Core.Sync.TreeMerge.TeamContainerKey);
 
     public string Name
     {
@@ -261,6 +263,19 @@ public sealed partial class SessionTreeViewModel : ObservableObject
         ApplyFilter();
         NotifyChanged();
         return vm;
+    }
+
+    /// <summary>Kinder eines Ordners nach Änderung des Modells neu aufbauen (z. B. nach Team-Synchronisation).</summary>
+    public void ReloadChildren(TreeItemViewModel item)
+    {
+        var selected = SelectedItem?.Node.Id;
+        item.Children.Clear();
+        if (item.Node is FolderNode folder)
+            foreach (var child in folder.Children)
+                item.Children.Add(new TreeItemViewModel(child, item));
+        if (selected is { } id && SelectedItem is not null && item.IsAncestorOf(SelectedItem))
+            SelectedItem = item.SelfAndDescendants().FirstOrDefault(i => i.Node.Id == id);
+        ApplyFilter();
     }
 
     public void Delete(TreeItemViewModel item)

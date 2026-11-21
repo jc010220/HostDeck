@@ -1,6 +1,7 @@
 name: Release
 
-# Ein Tag „v1.2.3“ baut Installer + Update-Pakete und veröffentlicht sie als GitHub-Release.
+# Release erstellen: GitHub → Actions → „Release“ → „Run workflow“ (Version eingeben) – oder Tag „v1.2.3“ pushen.
+# Baut Installer + Update-Pakete und veröffentlicht sie als GitHub-Release.
 # Für die Verteilung im Unternehmen den Inhalt des Release (RELEASES, *.nupkg, Setup.exe) auf die
 # Update-Freigabe kopieren (HostDeck: Strg+K → „Update-Quelle festlegen“ → \\server\software\HostDeck).
 #
@@ -11,6 +12,11 @@ name: Release
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (z. B. 1.0.1) – der Tag v<Version> wird beim Veröffentlichen angelegt'
+        required: true
 
 permissions:
   contents: write
@@ -31,9 +37,13 @@ jobs:
         with:
           global-json-file: global.json
 
-      - name: Version aus Tag
+      - name: Version bestimmen
         shell: pwsh
-        run: echo "VERSION=$('${{ github.ref_name }}'.TrimStart('v'))" >> $env:GITHUB_ENV
+        run: |
+          $v = '${{ github.event.inputs.version }}'
+          if (-not $v) { $v = '${{ github.ref_name }}'.TrimStart('v') }
+          if ($v -notmatch '^\d+\.\d+\.\d+$') { throw "Ungültige Version '$v' (erwartet z. B. 1.0.1)" }
+          echo "VERSION=$v" >> $env:GITHUB_ENV
 
       - name: Test
         run: dotnet test --solution HostDeck.slnx -c Release
@@ -69,4 +79,4 @@ jobs:
           vpk @pack
 
       - name: GitHub-Release veröffentlichen
-        run: vpk upload github --repoUrl ${{ github.server_url }}/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }} -o releases --publish --releaseName "HostDeck ${{ env.VERSION }}" --tag ${{ github.ref_name }}
+        run: vpk upload github --repoUrl ${{ github.server_url }}/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }} -o releases --publish --releaseName "HostDeck ${{ env.VERSION }}" --tag v${{ env.VERSION }} --targetCommitish ${{ github.sha }}

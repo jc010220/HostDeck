@@ -48,7 +48,8 @@ Einstellungen `settings.json`, Fehlerprotokoll `%LOCALAPPDATA%\HostDeck\logs`.
 
 ## Updates im Unternehmen
 
-1. Release erstellen: `git tag v1.0.1 && git push --tags` → GitHub Actions baut Installer und Update-Pakete.
+1. Release erstellen: GitHub → *Actions* → *Release* → *Run workflow* (Version eingeben) – oder einen Tag `v1.0.1` pushen.
+   GitHub Actions baut Installer und Update-Pakete und veröffentlicht sie als Release.
 2. Release-Dateien (`RELEASES`, `releases.win.json`, `*.nupkg`, `HostDeck-win-Setup.exe`) auf eine Freigabe kopieren,
    z. B. `\\server\software\HostDeck`.
 3. In HostDeck: *Einstellungen → Updates* → Freigabe eintragen. Updates werden im Hintergrund geladen und beim

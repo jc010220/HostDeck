@@ -51,8 +51,9 @@ public class SnippetTests
                 db.WriteDocument("snippets", "[{\"Name\":\"GEHEIMBEFEHL\"}]");
                 db.Save(new ConnectionTree()); // Gesamtspeichern darf Dokumente nicht löschen
             }
-            using var reopened = EncryptedConnectionStore.Open(path, "Testpasswort1");
-            Assert.Contains("GEHEIMBEFEHL", reopened.ReadDocument("snippets"));
+            using (var reopened = EncryptedConnectionStore.Open(path, "Testpasswort1"))
+                Assert.Contains("GEHEIMBEFEHL", reopened.ReadDocument("snippets"));
+            // erst nach dem Schließen lesen – Windows sperrt geöffnete SQLite-Dateien
             foreach (var f in dir.GetFiles())
                 Assert.DoesNotContain("GEHEIMBEFEHL", System.Text.Encoding.Latin1.GetString(File.ReadAllBytes(f.FullName)), StringComparison.Ordinal);
         }

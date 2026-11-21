@@ -220,7 +220,12 @@ public sealed class SshTerminalSession : ITerminalBackend
         {
             _suppressed = new StringBuilder();
             // Fallback: kommt kein OSC 7 (z. B. eigene Shell-Konfiguration), Ausgabe unverändert zeigen
-            _suppressTimeout = new Timer(_ => EndSuppression(found: false), null, TimeSpan.FromSeconds(4), Timeout.InfiniteTimeSpan);
+            // Timer-Rückrufe dürfen nie werfen – eine Ausnahme dort beendet den gesamten Prozess
+            _suppressTimeout = new Timer(_ =>
+            {
+                try { EndSuppression(found: false); }
+                catch (Exception) { /* Session wird gerade beendet */ }
+            }, null, TimeSpan.FromSeconds(4), Timeout.InfiniteTimeSpan);
         }
         _shell!.Write(CwdHook);
     }

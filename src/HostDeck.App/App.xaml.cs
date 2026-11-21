@@ -23,6 +23,7 @@ public partial class App : Application
         TaskScheduler.UnobservedTaskException += (_, args) => { Log.Error("Hintergrundaufgabe", args.Exception); args.SetObserved(); };
         Log.Info($"Start, Version {typeof(App).Assembly.GetName().Version}");
         Log.Cleanup();
+        HostDeck.Presentation.Services.AppLog.Sink = Log.Error;
         ShutdownMode = ShutdownMode.OnExplicitShutdown; // Dialoge vor dem Hauptfenster dürfen die App nicht beenden
 
         // Zwei Instanzen würden sich gegenseitig die Datenbank überschreiben
@@ -133,11 +134,24 @@ public partial class App : Application
         base.OnExit(e);
     }
 
+    private static bool _showingError;
+
     private static void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
         Log.Error("UI", e.Exception);
-        new MessageDialog("Unerwarteter Fehler",
-            $"{e.Exception.Message}\n\nDetails stehen im Fehlerprotokoll:\n{Log.Directory}\n\n{e.Exception}", isError: true).ShowDialog();
         e.Handled = true; // Sessions in anderen Tabs nicht wegen eines UI-Fehlers verlieren
+        if (_showingError) return;
+        _showingError = true;
+        // Dialog nicht innerhalb des fehlerhaften Aufrufs öffnen (Layout/COM-Rückruf) – sonst Folgeabsturz
+        Current?.Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () =>
+        {
+            try
+            {
+                new MessageDialog("Unerwarteter Fehler",
+                    $"{e.Exception.Message}\n\nHostDeck läuft weiter. Details im Fehlerprotokoll:\n{Log.Directory}", isError: true).ShowDialog();
+            }
+            catch (Exception ex) { Log.Error("Fehlerdialog", ex); }
+            finally { _showingError = false; }
+        });
     }
 }

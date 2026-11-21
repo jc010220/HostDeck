@@ -116,8 +116,9 @@ public sealed class RdpView : Grid
             _everConnected = true;
             Dispatch.Call(_host.Ocx, "Connect");
         }
-        catch (Exception ex) when (ex is COMException or InvalidCastException or System.Reflection.TargetInvocationException)
+        catch (Exception ex)
         {
+            HostDeck.App.Services.Log.Error($"RDP Verbindungsstart {_plan?.Server}", ex);
             var msg = $"RDP-Verbindung konnte nicht gestartet werden (Client-Version {version}): {(ex.InnerException ?? ex).Message}";
             _vm.ReportError(msg);
             ShowStatus(msg);
@@ -243,33 +244,44 @@ public sealed class RdpView : Grid
 
     // ---- Events ------------------------------------------------------------------------------------
 
+    /// <summary>Event-Handler des ActiveX nie mit einer Ausnahme verlassen (COM-Rückruf ⇒ sonst Absturzgefahr).</summary>
+    private void Safe(string context, Action action)
+    {
+        try { action(); }
+        catch (Exception ex) { HostDeck.App.Services.Log.Error($"RDP {context}", ex); }
+    }
+
     private void WireEvents(RdpAxHost host)
     {
-        host.Connecting += () => ApplyCustomDrives(host);
-        host.LoginComplete += () => { _connected = true; _vm?.ReportConnected(); };
-        host.Connected += () => { _connected = true; _vm?.ReportConnected(); };
-        host.AutoReconnecting += (_, attempt) => _vm?.ReportConnecting();
-        host.AutoReconnected += () => _vm?.ReportConnected();
-        host.Disconnected += reason =>
+        host.Connecting += () => Safe("Connecting", () => ApplyCustomDrives(host));
+        host.LoginComplete += () => Safe("LoginComplete", () => { _connected = true; _vm?.ReportConnected(); });
+        host.Connected += () => Safe("Connected", () => { _connected = true; _vm?.ReportConnected(); });
+        host.AutoReconnecting += (_, _) => Safe("AutoReconnecting", () => _vm?.ReportConnecting());
+        host.AutoReconnected += () => Safe("AutoReconnected", () => _vm?.ReportConnected());
+        host.Disconnected += reason => Safe("Disconnected", () =>
         {
             _connected = false;
             string? description = null;
             try
             {
-                var extended = Convert.ToUInt32(Dispatch.Get(host.Ocx, "ExtendedDisconnectReason") ?? 0);
-                description = Dispatch.Call(host.Ocx, "GetErrorDescription", (uint)reason, extended) as string;
+                var extended = Convert.ToInt64(Dispatch.Get(host.Ocx, "ExtendedDisconnectReason") ?? 0) & 0xFFFFFFFF;
+                description = Dispatch.Call(host.Ocx, "GetErrorDescription", unchecked((uint)reason), (uint)extended) as string;
             }
-            catch (Exception ex) when (ex is COMException or System.Reflection.TargetInvocationException or InvalidCastException) { }
+            catch (Exception ex) { HostDeck.App.Services.Log.Error($"RDP GetErrorDescription (Grund {reason})", ex); }
+            HostDeck.App.Services.Log.Info($"RDP getrennt: {_plan?.Server} Grund={reason} {description}");
             _vm?.ReportDisconnected(reason, description);
-            // Control abbauen (nicht im Event-Handler selbst – COM-Reentrancy)
-            Dispatcher.BeginInvoke(() => { Teardown(); ShowStatus(_vm?.Message ?? "Verbindung beendet."); });
-        };
-        host.FatalError += code =>
+            // WICHTIG: Das Control hier NICHT zerstören – mstscax verarbeitet die Trennung noch (nativer Absturz).
+            // Es wird nur ausgeblendet und erst beim nächsten Verbinden bzw. Schließen des Tabs (verzögert) freigegeben.
+            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () => Safe("Status", () => ShowStatus(_vm?.Message ?? "Verbindung beendet.")));
+        });
+        host.FatalError += code => Safe("FatalError", () =>
         {
             _connected = false;
+            HostDeck.App.Services.Log.Info($"RDP schwerer Fehler: {_plan?.Server} Code={code}");
             _vm?.ReportError($"Schwerer RDP-Fehler (Code {code}).");
-            Dispatcher.BeginInvoke(() => { Teardown(); ShowStatus(_vm?.Message ?? ""); });
-        };
+            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () => Safe("Status", () => ShowStatus(_vm?.Message ?? "")));
+        });
+        host.LogonError += code => Safe("LogonError", () => HostDeck.App.Services.Log.Info($"RDP Anmeldefehler: {_plan?.Server} Code={code}"));
     }
 
     private void ApplyCustomDrives(RdpAxHost host)
@@ -305,10 +317,22 @@ public sealed class RdpView : Grid
         if (_host is null) return;
         var host = _host;
         _host = null;
-        try { if (Convert.ToInt32(Dispatch.Get(host.Ocx, "Connected")) != 0) Dispatch.Call(host.Ocx, "Disconnect"); }
-        catch (Exception ex) when (ex is COMException or System.Reflection.TargetInvocationException or InvalidOperationException) { }
-        _panel.Controls.Remove(host);
-        host.Dispose();
+        try
+        {
+            if (Convert.ToInt32(Dispatch.Get(host.Ocx, "Connected")) != 0) Dispatch.Call(host.Ocx, "Disconnect");
+        }
+        catch (Exception ex) { HostDeck.App.Services.Log.Error("RDP Disconnect beim Abbau", ex); }
+
+        // Control erst freigeben, wenn die Anwendung untätig ist (nie im Rückruf des Controls selbst).
+        Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () =>
+        {
+            try
+            {
+                _panel.Controls.Remove(host);
+                host.Dispose();
+            }
+            catch (Exception ex) { HostDeck.App.Services.Log.Error("RDP Control freigeben", ex); }
+        });
     }
 
     private void ShowHost()

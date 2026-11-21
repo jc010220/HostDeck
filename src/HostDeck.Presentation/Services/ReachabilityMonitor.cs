@@ -27,7 +27,12 @@ public sealed class ReachabilityMonitor(SessionTreeViewModel tree, Func<bool> en
         using var timer = new PeriodicTimer(TimeSpan.FromSeconds(5));
         do
         {
-            if (enabled()) await CheckDueAsync(ct).ConfigureAwait(false);
+            try
+            {
+                if (enabled()) await CheckDueAsync(ct).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested) { return; }
+            catch (Exception ex) { AppLog.Error("Online-Status", ex); } // ein einzelner Fehler stoppt die Überwachung nicht
         }
         while (await timer.WaitForNextTickAsync(ct).ConfigureAwait(false));
     }
@@ -36,10 +41,16 @@ public sealed class ReachabilityMonitor(SessionTreeViewModel tree, Func<bool> en
     public async Task CheckDueAsync(CancellationToken ct = default)
     {
         var now = DateTime.UtcNow;
-        var due = VisibleConnections()
-            .Where(i => !_lastChecked.TryGetValue(i.Node.Id, out var t) || now - t >= Interval)
-            .ToList();
-        foreach (var item in due) _lastChecked[item.Node.Id] = now;
+        // Baum-Sammlungen gehören dem UI-Thread ⇒ dort einen Schnappschuss ziehen
+        List<TreeItemViewModel> visible = [];
+        if (ui is null || SynchronizationContext.Current == ui) visible = VisibleConnections().ToList();
+        else ui.Send(_ => visible = VisibleConnections().ToList(), null);
+        List<TreeItemViewModel> due;
+        lock (_lastChecked)
+        {
+            due = visible.Where(i => !_lastChecked.TryGetValue(i.Node.Id, out var t) || now - t >= Interval).ToList();
+            foreach (var item in due) _lastChecked[item.Node.Id] = now;
+        }
 
         using var gate = new SemaphoreSlim(MaxParallel);
         await Task.WhenAll(due.Select(async item =>
@@ -48,6 +59,7 @@ public sealed class ReachabilityMonitor(SessionTreeViewModel tree, Func<bool> en
             try
             {
                 var (host, port) = Target(item);
+                if (port > 65535) return;
                 if (string.IsNullOrWhiteSpace(host) || port <= 0) return;
                 Post(() => item.Reachability = item.Reachability == Reachability.Unknown ? Reachability.Checking : item.Reachability);
                 var online = await ProbeAsync(host, port, Timeout, ct).ConfigureAwait(false);
@@ -58,7 +70,10 @@ public sealed class ReachabilityMonitor(SessionTreeViewModel tree, Func<bool> en
     }
 
     /// <summary>Sofort neu prüfen (z. B. nach dem Aufklappen eines Ordners).</summary>
-    public void Invalidate() => _lastChecked.Clear();
+    public void Invalidate()
+    {
+        lock (_lastChecked) _lastChecked.Clear();
+    }
 
     internal IEnumerable<TreeItemViewModel> VisibleConnections()
     {

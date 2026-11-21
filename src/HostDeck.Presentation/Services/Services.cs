@@ -144,3 +144,10 @@ public sealed class WorkspaceSnapshot
     public List<List<Guid>> Panes { get; set; } = [];
     public int ConnectionCount => Panes.Sum(p => p.Count);
 }
+
+/// <summary>Brücke zum Fehlerprotokoll der App (Presentation kennt die Dateiablage nicht).</summary>
+public static class AppLog
+{
+    public static Action<string, Exception>? Sink { get; set; }
+    public static void Error(string context, Exception ex) => Sink?.Invoke(context, ex);
+}

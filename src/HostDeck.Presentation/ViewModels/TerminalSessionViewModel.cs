@@ -123,8 +123,10 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
             _session = session;
             SetState(SessionState.Connected);
         }
-        catch (Exception ex) when (ex is System.Net.Sockets.SocketException or TimeoutException or OperationCanceledException or IOException)
+        catch (Exception ex)
         {
+            if (ex is not (System.Net.Sockets.SocketException or TimeoutException or OperationCanceledException or IOException))
+                AppLog.Error($"Telnet/Raw {host}:{port}", ex);
             await session.DisposeAsync();
             SetState(SessionState.Failed);
             WriteStatus($"Verbindung fehlgeschlagen: {Describe(ex)}");
@@ -155,9 +157,10 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
             Sftp = new SftpBrowserViewModel(session, _dialogs, _ui);
             _ = Sftp.ConnectAsync();
         }
-        catch (Exception ex) when (ex is SshException or HostKeyRejectedException or System.Net.Sockets.SocketException
-                                       or TimeoutException or OperationCanceledException or InvalidOperationException)
+        catch (Exception ex)
         {
+            if (ex is not (SshException or HostKeyRejectedException or System.Net.Sockets.SocketException or TimeoutException or OperationCanceledException))
+                AppLog.Error($"SSH {endpoint.Host}:{endpoint.Port}", ex);
             await session.DisposeAsync();
             SetState(SessionState.Failed);
             WriteStatus($"Verbindung fehlgeschlagen: {Describe(ex)}");
@@ -282,8 +285,9 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
             await _sftp.ConnectAsync();
             await NavigateAsync(_terminal.WorkingDirectory ?? _sftp.HomeDirectory ?? "/");
         }
-        catch (Exception ex) when (ex is SshException or InvalidOperationException or System.Net.Sockets.SocketException)
+        catch (Exception ex)
         {
+            if (ex is not (SshException or System.Net.Sockets.SocketException)) AppLog.Error("SFTP-Verbindung", ex);
             Status = $"SFTP nicht verfügbar: {ex.Message}";
             _sftp = null;
         }

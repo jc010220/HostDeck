@@ -41,8 +41,10 @@ public sealed partial class VncSessionViewModel(SessionTabViewModel tab, IDialog
             Tab.State = SessionState.Connected;
             Message = null;
         }
-        catch (Exception ex) when (ex is VncAuthenticationException or IOException or System.Net.Sockets.SocketException or TimeoutException)
+        catch (Exception ex)
         {
+            if (ex is not (VncAuthenticationException or IOException or System.Net.Sockets.SocketException or TimeoutException))
+                AppLog.Error($"VNC {host}:{port}", ex);
             await client.DisposeAsync();
             Tab.State = SessionState.Failed;
             Message = ex is VncAuthenticationException ? $"Anmeldung fehlgeschlagen: {ex.Message}" : $"Verbindung fehlgeschlagen: {ex.Message}";

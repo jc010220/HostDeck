@@ -144,7 +144,7 @@ public sealed class WebView : DockPanel
         }
         // Ausnahme gilt nur für genau dieses Zertifikat an genau diesem Host und Port
         var key = $"{host}:{uri.Port}:{fingerprint}";
-        if (_vm.AcceptedCertificates.Contains(key))
+        if (WebSessionViewModel.AcceptedCertificates.Contains(key))
         {
             e.Action = CoreWebView2ServerCertificateErrorAction.AlwaysAllow;
             return;
@@ -159,10 +159,12 @@ public sealed class WebView : DockPanel
                               $"Issued to: {cert.Subject}\nIssuer: {cert.Issuer}\nValid until: {cert.ValidTo:d}\n" +
                               $"SHA-256: {fingerprint}\n\n" +
                               "This is common for devices with a self-signed certificate (switch, firewall, iLO/iDRAC). " +
-                              "For public websites it can be an attack.\n\nContinue anyway for this tab?";
+                              "For public websites it can be an attack.\n\n" +
+                              "Continue anyway? The exception applies to exactly this certificate on this host and port, " +
+                              "in all web tabs until HostDeck is closed. It is never saved.";
                 var ok = System.Windows.MessageBox.Show(Window.GetWindow(this)!, message, "Certificate warning",
                     MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
-                if (ok) _vm.AcceptedCertificates.Add(key);
+                if (ok) WebSessionViewModel.AcceptedCertificates.Add(key);
                 e.Action = ok ? CoreWebView2ServerCertificateErrorAction.AlwaysAllow : CoreWebView2ServerCertificateErrorAction.Cancel;
             }
         });

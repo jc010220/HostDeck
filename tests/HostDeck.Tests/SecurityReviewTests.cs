@@ -82,7 +82,14 @@ public sealed class SecurityReviewTests : IDisposable
         me.Persist();
 
         var sw01 = () => me.SessionTree.AllItems.Single(i => i.Node.Name == "sw01");
-        me.OpenCommand.Execute(sw01());                      // erste Verbindung: Ziel wird gemerkt
+        dialogs.ConfirmAnswer = false;                       // erste Verwendung muss ausdrücklich bestätigt werden
+        var before = dialogs.ConfirmCalls;
+        me.OpenCommand.Execute(sw01());
+        Assert.Equal(before + 1, dialogs.ConfirmCalls);
+        Assert.NotEqual("MyRadius!1", me.Workspace.ActiveTab!.Credentials.Password);
+        me.Workspace.Close(me.Workspace.ActiveTab);
+        dialogs.ConfirmAnswer = true;
+        me.OpenCommand.Execute(sw01());
         Assert.Equal("MyRadius!1", me.Workspace.ActiveTab!.Credentials.Password);
         me.Workspace.Close(me.Workspace.ActiveTab);
 
@@ -111,6 +118,23 @@ public sealed class SecurityReviewTests : IDisposable
         Assert.Equal(asked, dialogs.ConfirmCalls);
     }
 
+    [Fact]
+    public void Target_key_includes_the_rdp_gateway_and_accepts_old_keys_without_gateway()
+    {
+        var c = new ConnectionNode("dc01") { Hostname = "10.1.0.1", Settings = { Protocol = ProtocolKind.Rdp } };
+        var t = new ConnectionTree();
+        t.Root.Add(c);
+        var plain = MainViewModel.TargetKey(c);
+        Assert.EndsWith("|-", plain);
+        c.Settings.Rdp.Gateway.Usage = RdGatewayUsage.Always;
+        c.Settings.Rdp.Gateway.Hostname = "rdgw.corp.example";
+        var withGateway = MainViewModel.TargetKey(c);
+        Assert.NotEqual(plain, withGateway);
+        Assert.EndsWith("|rdgw.corp.example", withGateway);
+        c.Settings.Rdp.Gateway.Hostname = "evil-gw.example";
+        Assert.NotEqual(withGateway, MainViewModel.TargetKey(c)); // reine Gateway-Änderung ⇒ anderes Ziel
+    }
+
     // ---- 3. Klartext-Protokolle --------------------------------------------------------------------
 
     [Fact]
@@ -119,15 +143,16 @@ public sealed class SecurityReviewTests : IDisposable
         var (_, dialogs, _, store) = Create();
         var id = Guid.NewGuid();
         dialogs.ConfirmAnswer = false;
-        Assert.False(PlaintextConsent.Ask(store, dialogs, id, "sw01", "Telnet", f => f()));
-        Assert.False(PlaintextConsent.Ask(store, dialogs, id, "sw01", "Telnet", f => f())); // „Nein“ wird nicht gemerkt
+        Assert.False(PlaintextConsent.Ask(store, dialogs, id, "sw01", 23, "Telnet", f => f()));
+        Assert.False(PlaintextConsent.Ask(store, dialogs, id, "sw01", 23, "Telnet", f => f())); // „Nein“ wird nicht gemerkt
         dialogs.ConfirmAnswer = true;
-        Assert.True(PlaintextConsent.Ask(store, dialogs, id, "sw01", "Telnet", f => f()));
+        Assert.True(PlaintextConsent.Ask(store, dialogs, id, "sw01", 23, "Telnet", f => f()));
         var calls = dialogs.ConfirmCalls;
-        Assert.True(PlaintextConsent.Ask(store, dialogs, id, "SW01", "Telnet", f => f()));
+        Assert.True(PlaintextConsent.Ask(store, dialogs, id, "SW01", 23, "Telnet", f => f()));
         Assert.Equal(calls, dialogs.ConfirmCalls);
         dialogs.ConfirmAnswer = false;
-        Assert.False(PlaintextConsent.Ask(store, dialogs, id, "other-host", "Telnet", f => f())); // anderer Host ⇒ neu fragen
+        Assert.False(PlaintextConsent.Ask(store, dialogs, id, "other-host", 23, "Telnet", f => f())); // anderer Host ⇒ neu fragen
+        Assert.False(PlaintextConsent.Ask(store, dialogs, id, "sw01", 2323, "Telnet", f => f()));     // anderer Port ⇒ neu fragen
     }
 
     // ---- Schnellverbindung -------------------------------------------------------------------------
@@ -195,6 +220,15 @@ public sealed class SecurityReviewTests : IDisposable
         await Assert.ThrowsAsync<InvalidDataException>(() =>
             client.ConnectAsync("127.0.0.1", port, () => null, ct: TestContext.Current.CancellationToken));
         await server;
+    }
+
+    [Fact]
+    public void Oversized_files_are_rejected_before_being_read_into_memory()
+    {
+        var path = Path.Combine(_dir, "huge.xml");
+        using (var f = File.Create(path)) f.SetLength(ConfConsImporter.MaxFileBytes + 1);   // sparse, kein echter Speicherbedarf
+        Assert.Throws<ConfConsFormatException>(() => new ConfConsImporter().ImportFile(path));
+        Assert.Throws<ConfConsFormatException>(() => HostDeck.Presentation.Team.TeamLibraryFile.Read(path, null, null));
     }
 
     [Fact]

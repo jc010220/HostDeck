@@ -110,9 +110,12 @@ ConnectionSettings  (all fields nullable)
 * Web tabs: only http(s), external protocol handlers are blocked, stored credentials are only sent to the configured host/port/scheme,
   over plain HTTP only after consent. Certificate exceptions are keyed by host, port and SHA-256 of the certificate.
 * **Target binding for personal logins:** for team entries that resolve to a vault credential, the confirmed target
-  (`protocol|host|port`) is stored per entry (`team-trusted-targets`). Pulls remember the previous target; a changed target
-  requires explicit confirmation before the login is sent, otherwise the session opens without the personal login.
-* **Plain-text protocols:** Telnet sends a stored password only after per-entry/host consent (`plaintext-consent`); raw TCP never auto-logs in.
+  (`protocol|host|port|gateway`, gateway = RD Gateway host when used) is stored per entry (`team-trusted-targets`). There is no
+  trust on first use: the first use and every change need explicit confirmation, otherwise the session opens without the
+  personal login. Own edits in the properties dialog count as confirmation.
+* **Plain-text protocols:** Telnet/HTTP send a stored password only after consent per entry, host and port (`plaintext-consent`); raw TCP never auto-logs in.
+* **Certificate exceptions** are kept app-wide until exit, because WebView2 caches `AlwaysAllow` for the whole browser session.
+* **File size:** mRemoteNG imports and the team file are limited to 128 MB and checked before reading.
 * **RDP:** security-critical properties (`AuthenticationLevel`, `RestrictedLogon`, `DisableCredentialsDelegation`,
   `RedirectedAuthentication`) must apply, otherwise the connection is aborted.
 * **Export:** secrets are only written with an export password, which also enables full-file encryption and 10,000 KDF iterations.

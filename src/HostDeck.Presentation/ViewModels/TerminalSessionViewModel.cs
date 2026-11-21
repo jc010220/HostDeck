@@ -140,7 +140,7 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
         // Telnet: gespeichertes Passwort nur nach ausdrücklicher Zustimmung je Eintrag (Klartext im Netz!).
         var username = raw ? null : NullIfEmpty(_tab.Credentials.Username);
         var password = raw ? null : NullIfEmpty(_tab.Credentials.Password);
-        if (password is not null && !PlaintextConsent.Ask(_knownHosts, _dialogs, _tab.Connection.Id, host, "Telnet", OnUiAndWait))
+        if (password is not null && !PlaintextConsent.Ask(_knownHosts, _dialogs, _tab.Connection.Id, host, port, "Telnet", OnUiAndWait))
             password = null;
         var session = new TelnetSession(host, port, raw, username, password)
         {

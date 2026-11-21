@@ -10,14 +10,14 @@ public static class PlaintextConsent
 {
     public const string Document = "plaintext-consent";
 
-    public static bool Ask(IConnectionStore store, IDialogService dialogs, Guid connectionId, string host, string protocol,
+    public static bool Ask(IConnectionStore store, IDialogService dialogs, Guid connectionId, string host, int port, string protocol,
         Func<Func<bool>, bool> onUi)
     {
-        var key = $"{connectionId}|{host.Trim().ToLowerInvariant()}|{protocol}";
+        var key = $"{connectionId}|{host.Trim().ToLowerInvariant()}|{port}|{protocol}";
         var granted = Load(store);
         if (granted.Contains(key)) return true;
         var ok = onUi(() => dialogs.Confirm($"Unencrypted {protocol} connection",
-            $"{protocol} sends everything unencrypted – including your stored password for {host}. " +
+            $"{protocol} sends everything unencrypted – including your stored password for {host}:{port}. " +
             "Anyone on the network path can read it.\n\n" +
             "Send the stored password anyway? (Your answer is remembered for this entry.)\n\n" +
             "“No”: connect without sending it – you can type the password yourself."));

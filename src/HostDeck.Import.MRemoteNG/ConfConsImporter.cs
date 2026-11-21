@@ -19,16 +19,26 @@ public sealed class ConfConsImporter(ConfConsImportOptions? options = null)
     /// <summary>Höchste akzeptierte PBKDF2-Iterationszahl (mRemoteNG bietet bis 50.000 an).</summary>
     public const int MaxKdfIterations = 100_000;
 
+    /// <summary>Höchste akzeptierte Dateigröße (50.000 Verbindungen sind etwa 50 MB).</summary>
+    public const long MaxFileBytes = 128L * 1024 * 1024;
+
     private const string ExtensionPrefix = "mrng:";
     private static readonly XNamespace MrngNamespace = "http://mremoteng.org";
 
     private readonly ConfConsImportOptions _options = options ?? new ConfConsImportOptions();
 
     public ConfConsImportResult ImportFile(string path)
-        => Import(File.ReadAllText(path), Path.GetFileName(path));
+    {
+        // Übergroße (manipulierte) Dateien gar nicht erst vollständig in den Speicher laden
+        var length = new FileInfo(path).Length;
+        if (length > MaxFileBytes)
+            throw new ConfConsFormatException($"The file is too large ({length / 1024 / 1024} MB, maximum {MaxFileBytes / 1024 / 1024} MB).");
+        return Import(File.ReadAllText(path), Path.GetFileName(path));
+    }
 
     public ConfConsImportResult Import(string content, string? sourceName = null)
     {
+        if (content.Length > MaxFileBytes) throw new ConfConsFormatException("The file is too large.");
         ArgumentNullException.ThrowIfNull(content);
         var session = new ImportSession(_options, sourceName);
         return session.Run(content);

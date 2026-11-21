@@ -425,7 +425,6 @@ public sealed partial class MainViewModel
     private void ApplyTeamChildren(IReadOnlyList<TreeNode> children)
     {
         if (TeamContainer is not { } container) return;
-        RememberTargetsBeforeTeamChange(container, children);
         foreach (var old in container.Children.ToList()) container.Remove(old);
         foreach (var child in children) container.Add(child);
 
@@ -445,12 +444,31 @@ public sealed partial class MainViewModel
 
     internal const string TrustedTargetsDocument = "team-trusted-targets";
 
-    private static string TargetKey(ConnectionNode connection)
+    /// <summary>
+    /// Alles, wohin ein Login gehen kann: Protokoll, Host, Port und – bei RDP – das RD Gateway
+    /// (es kann dieselben Zugangsdaten erhalten). Format: <c>protocol|host|port|gateway</c>.
+    /// </summary>
+    internal static string TargetKey(ConnectionNode connection)
     {
         var s = Core.Inheritance.SettingsResolver.Resolve(connection);
         var protocol = s.Protocol ?? ProtocolKind.Rdp;
-        return $"{protocol}|{connection.Hostname.Trim().ToLowerInvariant()}|{s.Port ?? ProtocolDefaults.DefaultPort(protocol)}";
+        var gateway = "-";
+        if (protocol == ProtocolKind.Rdp && (s.Rdp.Gateway.Usage ?? RdGatewayUsage.Never) != RdGatewayUsage.Never
+            && !string.IsNullOrWhiteSpace(s.Rdp.Gateway.Hostname))
+            gateway = s.Rdp.Gateway.Hostname.Trim().ToLowerInvariant();
+        return $"{protocol}|{connection.Hostname.Trim().ToLowerInvariant()}|{s.Port ?? ProtocolDefaults.DefaultPort(protocol)}|{gateway}";
     }
+
+    /// <summary>Einträge aus 1.0.16 (ohne Gateway-Teil) gelten weiter, solange kein Gateway im Spiel ist.</summary>
+    private static bool SameTarget(string known, string current) =>
+        known == current || (known.Count(c => c == '|') == 2 && current == known + "|-");
+
+    private static string ShowTarget(string key) => key.Split('|') switch
+    {
+        [var p, var h, var port, var gw] when gw != "-" => $"{h}:{port} ({p}) via gateway {gw}",
+        [var p, var h, var port, ..] => $"{h}:{port} ({p})",
+        _ => key,
+    };
 
     private Dictionary<Guid, string> LoadTrustedTargets()
     {
@@ -472,45 +490,32 @@ public sealed partial class MainViewModel
         if (!HasTeamLibrary || !InTeam(connection) || !UsesPersonalLogin(connection, vault)) return true;
         var trusted = LoadTrustedTargets();
         var current = TargetKey(connection);
-        if (!trusted.TryGetValue(connection.Id, out var known))
+        var entry = Core.Inheritance.CredentialResolver.Resolve(connection, vault).VaultEntry!;
+        if (trusted.TryGetValue(connection.Id, out var known) && SameTarget(known, current))
         {
-            trusted[connection.Id] = current; // erste Verbindung mit persönlichem Login
-            SaveTrustedTargets(trusted);
+            if (known != current) { trusted[connection.Id] = current; SaveTrustedTargets(trusted); } // Format aktualisieren
             return true;
         }
-        if (known == current) return true;
 
-        static string Show(string key) => key.Split('|') is [var p, var h, var port] ? $"{h}:{port} ({p})" : key;
-        var entry = Core.Inheritance.CredentialResolver.Resolve(connection, vault).VaultEntry!;
-        if (!_dialogs.Confirm("Team entry target changed",
-                $"The target of “{connection.Name}” was changed in the team library:\n\n" +
-                $"before: {Show(known)}\nnow:    {Show(current)}\n\n" +
-                $"Your personal login “{entry.Name}” would be sent to the new target. " +
-                "Only continue if you know about this change.\n\nSend your login to the new target?"))
+        // Kein stilles „beim ersten Mal vertrauen“: Ein Kollege könnte einen neuen Eintrag mit eigenem Ziel anlegen,
+        // der das persönliche Login eines Ordners erbt. Daher jede erste Verwendung ausdrücklich bestätigen.
+        var question = known is null
+            ? $"First use of your personal login “{entry.Name}” for the team entry “{connection.Name}”:\n\n" +
+              $"target: {ShowTarget(current)}\n\n" +
+              "Team entries can be created or edited by colleagues. Only continue if this is the system you expect.\n\n" +
+              "Send your login to this target?"
+            : $"The target of “{connection.Name}” was changed in the team library:\n\n" +
+              $"before: {ShowTarget(known!)}\nnow:    {ShowTarget(current)}\n\n" +
+              $"Your personal login “{entry.Name}” would be sent to the new target. " +
+              "Only continue if you know about this change.\n\nSend your login to the new target?";
+        if (!_dialogs.Confirm(known is null ? "Confirm target for your login" : "Team entry target changed", question))
         {
-            StatusText = $"“{connection.Name}”: connecting without your personal login (target changed)";
+            StatusText = $"“{connection.Name}”: connecting without your personal login";
             return false;
         }
         trusted[connection.Id] = current;
         SaveTrustedTargets(trusted);
         return true;
-    }
-
-    /// <summary>Beim Übernehmen von Team-Änderungen: bisheriges Ziel festhalten, damit eine Änderung auffällt.</summary>
-    private void RememberTargetsBeforeTeamChange(FolderNode container, IReadOnlyList<TreeNode> incoming)
-    {
-        var vault = SessionTree.Tree.Vault;
-        var trusted = LoadTrustedTargets();
-        var changed = false;
-        var newById = incoming.SelectMany(n => n is FolderNode f ? f.Descendants().Prepend(n) : [n]).ToDictionary(n => n.Id);
-        foreach (var old in container.Descendants().OfType<ConnectionNode>())
-        {
-            if (trusted.ContainsKey(old.Id) || !UsesPersonalLogin(old, vault)) continue;
-            if (!newById.TryGetValue(old.Id, out var updated) || updated is not ConnectionNode) continue;
-            trusted[old.Id] = TargetKey(old);
-            changed = true;
-        }
-        if (changed) SaveTrustedTargets(trusted);
     }
 
     /// <summary>Eigene Änderungen gelten als bestätigt (Eintrag bzw. alle Verbindungen eines Ordners).</summary>

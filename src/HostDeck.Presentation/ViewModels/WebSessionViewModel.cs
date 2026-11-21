@@ -17,10 +17,11 @@ public sealed partial class WebSessionViewModel(SessionTabViewModel tab) : Obser
     public bool CredentialsUsed { get; set; }
 
     /// <summary>
-    /// Akzeptierte ungültige Zertifikate in diesem Tab (nicht dauerhaft) – gebunden an Host, Port UND das konkrete
-    /// Zertifikat (Fingerabdruck), damit ein anderes Zertifikat desselben Hosts erneut nachfragt.
+    /// Akzeptierte ungültige Zertifikate bis zum Beenden von HostDeck – gebunden an Host, Port UND das konkrete Zertifikat
+    /// (Fingerabdruck). Bewusst app-weit: WebView2 speichert „AlwaysAllow“ ohnehin für die gesamte Browsersitzung
+    /// (alle Web-Tabs), eine Zusage „nur dieser Tab“ wäre nicht einzuhalten. Nichts davon wird gespeichert.
     /// </summary>
-    public HashSet<string> AcceptedCertificates { get; } = new(StringComparer.OrdinalIgnoreCase);
+    public static HashSet<string> AcceptedCertificates { get; } = new(StringComparer.OrdinalIgnoreCase);
 
     /// <summary>Zustimmung für das Senden gespeicherter Zugangsdaten über unverschlüsseltes HTTP (gesetzt vom MainViewModel).</summary>
     public Func<bool>? ConfirmPlaintextCredentials { get; init; }

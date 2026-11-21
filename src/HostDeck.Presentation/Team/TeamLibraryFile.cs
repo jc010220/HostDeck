@@ -129,6 +129,9 @@ public static class TeamLibraryFile
 
     public static string HashOf(byte[] content) => Convert.ToHexString(SHA256.HashData(content));
 
+    /// <summary>Obergrenze: auch sehr große Bestände (50.000 Verbindungen) bleiben deutlich darunter.</summary>
+    public const long MaxFileBytes = ConfConsImporter.MaxFileBytes;
+
     private static byte[] ReadShared(string path)
     {
         // mRemoteNG/andere HostDeck-Instanzen dürfen die Datei gleichzeitig offen haben
@@ -137,8 +140,16 @@ public static class TeamLibraryFile
             try
             {
                 using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+                // Erst Größe prüfen, dann lesen – und auch beim Lesen nie mehr als die Grenze annehmen (Datei kann wachsen)
+                if (stream.Length > MaxFileBytes) throw new ConfConsFormatException($"The team file is too large ({stream.Length / 1024 / 1024} MB, maximum {MaxFileBytes / 1024 / 1024} MB).");
                 using var ms = new MemoryStream();
-                stream.CopyTo(ms);
+                var buffer = new byte[81920];
+                int read;
+                while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    if (ms.Length + read > MaxFileBytes) throw new ConfConsFormatException("The team file is too large.");
+                    ms.Write(buffer, 0, read);
+                }
                 return ms.ToArray();
             }
             catch (IOException) when (attempt < 4 && File.Exists(path))

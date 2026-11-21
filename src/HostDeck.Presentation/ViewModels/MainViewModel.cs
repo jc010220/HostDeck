@@ -76,7 +76,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             tab.Web = new WebSessionViewModel(tab)
             {
-                ConfirmPlaintextCredentials = () => PlaintextConsent.Ask(_store, _dialogs, connection.Id, connection.Hostname, "HTTP", f => f()),
+                ConfirmPlaintextCredentials = () => PlaintextConsent.Ask(_store, _dialogs, connection.Id, connection.Hostname, tab.Web!.StartUri.Port, "HTTP", f => f()),
             };
         }
         else if (tab.Protocol == ProtocolKind.Vnc)

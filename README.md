@@ -39,6 +39,7 @@ Ist mRemoteNG installiert, wird die Übernahme von `%APPDATA%\mRemoteNG\confCons
 | Strg+Tab, Strg+W (Terminal: Strg+Umschalt+W) | Tab wechseln / schließen |
 | Strg+Alt+1…4 | Layout |
 | Strg+Umschalt+M | Multi-Execution |
+| Esc / Strg+C (Terminal), „Abbrechen“ in der Statusleiste | Laufenden Verbindungsaufbau abbrechen |
 | Terminal: Strg+Umschalt+C/V/F, Strg+Mausrad | Kopieren / Einfügen / Suchen / Zoom |
 
 ## Daten und Sicherung

@@ -63,6 +63,8 @@
                                 <ContextMenu>
                                     <MenuItem Header="Vollbild" Click="OnFullScreenMenu"
                                               Visibility="{Binding HasRdp, Converter={StaticResource BoolToVisibility}}" />
+                                    <MenuItem Header="Verbindungsaufbau abbrechen" Command="{Binding CancelConnectCommand}"
+                                              Visibility="{Binding IsConnecting, Converter={StaticResource BoolToVisibility}}" />
                                     <MenuItem Header="In neuem Fenster öffnen" Click="OnDetachMenu" />
                                     <MenuItem Header="Neu verbinden" Click="OnReconnectMenu"
                                               Visibility="{Binding HasEngine, Converter={StaticResource BoolToVisibility}}" />

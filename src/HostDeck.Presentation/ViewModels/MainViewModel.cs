@@ -208,6 +208,8 @@ public sealed partial class MainViewModel : ObservableObject
         yield return ("Neuer Ordner", "new folder add", () => NewFolderCommand.Execute(null));
         yield return ("Zugangsdaten verwalten (Vault)", "vault credentials passwort", () => ManageVaultCommand.Execute(null));
         yield return ("Master-Passwort ändern", "password security sicherheit", () => ChangeMasterPasswordCommand.Execute(null));
+        if (FocusedWorkspace.ActiveTab is { IsConnecting: true } connecting)
+            yield return ($"Verbindungsaufbau abbrechen: {connecting.Title}", "abbrechen cancel stop verbindung", connecting.CancelConnect);
         yield return ("Alle Tabs schließen", "close all tabs", CloseAllTabs);
         yield return ("Einstellungen …", "settings optionen einstellungen preferences", () => OpenSettingsCommand.Execute(null));
         yield return ("Sicherung erstellen …", "backup sicherung export datenbank", () => BackupCommand.Execute(null));

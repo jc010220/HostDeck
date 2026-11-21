@@ -60,6 +60,7 @@ public sealed class WebView : DockPanel
         if (_web is not null || DataContext is not SessionTabViewModel { Web: { } vm } tab) return;
         _vm = vm;
         tab.Closed += (_, _) => Release();
+        vm.CancelRequested += (_, _) => _web?.CoreWebView2?.Stop();
         _web = new WebView2Control();
         Children.Add(_web);
         try

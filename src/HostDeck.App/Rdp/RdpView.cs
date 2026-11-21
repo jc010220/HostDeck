@@ -67,6 +67,7 @@ public sealed class RdpView : Grid
         _vm = vm;
         vm.ConnectRequested += (_, _) => Connect();
         vm.DisconnectRequested += (_, _) => Disconnect();
+        vm.CancelRequested += (_, _) => Safe("Abbruch", CancelConnect);
         vm.FullScreenRequested += (_, _) => { if (_host is not null && _connected) Dispatch.TrySet(_host.Ocx, "FullScreen", true); };
         tab.Closed += (_, _) => Teardown();
     }
@@ -88,6 +89,7 @@ public sealed class RdpView : Grid
     private void ConnectCore()
     {
         if (_vm is null) return;
+        _cancelled = false;
         try
         {
             _plan = _vm.CreatePlan(DpiPercent);
@@ -269,6 +271,11 @@ public sealed class RdpView : Grid
             }
             catch (Exception ex) { HostDeck.App.Services.Log.Error($"RDP GetErrorDescription (Grund {reason})", ex); }
             HostDeck.App.Services.Log.Info($"RDP getrennt: {_plan?.Server} Grund={reason} {description}");
+            if (_cancelled)
+            {
+                _cancelled = false; // vom Benutzer abgebrochen – Meldung „abgebrochen“ beibehalten
+                return;
+            }
             _vm?.ReportDisconnected(reason, description);
             // WICHTIG: Das Control hier NICHT zerstören – mstscax verarbeitet die Trennung noch (nativer Absturz).
             // Es wird nur ausgeblendet und erst beim nächsten Verbinden bzw. Schließen des Tabs (verzögert) freigegeben.
@@ -302,6 +309,30 @@ public sealed class RdpView : Grid
     }
 
     // ---- Trennen / Aufräumen -----------------------------------------------------------------------
+
+    private bool _cancelled;
+
+    /// <summary>
+    /// Verbindungsaufbau abbrechen: Disconnect beendet auch einen laufenden Aufbau. Kommt keine Trennungsmeldung,
+    /// wird das Control nach kurzer Zeit verzögert abgebaut.
+    /// </summary>
+    private void CancelConnect()
+    {
+        if (_host is null) return;
+        _cancelled = true;
+        _connected = false;
+        try { Dispatch.Call(_host.Ocx, "Disconnect"); }
+        catch (Exception ex) { HostDeck.App.Services.Log.Error("RDP Abbruch", ex); }
+        ShowStatus("Verbindungsaufbau abgebrochen.");
+        var host = _host;
+        var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
+        timer.Tick += (_, _) =>
+        {
+            timer.Stop();
+            if (_host == host && !_connected) Teardown(); // keine Trennungsmeldung erhalten
+        };
+        timer.Start();
+    }
 
     private void Disconnect()
     {

@@ -15,6 +15,13 @@ public sealed partial class VncSessionViewModel(SessionTabViewModel tab, IDialog
 
     [ObservableProperty] private RfbClient? _client;
     [ObservableProperty] private string? _message;
+    private CancellationTokenSource? _connectCts;
+
+    public void CancelConnect()
+    {
+        if (Tab.State != SessionState.Connecting) return;
+        try { _connectCts?.Cancel(); } catch (ObjectDisposedException) { }
+    }
 
     [RelayCommand]
     public async Task ConnectAsync()
@@ -27,6 +34,8 @@ public sealed partial class VncSessionViewModel(SessionTabViewModel tab, IDialog
         Message = $"Verbinde mit {host}:{port} …";
 
         var client = new RfbClient { ViewOnly = ViewOnly };
+        using var cts = new CancellationTokenSource();
+        _connectCts = cts;
         client.Closed += reason => Post(() =>
         {
             if (Client != client) return;
@@ -36,10 +45,16 @@ public sealed partial class VncSessionViewModel(SessionTabViewModel tab, IDialog
         });
         try
         {
-            await client.ConnectAsync(host, port, AskPassword);
+            await client.ConnectAsync(host, port, AskPassword, ct: cts.Token);
             Client = client;
             Tab.State = SessionState.Connected;
             Message = null;
+        }
+        catch (OperationCanceledException) when (cts.IsCancellationRequested)
+        {
+            await client.DisposeAsync();
+            Tab.State = SessionState.Disconnected;
+            Message = "Verbindungsaufbau abgebrochen.";
         }
         catch (Exception ex)
         {
@@ -73,6 +88,7 @@ public sealed partial class VncSessionViewModel(SessionTabViewModel tab, IDialog
 
     public async ValueTask DisposeAsync()
     {
+        try { _connectCts?.Cancel(); } catch (ObjectDisposedException) { }
         var client = Client;
         Client = null;
         if (client is not null) await client.DisposeAsync();

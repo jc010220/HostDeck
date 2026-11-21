@@ -339,6 +339,15 @@
             <TextBlock DockPanel.Dock="Right" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
                 <Run Text="{Binding Workspace.TabCount, Mode=OneWay}" /><Run Text=" Session(s)" />
             </TextBlock>
+            <ui:Button DockPanel.Dock="Right" Margin="0,0,12,0" Padding="10,2" FontSize="12"
+                       Command="{Binding Workspace.ActiveTab.CancelConnectCommand}"
+                       Visibility="{Binding Workspace.ActiveTab.IsConnecting, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}"
+                       ToolTip="Verbindungsaufbau des aktiven Tabs abbrechen (im Terminal: Esc)">
+                <StackPanel Orientation="Horizontal">
+                    <ui:ProgressRing IsIndeterminate="True" Width="12" Height="12" Margin="0,0,8,0" />
+                    <TextBlock Text="Verbinde … Abbrechen" />
+                </StackPanel>
+            </ui:Button>
             <Border DockPanel.Dock="Right" Margin="0,0,12,0" Padding="8,0" CornerRadius="4"
                     Background="{DynamicResource AccentFillColorDefaultBrush}"
                     Visibility="{Binding IsMultiExecutionEnabled, Converter={StaticResource BoolToVisibility}}">

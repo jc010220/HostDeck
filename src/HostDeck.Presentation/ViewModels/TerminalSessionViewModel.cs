@@ -21,6 +21,7 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
     private readonly Action<TerminalSessionViewModel, string> _routeInput;
     private readonly SynchronizationContext? _ui = SynchronizationContext.Current;
     private ITerminalBackend? _session;
+    private CancellationTokenSource? _connectCts;
     private uint _columns = 120, _rows = 32;
 
     public TerminalSessionViewModel(SessionTabViewModel tab, IConnectionStore knownHosts, IDialogService dialogs,
@@ -86,8 +87,31 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
     {
         if (_tab.State is SessionState.Connecting or SessionState.Connected) return;
         await DisposeSessionAsync();
-        if (IsSsh) await ConnectSshAsync();
-        else await ConnectTelnetAsync(raw: _tab.Protocol == ProtocolKind.Raw);
+        var cts = new CancellationTokenSource();
+        _connectCts = cts;
+        try
+        {
+            if (IsSsh) await ConnectSshAsync(cts.Token);
+            else await ConnectTelnetAsync(raw: _tab.Protocol == ProtocolKind.Raw, cts.Token);
+        }
+        finally
+        {
+            if (_connectCts == cts) _connectCts = null;
+            cts.Dispose();
+        }
+    }
+
+    /// <summary>Laufenden Verbindungsaufbau abbrechen (Esc/Strg+C im Terminal, Statusleiste, Kontextmenü).</summary>
+    public void CancelConnect()
+    {
+        if (_tab.State != SessionState.Connecting) return;
+        try { _connectCts?.Cancel(); } catch (ObjectDisposedException) { }
+    }
+
+    private void ReportCancelled()
+    {
+        SetState(SessionState.Disconnected);
+        WriteStatus("Verbindungsaufbau abgebrochen. Enter verbindet erneut.");
     }
 
     private void Wire(ITerminalBackend session)
@@ -106,12 +130,12 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
         });
     }
 
-    private async Task ConnectTelnetAsync(bool raw)
+    private async Task ConnectTelnetAsync(bool raw, CancellationToken ct)
     {
         var host = _tab.Connection.Hostname;
         var port = _tab.Settings.Port ?? (raw ? 23 : 23);
         SetState(SessionState.Connecting);
-        WriteStatus($"Verbinde ({(raw ? "Raw-TCP" : "Telnet")}) mit {host}:{port} …" + (raw ? "" : "  (unverschlüsselt!)"));
+        WriteStatus($"Verbinde ({(raw ? "Raw-TCP" : "Telnet")}) mit {host}:{port} …" + (raw ? "" : "  (unverschlüsselt!)") + "  – Esc bricht ab");
         var session = new TelnetSession(host, port, raw, _tab.Credentials.Username, _tab.Credentials.Password)
         {
             HighlightingEnabled = _settings.TerminalHighlighting,
@@ -119,9 +143,14 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
         Wire(session);
         try
         {
-            await session.ConnectAsync(_columns, _rows);
+            await session.ConnectAsync(_columns, _rows, ct: ct);
             _session = session;
             SetState(SessionState.Connected);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            await session.DisposeAsync();
+            ReportCancelled();
         }
         catch (Exception ex)
         {
@@ -133,11 +162,11 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
         }
     }
 
-    private async Task ConnectSshAsync()
+    private async Task ConnectSshAsync(CancellationToken ct)
     {
         var endpoint = BuildEndpoint();
         SetState(SessionState.Connecting);
-        WriteStatus($"Verbinde mit {endpoint.Username}@{endpoint.Host}:{endpoint.Port} …");
+        WriteStatus($"Verbinde mit {endpoint.Username}@{endpoint.Host}:{endpoint.Port} …  – Esc bricht ab");
 
         var session = new SshTerminalSession(endpoint, _knownHosts, new SshSessionOptions
         {
@@ -151,11 +180,16 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
         {
             await session.ConnectAsync(
                 info => OnUiAndWait(() => _dialogs.AskHostKey(info)),
-                (prompt, echo) => OnUiAndWait(() => _dialogs.Prompt($"{endpoint.Host}", prompt, secret: !echo)));
+                (prompt, echo) => OnUiAndWait(() => _dialogs.Prompt($"{endpoint.Host}", prompt, secret: !echo)), ct);
             _session = session;
             SetState(SessionState.Connected);
             Sftp = new SftpBrowserViewModel(session, _dialogs, _ui);
             _ = Sftp.ConnectAsync();
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        {
+            await session.DisposeAsync();
+            ReportCancelled();
         }
         catch (Exception ex)
         {
@@ -195,7 +229,8 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
     {
         if (!IsConnected)
         {
-            if (data == "\r" && _tab.State is SessionState.Disconnected or SessionState.Failed) _ = ConnectAsync();
+            if (_tab.State == SessionState.Connecting && data is "\u001b" or "\u0003") CancelConnect();
+            else if (data == "\r" && _tab.State is SessionState.Disconnected or SessionState.Failed) _ = ConnectAsync();
             return;
         }
         _routeInput(this, data); // Multi-Execution-Entscheidung trifft das MainViewModel
@@ -248,7 +283,11 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
         _session = null;
     }
 
-    public async ValueTask DisposeAsync() => await DisposeSessionAsync();
+    public async ValueTask DisposeAsync()
+    {
+        try { _connectCts?.Cancel(); } catch (ObjectDisposedException) { } // Tab während des Aufbaus geschlossen
+        await DisposeSessionAsync();
+    }
 }
 
 /// <summary>SFTP-Browser in der Seitenleiste (folgt optional dem Terminal-Verzeichnis).</summary>

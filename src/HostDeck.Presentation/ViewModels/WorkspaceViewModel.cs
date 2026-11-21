@@ -38,6 +38,19 @@ public sealed partial class SessionTabViewModel : ObservableObject
 
     [ObservableProperty] private string _title;
     [ObservableProperty] private SessionState _state = SessionState.Disconnected;
+
+    public bool IsConnecting => State == SessionState.Connecting;
+    partial void OnStateChanged(SessionState value) => OnPropertyChanged(nameof(IsConnecting));
+
+    /// <summary>Laufenden Verbindungsaufbau abbrechen – unabhängig vom Protokoll.</summary>
+    [RelayCommand]
+    public void CancelConnect()
+    {
+        Terminal?.CancelConnect();
+        Rdp?.CancelConnect();
+        Vnc?.CancelConnect();
+        Web?.CancelConnect();
+    }
     /// <summary>Sichtbar im eigenen Bereich. Inhalte nicht ausgewählter Tabs bleiben erhalten (RDP-Verbindung!).</summary>
     [ObservableProperty] private bool _isSelected;
     /// <summary>Empfängt Eingaben im Multi-Execution-Modus (nur Terminal-Sessions, Phase 4).</summary>

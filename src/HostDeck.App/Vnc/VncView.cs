@@ -16,6 +16,7 @@ public sealed class VncView : Grid
     private readonly TextBlock _status = new() { HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center, TextWrapping = TextWrapping.Wrap, MaxWidth = 520 };
     private readonly Border _statusPanel;
     private readonly object _dirtyLock = new();
+    private readonly Wpf.Ui.Controls.Button _actionButton;
     private VncSessionViewModel? _vm;
     private RfbClient? _client;
     private WriteableBitmap? _bitmap;
@@ -32,8 +33,12 @@ public sealed class VncView : Grid
         FocusVisualStyle = null;
         RenderOptions.SetBitmapScalingMode(_image, BitmapScalingMode.HighQuality);
 
-        var reconnect = new Wpf.Ui.Controls.Button { Content = "Verbinden", Appearance = Wpf.Ui.Controls.ControlAppearance.Primary, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 16, 0, 0) };
-        reconnect.Click += (_, _) => _ = _vm?.ConnectAsync();
+        var reconnect = _actionButton = new Wpf.Ui.Controls.Button { Content = "Verbinden", Appearance = Wpf.Ui.Controls.ControlAppearance.Primary, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 16, 0, 0) };
+        reconnect.Click += (_, _) =>
+        {
+            if (_vm?.Tab.State == SessionState.Connecting) _vm.CancelConnect();
+            else _ = _vm?.ConnectAsync();
+        };
         _statusPanel = new Border
         {
             Child = new StackPanel { VerticalAlignment = VerticalAlignment.Center, Children = { _status, reconnect } },
@@ -94,6 +99,7 @@ public sealed class VncView : Grid
             if (e.PropertyName == nameof(VncSessionViewModel.Message)) UpdateStatus();
         };
         tab.Closed += (_, _) => BindClient(null);
+        tab.PropertyChanged += (_, e) => { if (e.PropertyName == nameof(SessionTabViewModel.State)) UpdateStatus(); };
         if (vm.Client is not null) { _everConnected = true; BindClient(vm.Client); } // Tab wurde verschoben: laufende Verbindung übernehmen
         UpdateStatus();
     }
@@ -103,6 +109,8 @@ public sealed class VncView : Grid
         var connected = _client is not null;
         _statusPanel.Visibility = connected ? Visibility.Collapsed : Visibility.Visible;
         _status.Text = _vm?.Message ?? "Nicht verbunden.";
+        _actionButton.Content = _vm?.Tab.State == SessionState.Connecting ? "Abbrechen" : "Verbinden";
+        _actionButton.Appearance = _vm?.Tab.State == SessionState.Connecting ? Wpf.Ui.Controls.ControlAppearance.Secondary : Wpf.Ui.Controls.ControlAppearance.Primary;
     }
 
     private void BindClient(RfbClient? client)

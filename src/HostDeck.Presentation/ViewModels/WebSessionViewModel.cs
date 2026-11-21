@@ -23,6 +23,15 @@ public sealed partial class WebSessionViewModel(SessionTabViewModel tab) : Obser
         : string.IsNullOrEmpty(Tab.Credentials.Domain) ? Tab.Credentials.Username : $"{Tab.Credentials.Domain}\\{Tab.Credentials.Username}";
     public string? Password => string.IsNullOrEmpty(Tab.Credentials.Password) ? null : Tab.Credentials.Password;
 
+    public event EventHandler? CancelRequested;
+
+    public void CancelConnect()
+    {
+        if (Tab.State != SessionState.Connecting) return;
+        CancelRequested?.Invoke(this, EventArgs.Empty);
+        Tab.State = SessionState.Disconnected;
+    }
+
     public void ReportNavigated(string url, bool success, string? title)
     {
         Address = url;

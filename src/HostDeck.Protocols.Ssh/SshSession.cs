@@ -173,7 +173,22 @@ public sealed class SshTerminalSession : ITerminalBackend
 
         try
         {
-            await Task.Run(() => client.ConnectAsync(cancellationToken), cancellationToken).ConfigureAwait(false);
+            // Sofort auf Abbruch reagieren – auch wenn SSH.NET gerade in einem blockierenden Schritt hängt.
+            var connect = Task.Run(() => client.ConnectAsync(cancellationToken), CancellationToken.None);
+            try
+            {
+                await connect.WaitAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                // Hängenden Versuch im Hintergrund zu Ende laufen lassen und dann aufräumen
+                _ = connect.ContinueWith(_ => client.Dispose(), TaskScheduler.Default);
+                throw;
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw; // Client wird oben verzögert freigegeben
         }
         catch (SshConnectionException) when (_rejectedHostKey is not null)
         {
@@ -186,6 +201,13 @@ public sealed class SshTerminalSession : ITerminalBackend
             throw;
         }
         _client = client;
+
+        if (cancellationToken.IsCancellationRequested)
+        {
+            _client = null;
+            client.Dispose();
+            cancellationToken.ThrowIfCancellationRequested();
+        }
 
         var shellIsPosix = _options.TrackWorkingDirectory && await DetectPosixShellAsync(client).ConfigureAwait(false);
 

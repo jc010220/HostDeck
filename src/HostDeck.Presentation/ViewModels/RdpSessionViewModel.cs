@@ -19,6 +19,17 @@ public sealed partial class RdpSessionViewModel(SessionTabViewModel tab) : Obser
     public event EventHandler? ConnectRequested;
     /// <summary>Die View soll trennen.</summary>
     public event EventHandler? DisconnectRequested;
+    /// <summary>Die View soll den laufenden Verbindungsaufbau abbrechen.</summary>
+    public event EventHandler? CancelRequested;
+
+    public void CancelConnect()
+    {
+        if (Tab.State != SessionState.Connecting) return;
+        CancelRequested?.Invoke(this, EventArgs.Empty);
+        Tab.State = SessionState.Disconnected;
+        Message = "Verbindungsaufbau abgebrochen.";
+    }
+
     /// <summary>Die View soll in den Vollbildmodus wechseln.</summary>
     public event EventHandler? FullScreenRequested;
 

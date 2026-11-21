@@ -22,6 +22,8 @@ public partial class MainWindow : FluentWindow
         SidebarColumn.Width = new GridLength(Math.Clamp(viewModel.Settings.SidebarWidth, 200, 700));
         Workspace.OpenInPane = viewModel.OpenInPane;
         RegisterShortcuts();
+        // Ordner aufgeklappt ⇒ Online-Status der jetzt sichtbaren Verbindungen gleich prüfen
+        SessionTreeView.AddHandler(System.Windows.Controls.TreeViewItem.ExpandedEvent, new RoutedEventHandler((_, _) => _vm.Reachability?.Invalidate()));
 
         // Terminal (WebView2) – Kürzel, Theme und Schriftgröße
         TerminalView.FontSize = viewModel.Settings.TerminalFontSize;

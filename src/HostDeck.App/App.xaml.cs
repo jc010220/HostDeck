@@ -13,11 +13,16 @@ public partial class App : Application
 {
     private static Mutex? _singleInstance;
     private StoreAdapter? _store;
+    private UpdateService? _updates;
 
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
         DispatcherUnhandledException += OnUnhandledException;
+        AppDomain.CurrentDomain.UnhandledException += (_, args) => Log.Error("Unbehandelte Ausnahme", (Exception)args.ExceptionObject);
+        TaskScheduler.UnobservedTaskException += (_, args) => { Log.Error("Hintergrundaufgabe", args.Exception); args.SetObserved(); };
+        Log.Info($"Start, Version {typeof(App).Assembly.GetName().Version}");
+        Log.Cleanup();
         ShutdownMode = ShutdownMode.OnExplicitShutdown; // Dialoge vor dem Hauptfenster dürfen die App nicht beenden
 
         // Zwei Instanzen würden sich gegenseitig die Datenbank überschreiben
@@ -42,7 +47,10 @@ public partial class App : Application
         }
         _store = new StoreAdapter(store, device);
 
-        var viewModel = new MainViewModel(new DialogService(), settingsStore, theme, _store);
+        var dialogs = new DialogService();
+        var viewModel = new MainViewModel(dialogs, settingsStore, theme, _store);
+        _updates = new UpdateService(viewModel, dialogs, _store);
+        _updates.Register();
         var window = new MainWindow(viewModel);
         MainWindow = window;
         ShutdownMode = ShutdownMode.OnMainWindowClose;
@@ -51,6 +59,7 @@ public partial class App : Application
 
         var mRemoteNgFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "mRemoteNG", "confCons.xml");
         viewModel.Initialize(mRemoteNgFile);
+        _ = _updates.CheckOnStartupAsync();
 
         // Datei per Kommandozeile / "Öffnen mit" (z. B. HostDeck.exe confCons.xml)
         if (e.Args is [var path, ..] && File.Exists(path))
@@ -118,6 +127,7 @@ public partial class App : Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _updates?.ApplyOnExit();
         _store?.Dispose();
         _singleInstance?.Dispose();
         base.OnExit(e);
@@ -125,7 +135,9 @@ public partial class App : Application
 
     private static void OnUnhandledException(object sender, DispatcherUnhandledExceptionEventArgs e)
     {
-        new MessageDialog("Unerwarteter Fehler", e.Exception.ToString(), isError: true).ShowDialog();
+        Log.Error("UI", e.Exception);
+        new MessageDialog("Unerwarteter Fehler",
+            $"{e.Exception.Message}\n\nDetails stehen im Fehlerprotokoll:\n{Log.Directory}\n\n{e.Exception}", isError: true).ShowDialog();
         e.Handled = true; // Sessions in anderen Tabs nicht wegen eines UI-Fehlers verlieren
     }
 }

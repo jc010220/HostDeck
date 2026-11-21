@@ -1,0 +1,72 @@
+name: Release
+
+# Ein Tag „v1.2.3“ baut Installer + Update-Pakete und veröffentlicht sie als GitHub-Release.
+# Für die Verteilung im Unternehmen den Inhalt des Release (RELEASES, *.nupkg, Setup.exe) auf die
+# Update-Freigabe kopieren (HostDeck: Strg+K → „Update-Quelle festlegen“ → \\server\software\HostDeck).
+#
+# Code-Signierung (optional, empfohlen gegen SmartScreen-Warnungen) – eines von beiden als Repository-Secret:
+#   SIGN_PFX_BASE64 + SIGN_PFX_PASSWORD   Code-Signing-Zertifikat (.pfx, Base64-kodiert)
+#   AZURE_TRUSTED_SIGNING_JSON            metadata.json für Azure Trusted Signing (+ AZURE_CLIENT_ID/_SECRET/_TENANT_ID)
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    env:
+      SIGN_PFX_BASE64: ${{ secrets.SIGN_PFX_BASE64 }}
+      SIGN_PFX_PASSWORD: ${{ secrets.SIGN_PFX_PASSWORD }}
+      AZURE_TRUSTED_SIGNING_JSON: ${{ secrets.AZURE_TRUSTED_SIGNING_JSON }}
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Version aus Tag
+        shell: pwsh
+        run: echo "VERSION=$('${{ github.ref_name }}'.TrimStart('v'))" >> $env:GITHUB_ENV
+
+      - name: Test
+        run: dotnet test --solution HostDeck.slnx -c Release
+
+      - name: Publish
+        run: dotnet publish src/HostDeck.App -c Release -r win-x64 --self-contained -p:Version=${{ env.VERSION }} -o publish
+
+      - name: Velopack installieren
+        run: dotnet tool install -g vpk --version 1.2.161
+
+      - name: Vorherige Version laden (für Delta-Updates)
+        continue-on-error: true
+        run: vpk download github --repoUrl ${{ github.server_url }}/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }} -o releases
+
+      - name: Installer und Update-Pakete bauen
+        shell: pwsh
+        run: |
+          $pack = @('pack', '-u', 'HostDeck', '-v', $env:VERSION, '-p', 'publish', '-e', 'HostDeck.exe',
+                    '--packTitle', 'HostDeck', '--packAuthors', 'HostDeck', '-i', 'src/HostDeck.App/Assets/hostdeck.ico', '-o', 'releases')
+          if ($env:SIGN_PFX_BASE64) {
+            $pfx = Join-Path $env:RUNNER_TEMP 'sign.pfx'
+            [IO.File]::WriteAllBytes($pfx, [Convert]::FromBase64String($env:SIGN_PFX_BASE64))
+            $pack += @('--signParams', "/f `"$pfx`" /p $env:SIGN_PFX_PASSWORD /fd sha256 /tr http://timestamp.digicert.com /td sha256")
+            Write-Host 'Signiere mit PFX-Zertifikat.'
+          } elseif ($env:AZURE_TRUSTED_SIGNING_JSON) {
+            $meta = Join-Path $env:RUNNER_TEMP 'trusted-signing.json'
+            Set-Content -Path $meta -Value $env:AZURE_TRUSTED_SIGNING_JSON
+            $pack += @('--azureTrustedSignFile', $meta)
+            Write-Host 'Signiere mit Azure Trusted Signing.'
+          } else {
+            Write-Host '::warning::Kein Signatur-Secret hinterlegt – Installer ist unsigniert (SmartScreen-Warnung).'
+          }
+          vpk @pack
+
+      - name: GitHub-Release veröffentlichen
+        run: vpk upload github --repoUrl ${{ github.server_url }}/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }} -o releases --publish --releaseName "HostDeck ${{ env.VERSION }}" --tag ${{ github.ref_name }}

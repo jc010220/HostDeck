@@ -218,3 +218,18 @@ visuellen Baum, damit RDP-Sitzungen dabei nicht getrennt werden.
   wiederhergestellt; benannte Arbeitsbereiche über die Schnellsuche.
 * **Import-Sicherheitsprüfung:** mRemoteNG speichert „Zertifikat nicht prüfen“ explizit; HostDeck bietet die
   Umstellung auf „warnen“ an.
+
+## 11. Weitere Protokolle, Fenster, Snippets, Verteilung
+
+* **Telnet / Raw-TCP:** `TelnetSession` (ECHO, SGA, TTYPE „XTERM-256COLOR“, NAWS, CR-NUL, IAC-Escaping) mit
+  Auto-Login für Netzwerkgeräte; gleiche Terminal-Oberfläche wie SSH (`ITerminalBackend`).
+* **VNC:** eigener RFB-Client (`HostDeck.Protocols.Vnc`): RFB 3.3/3.7/3.8, None/VNC-Auth, ZRLE/Hextile/CopyRect/Raw,
+  DesktopSize, Zwischenablage. Gegen TigerVNC getestet (ZRLE und Hextile bytegleich zu Raw). VNC ist unverschlüsselt –
+  im Unternehmen über VPN oder SSH-Tunnel nutzen.
+* **HTTP/HTTPS:** WebView2-Tab mit Basic/NTLM-Anmeldung aus dem Vault und bewusster Zertifikatsentscheidung pro Tab.
+* **Fenster:** Tabs in eigene Fenster ablösen (Kontextmenü oder aus dem Fenster ziehen), zwischen Fenstern verschieben;
+  Schließen eines Zusatzfensters holt die Sessions zurück. Terminal-Ansichten liefern den Verlauf nach, RDP verbindet neu.
+* **Snippets:** Befehle/Makros mit Platzhaltern `{{Name}}`, gespeichert verschlüsselt in der Datenbank.
+* **Verteilung:** Velopack – `HostDeck-win-Setup.exe` (pro Benutzer, ohne Admin), Delta-Updates. Update-Quelle:
+  Netzwerkfreigabe, HTTP(S) oder GitHub (privat mit Token). Updates werden im Hintergrund geladen und beim Beenden
+  angewendet. Release per Git-Tag `v*` (Workflow `release.yml`), Code-Signierung über PFX oder Azure Trusted Signing.

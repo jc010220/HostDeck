@@ -101,12 +101,14 @@
                         </Border>
                     </StackPanel>
                 </ui:Button>
-                <ui:Button DockPanel.Dock="Right" ToolTip="Sicherheit" Click="OnSecurityMenu">
+                <ui:Button DockPanel.Dock="Right" ToolTip="Einstellungen &amp; Sicherheit" Click="OnSecurityMenu">
                     <ui:SymbolIcon Symbol="{x:Static app:Icons.Lock}" />
                     <ui:Button.ContextMenu>
                         <ContextMenu>
+                            <MenuItem Header="Einstellungen …" Command="{Binding OpenSettingsCommand}" />
                             <MenuItem Header="Zugangsdaten verwalten (Vault) …" Command="{Binding ManageVaultCommand}" />
                             <MenuItem Header="Master-Passwort ändern …" Command="{Binding ChangeMasterPasswordCommand}" />
+                            <MenuItem Header="Sicherung erstellen …" Command="{Binding BackupCommand}" />
                             <MenuItem Header="Auf diesem PC merken (ohne Passwort entsperren)" IsCheckable="True"
                                       IsChecked="{Binding IsDeviceUnlockEnabled}"
                                       Visibility="{Binding DeviceUnlockSupported, Converter={StaticResource BoolToVisibility}}" />
@@ -193,8 +195,19 @@
                                         </ui:SymbolIcon.Symbol>
                                     </ui:SymbolIcon>
                                     <TextBlock x:Name="NameText" Text="{Binding Name}" VerticalAlignment="Center" />
+                                    <Ellipse x:Name="StatusDot" Width="7" Height="7" Margin="7,1,0,0" VerticalAlignment="Center" Visibility="Collapsed" />
                                 </StackPanel>
                                 <HierarchicalDataTemplate.Triggers>
+                                    <DataTrigger Binding="{Binding Reachability}" Value="Online">
+                                        <Setter TargetName="StatusDot" Property="Visibility" Value="Visible" />
+                                        <Setter TargetName="StatusDot" Property="Fill" Value="#16C60C" />
+                                        <Setter TargetName="StatusDot" Property="ToolTip" Value="Erreichbar" />
+                                    </DataTrigger>
+                                    <DataTrigger Binding="{Binding Reachability}" Value="Offline">
+                                        <Setter TargetName="StatusDot" Property="Visibility" Value="Visible" />
+                                        <Setter TargetName="StatusDot" Property="Fill" Value="#E81123" />
+                                        <Setter TargetName="StatusDot" Property="ToolTip" Value="Nicht erreichbar (Port antwortet nicht)" />
+                                    </DataTrigger>
                                     <DataTrigger Binding="{Binding IsMatch}" Value="True">
                                         <Setter TargetName="NameText" Property="FontWeight" Value="SemiBold" />
                                         <Setter TargetName="NameText" Property="Foreground" Value="{DynamicResource AccentTextFillColorPrimaryBrush}" />

@@ -10,6 +10,8 @@
     <NoWarn>$(NoWarn);WFO0003</NoWarn>
     <RootNamespace>HostDeck.App</RootNamespace>
     <AssemblyName>HostDeck</AssemblyName>
+    <!-- Eigener Einstiegspunkt: Velopack muss vor WPF laufen (Install-/Update-Hooks) -->
+    <StartupObject>HostDeck.App.Program</StartupObject>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>Assets\hostdeck.ico</ApplicationIcon>
   </PropertyGroup>
@@ -32,6 +34,7 @@
   <ItemGroup>
     <PackageReference Include="WPF-UI" />
     <PackageReference Include="Microsoft.Web.WebView2" />
+    <PackageReference Include="Velopack" />
   </ItemGroup>
   <ItemGroup>
     <Resource Include="Assets\hostdeck.ico" />

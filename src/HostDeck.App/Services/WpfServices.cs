@@ -56,6 +56,9 @@ public sealed class DialogService : IDialogService
     public bool EditConnection(HostDeck.Presentation.ViewModels.ConnectionEditorViewModel editor) =>
         new ConnectionEditorWindow(editor) { Owner = Owner }.ShowDialog() == true;
 
+    public bool EditSettings(HostDeck.Presentation.ViewModels.SettingsViewModel settings) =>
+        new SettingsWindow(settings) { Owner = Owner }.ShowDialog() == true;
+
     public void ManageVault(HostDeck.Presentation.ViewModels.CredentialVaultViewModel vault) =>
         new VaultWindow(vault) { Owner = Owner }.ShowDialog();
 

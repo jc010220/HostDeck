@@ -183,8 +183,14 @@ public sealed partial class MainViewModel : ObservableObject
         () => Settings.QuickConnectDefaultProtocol,
         PaletteActions);
 
+    public ReachabilityMonitor? Reachability { get; private set; }
+
+    /// <summary>Zusätzliche Befehle der App-Schicht (z. B. Updates) für die Schnellsuche.</summary>
+    public List<(string Title, string Keywords, Action Run)> AppActions { get; } = [];
+
     private IEnumerable<(string Title, string Keywords, Action Run)> PaletteActions()
     {
+        foreach (var action in AppActions) yield return action;
         foreach (var (name, snapshot) in Settings.SavedWorkspaces.OrderBy(w => w.Key, StringComparer.OrdinalIgnoreCase))
             yield return ($"Arbeitsbereich öffnen: {name}  ({snapshot.ConnectionCount} Sessions)", "workspace arbeitsbereich " + name, () => RestoreWorkspace(snapshot));
         yield return ("Arbeitsbereich speichern unter …", "workspace arbeitsbereich save speichern", () => SaveWorkspaceCommand.Execute(null));
@@ -203,6 +209,15 @@ public sealed partial class MainViewModel : ObservableObject
         yield return ("Zugangsdaten verwalten (Vault)", "vault credentials passwort", () => ManageVaultCommand.Execute(null));
         yield return ("Master-Passwort ändern", "password security sicherheit", () => ChangeMasterPasswordCommand.Execute(null));
         yield return ("Alle Tabs schließen", "close all tabs", CloseAllTabs);
+        yield return ("Einstellungen …", "settings optionen einstellungen preferences", () => OpenSettingsCommand.Execute(null));
+        yield return ("Sicherung erstellen …", "backup sicherung export datenbank", () => BackupCommand.Execute(null));
+        yield return (Settings.ShowReachability ? "Online-Status im Baum ausblenden" : "Online-Status im Baum anzeigen", "online status erreichbar ping", () =>
+        {
+            Settings.ShowReachability = !Settings.ShowReachability;
+            SaveSettings();
+            Reachability?.Invalidate();
+            if (!Settings.ShowReachability) foreach (var i in SessionTree.AllItems) i.Reachability = Services.Reachability.Unknown;
+        });
     }
 
     // ---- Arbeitsbereiche --------------------------------------------------------------------------
@@ -319,6 +334,9 @@ public sealed partial class MainViewModel : ObservableObject
         if (Settings.RestoreWorkspaceOnStart && Settings.LastWorkspace is { ConnectionCount: > 0 } last)
             RestoreWorkspace(last);
 
+        Reachability = new ReachabilityMonitor(SessionTree, () => Settings.ShowReachability, SynchronizationContext.Current);
+        Reachability.Start();
+
         if (!Settings.FirstRunImportOffered && !SessionTree.Tree.Root.Children.Any()
             && mRemoteNgDefaultFile is not null && File.Exists(mRemoteNgDefaultFile))
         {
@@ -333,6 +351,7 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Beim Beenden: Stand (inkl. Auf-/Zuklapp-Zustand) speichern.</summary>
     public void Shutdown()
     {
+        Reachability?.Dispose();
         Settings.LastWorkspace = CaptureWorkspace();
         SaveSettings();
         Persist();
@@ -524,6 +543,39 @@ public sealed partial class MainViewModel : ObservableObject
         if (item is null || _dialogs.Prompt("Umbenennen", "Neuer Name:", item.Name) is not { Length: > 0 } name) return;
         item.Name = name;
         Persist();
+    }
+
+    [RelayCommand]
+    private void OpenSettings()
+    {
+        var editor = new SettingsViewModel(Settings);
+        if (!_dialogs.EditSettings(editor)) return;
+        var themeChanged = editor.ThemeChanged;
+        editor.Apply();
+        SaveSettings();
+        if (themeChanged) { CurrentTheme = Settings.Theme; _theme.Apply(Settings.Theme); }
+        Reachability?.Invalidate();
+        if (!Settings.ShowReachability) foreach (var i in SessionTree.AllItems) i.Reachability = Services.Reachability.Unknown;
+        foreach (var t in AllTabs.Select(t => t.Terminal).OfType<TerminalSessionViewModel>()) t.HighlightingEnabled = Settings.TerminalHighlighting;
+        StatusText = "Einstellungen gespeichert";
+    }
+
+    [RelayCommand]
+    private void Backup()
+    {
+        if (_dialogs.PickFolder("Zielordner für die Sicherung") is not { } folder) return;
+        try
+        {
+            Persist();
+            var file = _store.Backup(folder);
+            _dialogs.ShowInfo("Sicherung erstellt",
+                $"{file}\n{file}.key\n\nBeide Dateien gehören zusammen. Wiederherstellen: HostDeck beenden und die Dateien als " +
+                "connections.hdk / connections.hdk.key nach %APPDATA%\\HostDeck kopieren. Geöffnet wird mit dem Master-Passwort zum Zeitpunkt der Sicherung.");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Data.Common.DbException)
+        {
+            _dialogs.ShowError("Sicherung fehlgeschlagen", ex.Message);
+        }
     }
 
     [RelayCommand]

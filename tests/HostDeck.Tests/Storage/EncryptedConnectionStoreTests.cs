@@ -180,6 +180,22 @@ public sealed class EncryptedConnectionStoreTests : IDisposable
     }
 
     [Fact]
+    public void Backup_can_be_opened_with_same_password()
+    {
+        string backup;
+        using (var store = Create())
+        {
+            var tree = new ConnectionTree();
+            tree.Root.Add(new ConnectionNode("gesichert") { Hostname = "h" });
+            store.Save(tree);
+            backup = store.Backup(Path.Combine(_dir.FullName, "sicherung"));
+            Assert.True(EncryptedConnectionStore.Exists(backup));
+        }
+        using var restored = EncryptedConnectionStore.Open(backup, Password);
+        Assert.Equal("gesichert", Assert.Single(restored.Load().Connections).Name);
+    }
+
+    [Fact]
     public void Argon2id_matches_rfc9106_test_vector()
     {
         // RFC 9106, Abschnitt 5.3 (Argon2id, Version 0x13)

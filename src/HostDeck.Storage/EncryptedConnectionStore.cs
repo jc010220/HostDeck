@@ -302,6 +302,23 @@ public sealed class EncryptedConnectionStore : IDisposable
         }
     }
 
+    // ---- Sicherung ---------------------------------------------------------------------------------------
+
+    /// <summary>
+    /// Konsistente Sicherung: WAL in die Datenbank zurückschreiben, dann Datenbank + Schlüsseldatei kopieren.
+    /// Die Sicherung bleibt verschlüsselt und wird mit demselben Master-Passwort geöffnet.
+    /// </summary>
+    public string Backup(string targetDirectory)
+    {
+        Directory.CreateDirectory(targetDirectory);
+        Execute(Connection, null, "PRAGMA wal_checkpoint(TRUNCATE);");
+        var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+        var target = Path.Combine(targetDirectory, $"HostDeck-Sicherung-{stamp}.hdk");
+        File.Copy(_path, target, overwrite: false);
+        File.Copy(KeyFilePath, target + KeyFileSuffix, overwrite: false);
+        return target;
+    }
+
     // ---- Beliebige verschlüsselte Dokumente (z. B. Snippets) ---------------------------------------------
 
     /// <summary>JSON-Dokument im verschlüsselten Speicher lesen (Tabelle meta, Schlüssel "doc:…").</summary>

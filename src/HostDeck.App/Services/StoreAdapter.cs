@@ -17,6 +17,7 @@ public sealed class StoreAdapter(EncryptedConnectionStore store, IDeviceKeyProte
     public ConnectionTree Load() { lock (_lock) return store.Load(); }
     public void Save(ConnectionTree tree) { lock (_lock) store.Save(tree); }
 
+    public string Backup(string targetDirectory) { lock (_lock) return store.Backup(targetDirectory); }
     public string? ReadDocument(string name) { lock (_lock) return store.ReadDocument(name); }
     public void WriteDocument(string name, string json) { lock (_lock) store.WriteDocument(name, json); }
 

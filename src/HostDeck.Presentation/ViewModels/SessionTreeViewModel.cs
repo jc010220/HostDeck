@@ -48,6 +48,8 @@ public sealed partial class TreeItemViewModel : ObservableObject
     [ObservableProperty] private bool _isMatch;
 
     [ObservableProperty] private ProtocolKind _protocol;
+    /// <summary>Erreichbarkeit des Dienst-Ports (nur Verbindungen).</summary>
+    [ObservableProperty] private Services.Reachability _reachability;
     [ObservableProperty] private string _subtitle = "";
 
     partial void OnIsExpandedChanged(bool value)

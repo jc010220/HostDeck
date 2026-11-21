@@ -36,6 +36,9 @@ public interface IDialogService
     /// <summary>Eigenschaften-Dialog; true = übernommen (Apply wurde bereits erfolgreich ausgeführt).</summary>
     bool EditConnection(ViewModels.ConnectionEditorViewModel editor);
 
+    /// <summary>Einstellungen bearbeiten; true = übernommen.</summary>
+    bool EditSettings(ViewModels.SettingsViewModel settings);
+
     /// <summary>Credential-Vault verwalten (Änderungen wirken direkt auf den Vault).</summary>
     void ManageVault(ViewModels.CredentialVaultViewModel vault);
 }
@@ -49,6 +52,8 @@ public interface IConnectionStore : IKnownHosts
 
     /// <summary>Weitere verschlüsselte Dokumente (Snippets …); <c>null</c> = nicht vorhanden.</summary>
     string? ReadDocument(string name);
+    /// <summary>Verschlüsselte Sicherung in einen Ordner; liefert den Dateipfad.</summary>
+    string Backup(string targetDirectory);
     void WriteDocument(string name, string json);
 
     bool HasDeviceUnlock { get; }
@@ -78,7 +83,12 @@ public sealed class AppSettings
     public CredentialExtractionMode CredentialExtraction { get; set; } = CredentialExtractionMode.SharedOnly;
     public bool TerminalHighlighting { get; set; } = true;
     public bool SftpFollowsTerminal { get; set; } = true;
+    /// <summary>Online-Status im Baum anzeigen (TCP-Test des Dienst-Ports sichtbarer Verbindungen).</summary>
+    public bool ShowReachability { get; set; } = true;
     public int TerminalFontSize { get; set; } = 14;
+    /// <summary>Update-Quelle: Ordner/UNC-Pfad, HTTP(S)-URL oder GitHub-Repo-URL. Leer = keine Updates.</summary>
+    public string? UpdateSource { get; set; }
+    public DateTime? LastUpdateCheckUtc { get; set; }
     /// <summary>Offene Sessions beim letzten Beenden (wird beim Start wiederhergestellt).</summary>
     public WorkspaceSnapshot? LastWorkspace { get; set; }
     public bool RestoreWorkspaceOnStart { get; set; } = true;

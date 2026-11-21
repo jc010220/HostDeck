@@ -254,6 +254,8 @@ public class MainViewModelTests
         public string? PickFolder(string title) => null;
         public Func<ConnectionEditorViewModel, bool> EditAnswer = e => e.Apply() is null;
         public bool EditConnection(ConnectionEditorViewModel editor) => EditAnswer(editor);
+        public Func<SettingsViewModel, bool> SettingsAnswer = _ => true;
+        public bool EditSettings(SettingsViewModel settings) => SettingsAnswer(settings);
         public Action<CredentialVaultViewModel> VaultAction = _ => { };
         public void ManageVault(CredentialVaultViewModel vault) => VaultAction(vault);
     }
@@ -286,6 +288,7 @@ public class MainViewModelTests
         }
         public readonly Dictionary<string, string> Documents = new();
         public string? ReadDocument(string name) => Documents.GetValueOrDefault(name);
+        public string Backup(string targetDirectory) => Path.Combine(targetDirectory, "backup.hdk");
         public void WriteDocument(string name, string json) => Documents[name] = json;
         public readonly ConcurrentDictionary<string, string> HostKeys = new();
         public string? Find(string host, int port, string keyType) => HostKeys.GetValueOrDefault($"{host}:{port}:{keyType}");

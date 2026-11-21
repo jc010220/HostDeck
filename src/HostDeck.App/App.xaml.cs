@@ -18,6 +18,7 @@ public partial class App : Application
     protected override void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+        Behaviors.GentleWheelScroll.Register();
         DispatcherUnhandledException += OnUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += (_, args) => Log.Error("Unhandled exception", (Exception)args.ExceptionObject);
         TaskScheduler.UnobservedTaskException += (_, args) => { Log.Error("Background task", args.Exception); args.SetObserved(); };

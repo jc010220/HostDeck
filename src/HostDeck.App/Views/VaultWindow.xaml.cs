@@ -16,6 +16,11 @@ public partial class VaultWindow : FluentWindow
         _vm = vm;
         DataContext = vm;
         InitializeComponent();
+        // Strg+F springt in die Suche; beim Öffnen direkt lostippen können
+        InputBindings.Add(new System.Windows.Input.KeyBinding(
+            new CommunityToolkit.Mvvm.Input.RelayCommand(() => { SearchBox.Focus(); SearchBox.SelectAll(); }),
+            System.Windows.Input.Key.F, System.Windows.Input.ModifierKeys.Control));
+        Loaded += (_, _) => SearchBox.Focus();
         vm.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(CredentialVaultViewModel.Selected)) { PasswordInput.Clear(); PassphraseInput.Clear(); }

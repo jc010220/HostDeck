@@ -14,10 +14,35 @@ public sealed partial class CredentialVaultViewModel : ObservableObject
     {
         _tree = tree;
         foreach (var c in tree.Vault.Items.OrderBy(c => c.Name)) Items.Add(c);
+        RefreshVisible();
         Selected = Items.FirstOrDefault();
     }
 
     public ObservableCollection<Credential> Items { get; } = [];
+
+    /// <summary>Nach <see cref="Filter"/> gefilterte Einträge (Anzeige in der Liste).</summary>
+    public ObservableCollection<Credential> VisibleItems { get; } = [];
+
+    /// <summary>Suche in Name, Benutzer, Domäne und Notizen (Groß-/Kleinschreibung egal, alle Wörter müssen passen).</summary>
+    [ObservableProperty] private string _filter = "";
+
+    partial void OnFilterChanged(string value) => RefreshVisible();
+
+    public static bool Matches(Credential c, string filter)
+    {
+        var words = filter.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var text = $"{c.Name} {c.Username} {c.Domain} {c.DisplayUser} {c.Notes}";
+        return words.All(w => text.Contains(w, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private void RefreshVisible()
+    {
+        var selected = Selected;
+        VisibleItems.Clear();
+        foreach (var c in Items.Where(c => Matches(c, Filter))) VisibleItems.Add(c);
+        if (selected is not null && VisibleItems.Contains(selected)) Selected = selected;
+        else if (selected is not null || VisibleItems.Count > 0) Selected = VisibleItems.FirstOrDefault();
+    }
 
     [ObservableProperty] private Credential? _selected;
     [ObservableProperty] private string _name = "";
@@ -59,6 +84,8 @@ public sealed partial class CredentialVaultViewModel : ObservableObject
         if (!string.IsNullOrEmpty(NewPassphrase)) c.PrivateKeyPassphrase = NewPassphrase;
         var index = Items.IndexOf(c);
         Items[index] = c; // Liste aktualisieren
+        var visible = VisibleItems.IndexOf(c);
+        if (visible >= 0) VisibleItems[visible] = c;
         Selected = c;
     }
 
@@ -67,6 +94,8 @@ public sealed partial class CredentialVaultViewModel : ObservableObject
     {
         var c = _tree.Vault.Add(new Credential { Name = "New credentials" });
         Items.Add(c);
+        Filter = ""; // neuen Eintrag sicher anzeigen
+        if (!VisibleItems.Contains(c)) VisibleItems.Add(c);
         Selected = c;
     }
 
@@ -78,7 +107,8 @@ public sealed partial class CredentialVaultViewModel : ObservableObject
         foreach (var n in users) n.Settings.CredentialId = null;
         _tree.Vault.Remove(c.Id);
         Items.Remove(c);
-        Selected = Items.FirstOrDefault();
+        VisibleItems.Remove(c);
+        Selected = VisibleItems.FirstOrDefault();
         return users.Count;
     }
 

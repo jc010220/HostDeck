@@ -19,7 +19,16 @@
                         <StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="{x:Static app:Icons.Delete}" Margin="0,0,6,0" /><TextBlock Text="Delete" /></StackPanel>
                     </ui:Button>
                 </StackPanel>
-                <ListBox ItemsSource="{Binding Items}" SelectedItem="{Binding Selected}">
+                <ui:TextBox DockPanel.Dock="Top" Margin="0,0,0,8" PlaceholderText="Search credentials …  (Ctrl+F)" x:Name="SearchBox"
+                            Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" ClearButtonEnabled="True">
+                    <ui:TextBox.Icon>
+                        <ui:SymbolIcon Symbol="{x:Static app:Icons.Search}" />
+                    </ui:TextBox.Icon>
+                </ui:TextBox>
+                <TextBlock DockPanel.Dock="Top" Margin="2,0,0,6" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}">
+                    <Run Text="{Binding VisibleItems.Count, Mode=OneWay}" /><Run Text=" of " /><Run Text="{Binding Items.Count, Mode=OneWay}" /><Run Text=" entries" />
+                </TextBlock>
+                <ListBox ItemsSource="{Binding VisibleItems}" SelectedItem="{Binding Selected}">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Margin="0,2">

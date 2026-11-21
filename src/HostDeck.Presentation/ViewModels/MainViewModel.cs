@@ -327,16 +327,43 @@ public sealed partial class MainViewModel : ObservableObject
     [ObservableProperty] private bool _isMultiExecutionEnabled;
     [ObservableProperty] private bool _isDeviceUnlockEnabled;
 
+    /// <summary>
+    /// True erst, wenn die Datenbank erfolgreich geladen wurde. Vorher wird NIE gespeichert – sonst würde ein
+    /// leerer Baum (nach einem Ladefehler) beim Beenden alle Verbindungen überschreiben.
+    /// </summary>
+    private bool _loadSucceeded;
+
+    [ObservableProperty] private bool _isImporting;
+
+    /// <summary>Nur für Tests/Aufrufer ohne UI-SynchronizationContext.</summary>
+    public void Initialize(string? mRemoteNgDefaultFile = null) => InitializeAsync(mRemoteNgDefaultFile).GetAwaiter().GetResult();
+
     /// <summary>Beim Start: Theme anwenden, Bestand laden, beim ersten Start mRemoteNG-Übernahme anbieten.</summary>
-    public void Initialize(string? mRemoteNgDefaultFile = null)
+    public async Task InitializeAsync(string? mRemoteNgDefaultFile = null)
     {
         _theme.Apply(Settings.Theme);
-        SessionTree.Load(_store.Load());
+        var sw = System.Diagnostics.Stopwatch.StartNew();
+        try
+        {
+            SessionTree.Load(_store.Load());
+            _loadSucceeded = true;
+            AppLog.Info($"Datenbank geladen: {SessionTree.Tree.Connections.Count()} Verbindungen, {SessionTree.Tree.Folders.Count()} Ordner, {sw.ElapsedMilliseconds} ms");
+        }
+        catch (Exception ex)
+        {
+            AppLog.Error("Datenbank laden", ex);
+            StatusText = "Datenbank konnte nicht geladen werden – es wird nichts gespeichert";
+            _dialogs.ShowError("Verbindungen konnten nicht geladen werden",
+                $"{ex.Message}\n\nZum Schutz deiner Daten speichert HostDeck jetzt nichts. Die Datenbank bleibt unverändert.\n" +
+                "Bitte das Fehlerprotokoll schicken. Sicherungen liegen im Ordner „backups“ neben der Datenbank.");
+            return;
+        }
+
         StatusText = $"{SessionTree.Tree.Connections.Count()} Verbindungen geladen";
         if (Settings.RestoreWorkspaceOnStart && Settings.LastWorkspace is { ConnectionCount: > 0 } last)
             RestoreWorkspace(last);
 
-        Reachability = new ReachabilityMonitor(SessionTree, () => Settings.ShowReachability, SynchronizationContext.Current);
+        Reachability = new ReachabilityMonitor(SessionTree, () => Settings.ShowReachability && !IsImporting, SynchronizationContext.Current);
         Reachability.Start();
 
         if (!Settings.FirstRunImportOffered && !SessionTree.Tree.Root.Children.Any()
@@ -346,7 +373,7 @@ public sealed partial class MainViewModel : ObservableObject
             SaveSettings();
             if (_dialogs.Confirm("mRemoteNG gefunden",
                     $"Es wurde eine mRemoteNG-Verbindungsdatei gefunden:\n{mRemoteNgDefaultFile}\n\nVerbindungen jetzt übernehmen?"))
-                TryImport(mRemoteNgDefaultFile);
+                await TryImportAsync(mRemoteNgDefaultFile);
         }
     }
 
@@ -361,16 +388,32 @@ public sealed partial class MainViewModel : ObservableObject
 
     // ---- Persistenz -------------------------------------------------------------------------------
 
+    private string BackupDirectory => Path.Combine(Path.GetDirectoryName(_store.Location) ?? ".", "backups");
+
     public bool Persist()
     {
+        if (!_loadSucceeded)
+        {
+            AppLog.Info("Speichern übersprungen: Datenbank wurde nicht erfolgreich geladen.");
+            return false;
+        }
         try
         {
+            // Notbremse: Verschwinden auf einen Schlag mehr als die Hälfte der Verbindungen, vorher sichern.
+            var before = _store.CountConnections();
+            var after = SessionTree.Tree.Connections.Count();
+            if (before >= 10 && after < before / 2)
+            {
+                var backup = _store.Backup(BackupDirectory);
+                AppLog.Info($"Automatische Sicherung vor Speichern ({before} → {after} Verbindungen): {backup}");
+            }
             _store.Save(SessionTree.Tree);
             return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException
                                        or System.Data.Common.DbException)
         {
+            AppLog.Error("Speichern", ex);
             StatusText = "Speichern fehlgeschlagen!";
             _dialogs.ShowError("Speichern fehlgeschlagen", ex.Message);
             return false;
@@ -613,60 +656,107 @@ public sealed partial class MainViewModel : ObservableObject
     // ---- Import / Export --------------------------------------------------------------------------
 
     [RelayCommand]
-    private void ImportMRemoteNG()
+    private async Task ImportMRemoteNG()
     {
         var path = _dialogs.OpenFile("mRemoteNG-Verbindungen importieren", "mRemoteNG (confCons.xml)|*.xml|Alle Dateien|*.*");
-        if (path is not null) TryImport(path);
+        if (path is not null) await TryImportAsync(path);
     }
 
+    /// <summary>Nur für Aufrufer ohne UI-SynchronizationContext (Tests).</summary>
+    public bool TryImport(string path) => TryImportAsync(path).GetAwaiter().GetResult();
+
     /// <summary>
-    /// Leerer Bestand ⇒ Import wird übernommen. Sonst landet er in einem neuen Ordner
-    /// „Import &lt;Datei&gt; &lt;Datum&gt;“ – bestehende Verbindungen werden nie überschrieben.
+    /// Import im Hintergrund (Oberfläche bleibt bedienbar). Leerer Bestand ⇒ Import wird übernommen, sonst landet
+    /// er in einem neuen Ordner „Import &lt;Datei&gt; &lt;Datum&gt;“ – bestehende Verbindungen werden nie überschrieben.
     /// </summary>
-    public bool TryImport(string path)
+    public async Task<bool> TryImportAsync(string path)
     {
-        ConfConsImportResult result;
+        if (IsImporting) return false;
+        if (!_loadSucceeded)
+        {
+            if (!_dialogs.Confirm("Neu aufbauen?",
+                    "Die bisherige Datenbank konnte nicht geladen werden. Soll der Import in eine neue Datenbank erfolgen?\n\n" +
+                    "Die bisherige Datenbank wird vorher in den Ordner „backups“ gesichert."))
+                return false;
+            try { AppLog.Info($"Sicherung vor Neuaufbau: {_store.Backup(BackupDirectory)}"); }
+            catch (Exception ex) { AppLog.Error("Sicherung vor Neuaufbau", ex); }
+            _loadSucceeded = true;
+        }
+
+        IsImporting = true;
+        StatusText = $"Importiere {Path.GetFileName(path)} …";
+        var ui = SynchronizationContext.Current;
+        var sw = System.Diagnostics.Stopwatch.StartNew();
         try
         {
+            // Passwortdialog im UI-Thread, Import selbst im Hintergrund
+            string? AskPassword(MasterPasswordRequest r)
+            {
+                string? answer = null;
+                void Ask() => answer = _dialogs.AskMasterPassword(r.SourceName, r.PreviousAttemptFailed, r.Attempt, r.MaxAttempts);
+                if (ui is null || SynchronizationContext.Current == ui) Ask();
+                else ui.Send(_ => Ask(), null);
+                return answer;
+            }
+
             var importer = new ConfConsImporter(new ConfConsImportOptions
             {
                 CredentialExtraction = Settings.CredentialExtraction,
-                MasterPasswordProvider = r => _dialogs.AskMasterPassword(r.SourceName, r.PreviousAttemptFailed, r.Attempt, r.MaxAttempts),
+                MasterPasswordProvider = AskPassword,
             });
-            result = importer.ImportFile(path);
+
+            ConfConsImportResult result;
+            try
+            {
+                result = await Task.Run(() => importer.ImportFile(path));
+            }
+            catch (ConfConsAuthenticationException ex) when (ex.Cancelled)
+            {
+                StatusText = "Import abgebrochen";
+                return false;
+            }
+            catch (Exception ex) when (ex is ConfConsAuthenticationException or ConfConsFormatException or IOException or UnauthorizedAccessException)
+            {
+                StatusText = "Import fehlgeschlagen";
+                _dialogs.ShowError("Import fehlgeschlagen", ex.Message);
+                return false;
+            }
+            AppLog.Info($"Import gelesen: {result.Statistics.Connections} Verbindungen, {result.Statistics.Folders} Ordner, {sw.ElapsedMilliseconds} ms");
+
+            var current = SessionTree.Tree;
+            if (!current.Root.Children.Any() && current.Vault.Count == 0)
+            {
+                SessionTree.Load(result.Tree);
+            }
+            else
+            {
+                MergeInto(current, result.Tree, $"Import {Path.GetFileNameWithoutExtension(path)} {DateTime.Now:yyyy-MM-dd HH-mm}");
+                SessionTree.Load(current);
+            }
+            AppLog.Info($"Import angezeigt: {sw.ElapsedMilliseconds} ms");
+            OfferSecurityFixes(result.Tree);
+            Persist();
+            AppLog.Info($"Import gespeichert: {sw.ElapsedMilliseconds} ms");
+
+            Settings.LastImportPath = path;
+            SaveSettings();
+            StatusText = $"{result.Statistics.Connections} Verbindungen in {result.Statistics.Folders} Ordnern importiert"
+                         + (result.Warnings.Count > 0 ? $" – {result.Warnings.Count} Warnung(en)" : "");
+            if (result.Warnings.Count > 0)
+                _dialogs.ShowInfo("Import abgeschlossen mit Warnungen", string.Join(Environment.NewLine, result.Warnings.Take(30)));
+            return true;
         }
-        catch (ConfConsAuthenticationException ex) when (ex.Cancelled)
+        catch (Exception ex)
         {
-            StatusText = "Import abgebrochen";
-            return false;
-        }
-        catch (Exception ex) when (ex is ConfConsAuthenticationException or ConfConsFormatException or IOException or UnauthorizedAccessException)
-        {
+            AppLog.Error("Import", ex);
             StatusText = "Import fehlgeschlagen";
             _dialogs.ShowError("Import fehlgeschlagen", ex.Message);
             return false;
         }
-
-        var current = SessionTree.Tree;
-        if (!current.Root.Children.Any() && current.Vault.Count == 0)
+        finally
         {
-            SessionTree.Load(result.Tree);
+            IsImporting = false;
         }
-        else
-        {
-            MergeInto(current, result.Tree, $"Import {Path.GetFileNameWithoutExtension(path)} {DateTime.Now:yyyy-MM-dd HH-mm}");
-            SessionTree.Load(current);
-        }
-        OfferSecurityFixes(result.Tree);
-        Persist();
-
-        Settings.LastImportPath = path;
-        SaveSettings();
-        StatusText = $"{result.Statistics.Connections} Verbindungen in {result.Statistics.Folders} Ordnern importiert"
-                     + (result.Warnings.Count > 0 ? $" – {result.Warnings.Count} Warnung(en)" : "");
-        if (result.Warnings.Count > 0)
-            _dialogs.ShowInfo("Import abgeschlossen mit Warnungen", string.Join(Environment.NewLine, result.Warnings.Take(30)));
-        return true;
     }
 
     /// <summary>

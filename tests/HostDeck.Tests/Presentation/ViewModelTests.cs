@@ -276,8 +276,9 @@ public class MainViewModelTests
         public int SaveCount;
         public string CurrentPassword = "altes-passwort";
         public string Location => "memory";
-        public ConnectionTree Load() => Saved;
-        public void Save(ConnectionTree tree) { Saved = tree; SaveCount++; }
+        public ConnectionTree Load() => LoadFailure is null ? Saved : throw LoadFailure;
+        public int LastSavedCount;
+        public void Save(ConnectionTree tree) { Saved = tree; SaveCount++; LastSavedCount = tree.Connections.Count(); }
         public bool HasDeviceUnlock { get; private set; }
         public bool DeviceUnlockSupported => true;
         public void SetDeviceUnlock(bool enabled) => HasDeviceUnlock = enabled;
@@ -288,7 +289,10 @@ public class MainViewModelTests
         }
         public readonly Dictionary<string, string> Documents = new();
         public string? ReadDocument(string name) => Documents.GetValueOrDefault(name);
-        public string Backup(string targetDirectory) => Path.Combine(targetDirectory, "backup.hdk");
+        public List<string> Backups = [];
+        public string Backup(string targetDirectory) { Backups.Add(targetDirectory); return Path.Combine(targetDirectory, "backup.hdk"); }
+        public int CountConnections() => LastSavedCount; // wie die echte DB: Stand des letzten Speicherns
+        public Exception? LoadFailure;
         public void WriteDocument(string name, string json) => Documents[name] = json;
         public readonly ConcurrentDictionary<string, string> HostKeys = new();
         public string? Find(string host, int port, string keyType) => HostKeys.GetValueOrDefault($"{host}:{port}:{keyType}");
@@ -308,7 +312,7 @@ public class MainViewModelTests
     private static void ImportFixture(MainViewModel vm, FakeDialogs dialogs, string file = "confCons_v2_6.xml")
     {
         dialogs.FileToOpen = Fixture.PathOf(file);
-        vm.ImportMRemoteNGCommand.Execute(null);
+        vm.ImportMRemoteNGCommand.ExecuteAsync(null).GetAwaiter().GetResult();
     }
 
     [Fact]

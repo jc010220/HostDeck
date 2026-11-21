@@ -10,7 +10,7 @@ public class WorkspacePersistenceTests
     private static void Import(MainViewModel vm, MainViewModelTests.FakeDialogs d)
     {
         d.FileToOpen = Fixture.PathOf("confCons_v2_6.xml");
-        vm.ImportMRemoteNGCommand.Execute(null);
+        vm.ImportMRemoteNGCommand.ExecuteAsync(null).GetAwaiter().GetResult();
     }
 
     private static TreeItemViewModel Item(MainViewModel vm, string path) => vm.SessionTree.AllItems.Single(i => i.Node.Path == path);

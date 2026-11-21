@@ -54,6 +54,8 @@ public interface IConnectionStore : IKnownHosts
     string? ReadDocument(string name);
     /// <summary>Verschlüsselte Sicherung in einen Ordner; liefert den Dateipfad.</summary>
     string Backup(string targetDirectory);
+    /// <summary>Anzahl der aktuell gespeicherten Verbindungen.</summary>
+    int CountConnections();
     void WriteDocument(string name, string json);
 
     bool HasDeviceUnlock { get; }
@@ -149,5 +151,7 @@ public sealed class WorkspaceSnapshot
 public static class AppLog
 {
     public static Action<string, Exception>? Sink { get; set; }
+    public static Action<string>? InfoSink { get; set; }
     public static void Error(string context, Exception ex) => Sink?.Invoke(context, ex);
+    public static void Info(string message) => InfoSink?.Invoke(message);
 }

@@ -302,6 +302,14 @@ public sealed class EncryptedConnectionStore : IDisposable
         }
     }
 
+    /// <summary>Anzahl gespeicherter Verbindungen (für die Plausibilitätsprüfung vor dem Speichern).</summary>
+    public int CountConnections()
+    {
+        using var cmd = Connection.CreateCommand();
+        cmd.CommandText = "SELECT count(*) FROM nodes WHERE kind = 1";
+        return Convert.ToInt32(cmd.ExecuteScalar(), CultureInfo.InvariantCulture);
+    }
+
     // ---- Sicherung ---------------------------------------------------------------------------------------
 
     /// <summary>

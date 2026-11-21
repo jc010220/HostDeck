@@ -24,6 +24,7 @@ public partial class App : Application
         Log.Info($"Start, Version {typeof(App).Assembly.GetName().Version}");
         Log.Cleanup();
         HostDeck.Presentation.Services.AppLog.Sink = Log.Error;
+        HostDeck.Presentation.Services.AppLog.InfoSink = Log.Info;
         ShutdownMode = ShutdownMode.OnExplicitShutdown; // Dialoge vor dem Hauptfenster dürfen die App nicht beenden
 
         // Zwei Instanzen würden sich gegenseitig die Datenbank überschreiben
@@ -41,6 +42,7 @@ public partial class App : Application
 
         var device = new DpapiDeviceKeyProtector();
         var store = UnlockOrCreate(EncryptedConnectionStore.DefaultPath, device);
+        Log.Info(store is null ? "Entsperren abgebrochen" : $"Datenbank geöffnet: {store.DatabasePath} ({new FileInfo(store.DatabasePath).Length / 1024} KB)");
         if (store is null)
         {
             Shutdown();
@@ -58,13 +60,52 @@ public partial class App : Application
         window.Closing += (_, _) => viewModel.Shutdown();
         window.Show();
 
-        var mRemoteNgFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "mRemoteNG", "confCons.xml");
-        viewModel.Initialize(mRemoteNgFile);
-        _ = _updates.CheckOnStartupAsync();
+        _ = StartAsync(viewModel, store, e.Args);
+    }
 
-        // Datei per Kommandozeile / "Öffnen mit" (z. B. HostDeck.exe confCons.xml)
-        if (e.Args is [var path, ..] && File.Exists(path))
-            viewModel.TryImport(path);
+    /// <summary>Laden, Arbeitsbereich wiederherstellen, ggf. importieren – ohne den UI-Thread zu blockieren.</summary>
+    private async Task StartAsync(MainViewModel viewModel, EncryptedConnectionStore store, string[] args)
+    {
+        try
+        {
+            DailyBackup(store);
+            var mRemoteNgFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "mRemoteNG", "confCons.xml");
+            await viewModel.InitializeAsync(mRemoteNgFile);
+            Log.Info("Start abgeschlossen");
+            _ = _updates!.CheckOnStartupAsync();
+
+            // Datei per Kommandozeile / "Öffnen mit" (z. B. HostDeck.exe confCons.xml)
+            if (args is [var path, ..] && File.Exists(path))
+                await viewModel.TryImportAsync(path);
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Start", ex);
+        }
+    }
+
+    /// <summary>Einmal täglich beim Start eine verschlüsselte Sicherung (die letzten 10 bleiben erhalten).</summary>
+    private static void DailyBackup(EncryptedConnectionStore store)
+    {
+        try
+        {
+            var dir = Path.Combine(Path.GetDirectoryName(store.DatabasePath)!, "backups");
+            Directory.CreateDirectory(dir);
+            var today = DateTime.Now.ToString("yyyyMMdd");
+            if (Directory.EnumerateFiles(dir, $"HostDeck-Sicherung-{today}-*.hdk").Any()) return;
+            if (store.CountConnections() == 0) return; // nichts Sicherungswürdiges (und keine leeren Sicherungen anhäufen)
+            Log.Info($"Tägliche Sicherung: {store.Backup(dir)}");
+
+            foreach (var old in Directory.EnumerateFiles(dir, "HostDeck-Sicherung-*.hdk").OrderByDescending(f => f).Skip(10))
+            {
+                File.Delete(old);
+                File.Delete(old + ".key");
+            }
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Tägliche Sicherung", ex);
+        }
     }
 
     /// <summary>Gerätschlüssel → Passwortdialog (mit Wiederholung) → bzw. Ersteinrichtung.</summary>

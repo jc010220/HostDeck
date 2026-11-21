@@ -55,6 +55,8 @@ public partial class App : Application
         var viewModel = new MainViewModel(dialogs, settingsStore, theme, _store);
         _updates = new UpdateService(viewModel, dialogs, _store);
         _updates.Register();
+        viewModel.AppVersion = _updates.CurrentVersion;
+        viewModel.CheckForUpdatesAction = () => _ = _updates.CheckAsync(interactive: true);
         var window = new MainWindow(viewModel);
         MainWindow = window;
         ShutdownMode = ShutdownMode.OnMainWindowClose;

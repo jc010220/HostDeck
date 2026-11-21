@@ -211,6 +211,15 @@ public sealed partial class MainViewModel : ObservableObject
 
     public ReachabilityMonitor? Reachability { get; private set; }
 
+    /// <summary>Installierte Version (von der App gesetzt), z. B. „1.0.18“.</summary>
+    [ObservableProperty] private string _appVersion = typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "";
+
+    /// <summary>Update-Prüfung (von der App gesetzt).</summary>
+    public Action? CheckForUpdatesAction { get; set; }
+
+    [RelayCommand]
+    private void CheckForUpdates() => CheckForUpdatesAction?.Invoke();
+
     /// <summary>Zusätzliche Befehle der App-Schicht (z. B. Updates) für die Schnellsuche.</summary>
     public List<(string Title, string Keywords, Action Run)> AppActions { get; } = [];
 
@@ -704,7 +713,10 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void OpenSettings()
     {
-        var editor = new SettingsViewModel(Settings, !string.IsNullOrEmpty(_store.ReadDocument(SettingsViewModel.UpdateTokenDocument)));
+        var editor = new SettingsViewModel(Settings, !string.IsNullOrEmpty(_store.ReadDocument(SettingsViewModel.UpdateTokenDocument)))
+        {
+            AppVersion = AppVersion,
+        };
         if (!_dialogs.EditSettings(editor)) return;
         var themeChanged = editor.ThemeChanged;
         editor.Apply();

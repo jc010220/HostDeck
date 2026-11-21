@@ -55,10 +55,15 @@
             <TextBlock Margin="0,4,0,0" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                        Text="GitHub → Settings → Developer settings → Fine-grained tokens: only this repository, permission “Contents: Read-only”. Stored encrypted in the HostDeck database." />
 
-            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,20,0,0">
-                <ui:Button Content="Cancel" IsCancel="True" MinWidth="96" Margin="0,0,8,0" />
-                <ui:Button Content="Save" Appearance="Primary" IsDefault="True" MinWidth="96" Click="OnOk" />
-            </StackPanel>
+            <DockPanel Margin="0,20,0,0">
+                <TextBlock DockPanel.Dock="Left" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}">
+                    <Run Text="HostDeck " /><Run Text="{Binding AppVersion, Mode=OneWay}" />
+                </TextBlock>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                    <ui:Button Content="Cancel" IsCancel="True" MinWidth="96" Margin="0,0,8,0" />
+                    <ui:Button Content="Save" Appearance="Primary" IsDefault="True" MinWidth="96" Click="OnOk" />
+                </StackPanel>
+            </DockPanel>
         </StackPanel>
     </StackPanel>
 </ui:FluentWindow>

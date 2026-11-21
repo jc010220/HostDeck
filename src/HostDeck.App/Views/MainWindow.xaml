@@ -383,6 +383,13 @@
 
         <!-- ===== Statusleiste ===== -->
         <DockPanel Grid.Row="3" Margin="12,4,12,6">
+            <!-- Version ganz rechts; Klick prüft auf Updates -->
+            <ui:Button DockPanel.Dock="Right" Appearance="Transparent" Padding="6,0" Margin="8,0,0,0" FontSize="11" BorderThickness="0"
+                       Command="{Binding CheckForUpdatesCommand}" ToolTip="HostDeck version – click to check for updates">
+                <TextBlock Foreground="{DynamicResource TextFillColorTertiaryBrush}">
+                    <Run Text="v" /><Run Text="{Binding AppVersion, Mode=OneWay}" />
+                </TextBlock>
+            </ui:Button>
             <TextBlock DockPanel.Dock="Right" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
                 <Run Text="{Binding Workspace.TabCount, Mode=OneWay}" /><Run Text=" session(s)" />
             </TextBlock>

@@ -51,6 +51,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string _updateToken = "";
 
     public bool HasUpdateToken { get; }
+
+    /// <summary>Angezeigte HostDeck-Version (Fußzeile des Dialogs).</summary>
+    public string AppVersion { get; init; } = "";
     public string UpdateTokenHint => HasUpdateToken ? "Token stored – enter a new one to replace it" : "Only for private GitHub repos: read-only token";
 
     public bool ThemeChanged => Theme != _settings.Theme;

@@ -27,7 +27,7 @@ public interface IKnownHosts
 }
 
 public sealed class HostKeyRejectedException(HostKeyInfo info)
-    : Exception(info.Changed ? $"Host-Key von {info.Host} hat sich geändert – Verbindung abgelehnt." : $"Host-Key von {info.Host} nicht vertraut.")
+    : Exception(info.Changed ? $"Host key of {info.Host} has changed – connection refused." : $"Host key of {info.Host} not trusted.")
 {
     public HostKeyInfo Info { get; } = info;
 }
@@ -341,7 +341,7 @@ public sealed class SshTerminalSession : ITerminalBackend
     /// <summary>Eigene SFTP-Verbindung mit demselben Endpunkt; der Host-Key muss dem akzeptierten entsprechen.</summary>
     public SftpSession CreateSftp() => new(
         _endpoint with { Password = _endpoint.Password ?? _interactivePassword },
-        AcceptedFingerprint ?? throw new InvalidOperationException("Erst verbinden."),
+        AcceptedFingerprint ?? throw new InvalidOperationException("Connect first."),
         _options.ConnectTimeout);
 
     public async ValueTask DisposeAsync()

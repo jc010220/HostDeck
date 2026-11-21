@@ -13,7 +13,7 @@
         </Border.Effect>
         <StackPanel>
             <ui:TextBox x:Name="QueryBox" Text="{Binding Query, UpdateSourceTrigger=PropertyChanged}" FontSize="16"
-                        PlaceholderText="Gerät suchen (Name, IP, Ordner, Tag) · ssh user@host · &gt; Befehle">
+                        PlaceholderText="Find device (name, IP, folder, tag) · ssh user@host · &gt; commands">
                 <ui:TextBox.Icon>
                     <ui:SymbolIcon Symbol="{x:Static app:Icons.Search}" />
                 </ui:TextBox.Icon>
@@ -28,9 +28,9 @@
                                            Symbol="{Binding Protocol, Converter={StaticResource ProtocolIcon}}" />
                             <TextBlock DockPanel.Dock="Right" Text="{Binding Badge}" FontSize="10" Margin="8,0,0,0" VerticalAlignment="Center"
                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
-                            <TextBlock DockPanel.Dock="Right" Text="★" Margin="8,0,0,0" VerticalAlignment="Center" ToolTip="Favorit"
+                            <TextBlock DockPanel.Dock="Right" Text="★" Margin="8,0,0,0" VerticalAlignment="Center" ToolTip="Favorite"
                                        Foreground="#F7B500" Visibility="{Binding IsFavorite, Converter={StaticResource BoolToVisibility}}" />
-                            <TextBlock DockPanel.Dock="Right" Text="↺" Margin="8,0,0,0" VerticalAlignment="Center" ToolTip="Zuletzt verwendet"
+                            <TextBlock DockPanel.Dock="Right" Text="↺" Margin="8,0,0,0" VerticalAlignment="Center" ToolTip="Recently used"
                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}" Visibility="{Binding IsRecent, Converter={StaticResource BoolToVisibility}}" />
                             <StackPanel>
                                 <TextBlock Text="{Binding Title}" FontSize="14" TextTrimming="CharacterEllipsis" />
@@ -42,7 +42,7 @@
                 </ListBox.ItemTemplate>
             </ListBox>
             <TextBlock Margin="4,8,0,0" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                       Text="Enter verbinden · Strg+Enter im Split-Screen · Alt+Enter im Baum zeigen · ↑↓ auswählen · Esc schließen" />
+                       Text="Enter connect · Ctrl+Enter in split view · Alt+Enter show in tree · ↑↓ select · Esc close" />
         </StackPanel>
     </Border>
 </Window>

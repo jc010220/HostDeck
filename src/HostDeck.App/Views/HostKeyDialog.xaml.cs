@@ -15,14 +15,14 @@ public partial class HostKeyDialog : FluentWindow
         if (info.Changed)
         {
             WarningBox.Visibility = Visibility.Visible;
-            Intro.Text = "Der Server meldet einen anderen Schlüssel als bei der letzten Verbindung.";
+            Intro.Text = "The server presents a different key than on the last connection.";
             PreviousText.Text = info.PreviousFingerprint;
             SaveButton.Appearance = ControlAppearance.Danger;
-            SaveButton.Content = "Neuen Key speichern";
+            SaveButton.Content = "Save new key";
         }
         else
         {
-            Intro.Text = "Erste Verbindung zu diesem Server. Vergleiche den Fingerprint (z. B. mit „ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub“ auf dem Server).";
+            Intro.Text = "First connection to this server. Compare the fingerprint (e.g. with “ssh-keygen -lf /etc/ssh/ssh_host_ed25519_key.pub” on the server).";
             PreviousLabel.Visibility = PreviousText.Visibility = Visibility.Collapsed;
             SaveButton.IsDefault = true;
         }

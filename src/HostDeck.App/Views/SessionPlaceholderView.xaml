@@ -29,11 +29,11 @@
                             <Setter Property="Margin" Value="0,3,16,3" />
                         </Style>
                     </Grid.Resources>
-                    <TextBlock Grid.Row="0" Text="Protokoll" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Grid.Row="0" Text="Protocol" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                     <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Protocol}" />
-                    <TextBlock Grid.Row="1" Text="Ziel" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Grid.Row="1" Text="Target" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                     <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Endpoint}" FontFamily="{StaticResource MonoFont}" />
-                    <TextBlock Grid.Row="2" Text="Benutzer" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Grid.Row="2" Text="User" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                     <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding UserDisplay}" />
                     <TextBlock Grid.Row="3" Text="Credential-Vault" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                     <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Credentials.VaultEntry.Name, FallbackValue='–', TargetNullValue='–'}" />
@@ -41,12 +41,12 @@
                     <TextBlock Grid.Row="4" Grid.Column="1">
                         <Run Text="{Binding Settings.Rdp.ResolutionMode, Mode=OneWay}" /><Run Text=" · " /><Run Text="{Binding Settings.Rdp.ColorDepth, Mode=OneWay}" /><Run Text=" · Gateway: " /><Run Text="{Binding Settings.Rdp.Gateway.Usage, Mode=OneWay}" />
                     </TextBlock>
-                    <TextBlock Grid.Row="5" Text="Passwort" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Grid.Row="5" Text="Password" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                     <TextBlock Grid.Row="5" Grid.Column="1" x:Name="PasswordState" />
                 </Grid>
 
                 <TextBlock Margin="0,20,0,0" TextWrapping="Wrap" MaxWidth="420" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                           Text="Die Protokoll-Engine (RDP / SSH + SFTP) folgt in Phase 4. Hier erscheint dann die eingebettete Session." />
+                           Text="This protocol is not supported yet." />
             </StackPanel>
         </Border>
     </ScrollViewer>

@@ -55,7 +55,7 @@ public sealed class EncryptedConnectionStore : IDisposable
     public static EncryptedConnectionStore Create(string path, string masterPassword, KdfParameters? kdf = null)
     {
         if (File.Exists(path) || File.Exists(path + KeyFileSuffix))
-            throw new IOException($"Es existiert bereits eine Datenbank unter {path}.");
+            throw new IOException($"A database already exists at {path}.");
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(path))!);
 
         var (keyFile, dek) = KeyFile.Create(masterPassword, kdf ?? KdfParameters.Default);
@@ -101,7 +101,7 @@ public sealed class EncryptedConnectionStore : IDisposable
         }
         catch (SqliteException ex) when (ex.SqliteErrorCode == 26) // SQLITE_NOTADB
         {
-            throw new InvalidDataException("Datenbank und Schlüsseldatei passen nicht zusammen oder die Datenbank ist beschädigt.", ex);
+            throw new InvalidDataException("Database and key file do not match or the database is damaged.", ex);
         }
     }
 
@@ -255,7 +255,7 @@ public sealed class EncryptedConnectionStore : IDisposable
         Execute(db, null, "CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT NOT NULL);");
         var version = int.TryParse(ReadMeta(db, "schema_version"), out var v) ? v : 0;
         if (version > SchemaVersion)
-            throw new InvalidDataException($"Datenbank-Schema {version} ist neuer als diese HostDeck-Version ({SchemaVersion}).");
+            throw new InvalidDataException($"Database schema {version} is newer than this HostDeck version ({SchemaVersion}).");
 
         if (version < 1)
         {

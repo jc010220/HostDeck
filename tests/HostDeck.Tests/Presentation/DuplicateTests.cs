@@ -19,7 +19,7 @@ public class DuplicateTests
 
         dialogs.EditAnswer = e =>
         {
-            Assert.Equal("web01 (Kopie)", e.Name);
+            Assert.Equal("web01 (copy)", e.Name);
             Assert.Equal("10.0.0.1", e.Hostname);
             e.Name = "web02";
             e.Hostname = "10.0.0.2";

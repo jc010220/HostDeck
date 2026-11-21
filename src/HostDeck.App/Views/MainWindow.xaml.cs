@@ -106,7 +106,7 @@ public partial class MainWindow : FluentWindow
     private void OnSnippetDelete(object sender, RoutedEventArgs e)
     {
         if (SnippetList.SelectedItem is HostDeck.Presentation.Snippets.Snippet s &&
-            System.Windows.MessageBox.Show(this, $"Snippet „{s.Name}“ löschen?", "Snippets", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
+            System.Windows.MessageBox.Show(this, $"Delete snippet “{s.Name}”?", "Snippets", MessageBoxButton.YesNo) == MessageBoxResult.Yes)
             _vm.Snippets.Remove(s);
     }
 
@@ -132,7 +132,7 @@ public partial class MainWindow : FluentWindow
 
     private void OnSftpUpload(object sender, RoutedEventArgs e)
     {
-        var dialog = new Microsoft.Win32.OpenFileDialog { Title = "Dateien hochladen", Multiselect = true };
+        var dialog = new Microsoft.Win32.OpenFileDialog { Title = "Upload files", Multiselect = true };
         if (dialog.ShowDialog(this) == true && Sftp is { } sftp) _ = sftp.UploadAsync(dialog.FileNames);
     }
 
@@ -274,8 +274,8 @@ public partial class MainWindow : FluentWindow
 
     private void ConfirmDelete(TreeItemViewModel item)
     {
-        var what = item.IsFolder ? $"den Ordner „{item.Name}“ mit allen Einträgen" : $"die Verbindung „{item.Name}“";
-        var result = System.Windows.MessageBox.Show(this, $"Soll {what} gelöscht werden?", "Löschen",
+        var what = item.IsFolder ? $"the folder “{item.Name}” with all its entries" : $"the connection “{item.Name}”";
+        var result = System.Windows.MessageBox.Show(this, $"Delete {what}?", "Delete",
             MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
         if (result == MessageBoxResult.Yes) _vm.DeleteCommand.Execute(item);
     }

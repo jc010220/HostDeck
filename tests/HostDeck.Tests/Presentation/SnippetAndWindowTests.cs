@@ -22,8 +22,8 @@ public class SnippetTests
         var answers = new Queue<string?>(["nginx", null]);
         var vm = new SnippetsViewModel(store, (_, _) => answers.Dequeue(), sent.Add);
 
-        Assert.Contains(vm.Items, s => s.Name == "Systemlast");                 // Startvorlagen
-        var status = vm.Items.Single(s => s.Name == "Dienst-Status");
+        Assert.Contains(vm.Items, s => s.Name == "System load");                 // Startvorlagen
+        var status = vm.Items.Single(s => s.Name == "Service status");
         vm.Run(status);
         Assert.Equal(["systemctl status nginx --no-pager\r"], sent);           // Platzhalter ersetzt + Enter
         vm.Run(status);

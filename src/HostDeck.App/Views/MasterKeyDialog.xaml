@@ -19,24 +19,24 @@
             </StackPanel>
 
             <StackPanel x:Name="CurrentPanel">
-                <TextBlock Text="Aktuelles Master-Passwort" Margin="0,0,0,4" />
+                <TextBlock Text="Current master password" Margin="0,0,0,4" />
                 <PasswordBox x:Name="CurrentInput" Margin="0,0,0,10" />
             </StackPanel>
-            <TextBlock x:Name="NewLabel" Text="Master-Passwort" Margin="0,0,0,4" />
+            <TextBlock x:Name="NewLabel" Text="Master password" Margin="0,0,0,4" />
             <PasswordBox x:Name="NewInput" Margin="0,0,0,10" PasswordChanged="OnPasswordChanged" />
             <StackPanel x:Name="ConfirmPanel">
-                <TextBlock Text="Wiederholen" Margin="0,0,0,4" />
+                <TextBlock Text="Repeat" Margin="0,0,0,4" />
                 <PasswordBox x:Name="ConfirmInput" Margin="0,0,0,6" PasswordChanged="OnPasswordChanged" />
                 <TextBlock x:Name="StrengthText" FontSize="11" Margin="0,0,0,8" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
             </StackPanel>
 
-            <CheckBox x:Name="RememberBox" Content="Auf diesem PC merken (Windows-Konto, kein Passwort nötig)" Margin="0,4,0,8" />
+            <CheckBox x:Name="RememberBox" Content="Remember on this PC (Windows account, no password needed)" Margin="0,4,0,8" />
             <TextBlock x:Name="ErrorText" Foreground="#E81123" TextWrapping="Wrap" Visibility="Collapsed" Margin="0,0,0,8" />
 
             <DockPanel Margin="0,8,0,0">
-                <ui:HyperlinkButton x:Name="ForgotButton" Content="Passwort vergessen?" Padding="0" Click="OnForgot" />
+                <ui:HyperlinkButton x:Name="ForgotButton" Content="Forgot password?" Padding="0" Click="OnForgot" />
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <ui:Button x:Name="CancelButton" Content="Abbrechen" IsCancel="True" MinWidth="96" Margin="0,0,8,0" />
+                    <ui:Button x:Name="CancelButton" Content="Cancel" IsCancel="True" MinWidth="96" Margin="0,0,8,0" />
                     <ui:Button x:Name="OkButton" Appearance="Primary" IsDefault="True" MinWidth="110" Click="OnOk" />
                 </StackPanel>
             </DockPanel>

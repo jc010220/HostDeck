@@ -99,7 +99,7 @@ public static class TreeMerge
                 if (!changedL) { chosen[id] = new(r, l); remoteChanges++; continue; }
                 if (!changedR) { chosen[id] = new(l, l); localChanges++; continue; }
 
-                conflicts.Add(new MergeConflict(id, l.Path, "von dir und in der Datei unterschiedlich geändert"));
+                conflicts.Add(new MergeConflict(id, l.Path, "changed differently by you and in the file"));
                 if (resolution == MergeConflictResolution.KeepMine) { chosen[id] = new(l, l); localChanges++; }
                 else { chosen[id] = new(r, l); remoteChanges++; }
             }
@@ -109,7 +109,7 @@ public static class TreeMerge
                 else if (changedL)
                 {
                     chosen[id] = new(l, l); localChanges++;                                // gelöscht, aber lokal geändert ⇒ behalten
-                    notes.Add($"„{l.Path}“ wurde in der Datei gelöscht, von dir aber geändert – bleibt erhalten.");
+                    notes.Add($"“{l.Path}” was deleted in the file but changed by you – it is kept.");
                 }
                 else remoteChanges++;                                                      // dort gelöscht ⇒ hier löschen
             }
@@ -119,7 +119,7 @@ public static class TreeMerge
                 else if (changedR)
                 {
                     chosen[id] = new(r, null); remoteChanges++;                            // lokal gelöscht, dort geändert ⇒ behalten
-                    notes.Add($"„{r.Path}“ hast du gelöscht, in der Datei wurde es aber geändert – bleibt erhalten.");
+                    notes.Add($"You deleted “{r.Path}”, but it was changed in the file – it is kept.");
                 }
                 else localChanges++;                                                       // lokal gelöscht ⇒ dort löschen
             }
@@ -141,7 +141,7 @@ public static class TreeMerge
                 else
                 {
                     chosen[id] = chosen[id] with { Source = chosen[id].Source with { ParentId = null } };
-                    notes.Add($"„{chosen[id].Source.Path}“ lag in einem gelöschten Ordner und wurde nach oben verschoben.");
+                    notes.Add($"“{chosen[id].Source.Path}” was in a deleted folder and was moved to the top level.");
                 }
             }
         }
@@ -153,7 +153,7 @@ public static class TreeMerge
                 var entry = local.GetValueOrDefault(c) ?? remote.GetValueOrDefault(c);
                 if (entry is null) break;
                 chosen[c] = new(entry, local.GetValueOrDefault(c));
-                notes.Add($"Ordner „{entry.Path}“ blieb erhalten, weil darin noch Änderungen liegen.");
+                notes.Add($"Folder “{entry.Path}” was kept because it still contains changes.");
                 cur = entry.ParentId;
             }
         }

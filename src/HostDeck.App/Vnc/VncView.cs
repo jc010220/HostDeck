@@ -33,7 +33,7 @@ public sealed class VncView : Grid
         FocusVisualStyle = null;
         RenderOptions.SetBitmapScalingMode(_image, BitmapScalingMode.HighQuality);
 
-        var reconnect = _actionButton = new Wpf.Ui.Controls.Button { Content = "Verbinden", Appearance = Wpf.Ui.Controls.ControlAppearance.Primary, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 16, 0, 0) };
+        var reconnect = _actionButton = new Wpf.Ui.Controls.Button { Content = "Connect", Appearance = Wpf.Ui.Controls.ControlAppearance.Primary, HorizontalAlignment = HorizontalAlignment.Center, Margin = new Thickness(0, 16, 0, 0) };
         reconnect.Click += (_, _) =>
         {
             if (_vm?.Tab.State == SessionState.Connecting) _vm.CancelConnect();
@@ -46,8 +46,8 @@ public sealed class VncView : Grid
         _statusPanel.SetResourceReference(Border.BackgroundProperty, "ApplicationBackgroundBrush");
 
         var bar = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(6), Opacity = 0.85 };
-        bar.Children.Add(BarButton("Strg+Alt+Entf", () => _ = _vm?.CtrlAltDelCommand.ExecuteAsync(null)));
-        bar.Children.Add(BarButton("1:1 / Anpassen", () =>
+        bar.Children.Add(BarButton("Ctrl+Alt+Del", () => _ = _vm?.CtrlAltDelCommand.ExecuteAsync(null)));
+        bar.Children.Add(BarButton("1:1 / fit", () =>
         {
             _image.Stretch = _image.Stretch == Stretch.Uniform ? Stretch.None : Stretch.Uniform;
             RenderOptions.SetBitmapScalingMode(_image, _image.Stretch == Stretch.None ? BitmapScalingMode.NearestNeighbor : BitmapScalingMode.HighQuality);
@@ -108,8 +108,8 @@ public sealed class VncView : Grid
     {
         var connected = _client is not null;
         _statusPanel.Visibility = connected ? Visibility.Collapsed : Visibility.Visible;
-        _status.Text = _vm?.Message ?? "Nicht verbunden.";
-        _actionButton.Content = _vm?.Tab.State == SessionState.Connecting ? "Abbrechen" : "Verbinden";
+        _status.Text = _vm?.Message ?? "Not connected.";
+        _actionButton.Content = _vm?.Tab.State == SessionState.Connecting ? "Cancel" : "Connect";
         _actionButton.Appearance = _vm?.Tab.State == SessionState.Connecting ? Wpf.Ui.Controls.ControlAppearance.Secondary : Wpf.Ui.Controls.ControlAppearance.Primary;
     }
 

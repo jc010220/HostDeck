@@ -9,14 +9,14 @@
         <StackPanel Margin="24,4,24,0">
             <TextBlock Text="Name" Margin="0,0,0,4" />
             <TextBox x:Name="NameBox" />
-            <TextBlock Text="Kategorie (optional)" Margin="0,10,0,4" />
+            <TextBlock Text="Category (optional)" Margin="0,10,0,4" />
             <TextBox x:Name="CategoryBox" />
-            <TextBlock Text="Befehl – mehrzeilig möglich, Platzhalter {{Name}} werden beim Ausführen abgefragt" Margin="0,10,0,4" TextWrapping="Wrap" />
+            <TextBlock Text="Command – may span multiple lines, placeholders {{Name}} are asked for when run" Margin="0,10,0,4" TextWrapping="Wrap" />
             <TextBox x:Name="CommandBox" AcceptsReturn="True" Height="120" FontFamily="{StaticResource MonoFont}" VerticalScrollBarVisibility="Auto" />
-            <CheckBox x:Name="ExecuteBox" Content="Enter automatisch senden (sofort ausführen)" Margin="0,10,0,0" IsChecked="True" />
+            <CheckBox x:Name="ExecuteBox" Content="Send Enter automatically (run immediately)" Margin="0,10,0,0" IsChecked="True" />
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0">
-                <ui:Button Content="Abbrechen" IsCancel="True" MinWidth="96" Margin="0,0,8,0" />
-                <ui:Button Content="Speichern" Appearance="Primary" MinWidth="96" Click="OnOk" />
+                <ui:Button Content="Cancel" IsCancel="True" MinWidth="96" Margin="0,0,8,0" />
+                <ui:Button Content="Save" Appearance="Primary" MinWidth="96" Click="OnOk" />
             </StackPanel>
         </StackPanel>
     </StackPanel>

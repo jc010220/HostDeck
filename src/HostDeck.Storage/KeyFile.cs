@@ -32,14 +32,14 @@ public sealed class DpapiDeviceKeyProtector : IDeviceKeyProtector
 
     public byte[] Protect(byte[] data) => OperatingSystem.IsWindows()
         ? ProtectedData.Protect(data, Entropy, DataProtectionScope.CurrentUser)
-        : throw new PlatformNotSupportedException("DPAPI ist nur unter Windows verfügbar.");
+        : throw new PlatformNotSupportedException("DPAPI is only available on Windows.");
 
     public byte[] Unprotect(byte[] data) => OperatingSystem.IsWindows()
         ? ProtectedData.Unprotect(data, Entropy, DataProtectionScope.CurrentUser)
-        : throw new PlatformNotSupportedException("DPAPI ist nur unter Windows verfügbar.");
+        : throw new PlatformNotSupportedException("DPAPI is only available on Windows.");
 }
 
-public sealed class WrongMasterPasswordException() : Exception("Das Master-Passwort ist falsch.");
+public sealed class WrongMasterPasswordException() : Exception("The master password is wrong.");
 
 /// <summary>
 /// Schlüsseldatei neben der Datenbank (<c>*.key</c>).
@@ -148,10 +148,10 @@ internal sealed class KeyFile
     public static KeyFile Load(string path)
     {
         var file = JsonSerializer.Deserialize<KeyFile>(File.ReadAllText(path, Encoding.UTF8), JsonOptions)
-                   ?? throw new InvalidDataException("Schlüsseldatei ist leer.");
-        if (file.Format != FormatName) throw new InvalidDataException("Keine HostDeck-Schlüsseldatei.");
-        if (file.Version > CurrentVersion) throw new InvalidDataException($"Schlüsseldatei-Version {file.Version} wird nicht unterstützt (bitte HostDeck aktualisieren).");
-        if (file.Kdf.Algorithm != "argon2id") throw new InvalidDataException($"Unbekannte KDF '{file.Kdf.Algorithm}'.");
+                   ?? throw new InvalidDataException("Key file is empty.");
+        if (file.Format != FormatName) throw new InvalidDataException("Not a HostDeck key file.");
+        if (file.Version > CurrentVersion) throw new InvalidDataException($"Key file version {file.Version} is not supported (please update HostDeck).");
+        if (file.Kdf.Algorithm != "argon2id") throw new InvalidDataException($"Unknown KDF '{file.Kdf.Algorithm}'.");
         return file;
     }
 
@@ -169,7 +169,7 @@ internal sealed class KeyFile
     internal static void ValidatePassword(string password)
     {
         if (string.IsNullOrEmpty(password) || password.Length < 8)
-            throw new ArgumentException("Das Master-Passwort muss mindestens 8 Zeichen lang sein.", nameof(password));
+            throw new ArgumentException("The master password must be at least 8 characters long.", nameof(password));
     }
 
     internal static byte[] DeriveKek(string password, byte[] salt, KdfParameters kdf)

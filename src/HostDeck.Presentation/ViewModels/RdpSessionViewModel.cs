@@ -27,7 +27,7 @@ public sealed partial class RdpSessionViewModel(SessionTabViewModel tab) : Obser
         if (Tab.State != SessionState.Connecting) return;
         CancelRequested?.Invoke(this, EventArgs.Empty);
         Tab.State = SessionState.Disconnected;
-        Message = "Verbindungsaufbau abgebrochen.";
+        Message = "Connecting cancelled.";
     }
 
     /// <summary>Die View soll in den Vollbildmodus wechseln.</summary>
@@ -46,7 +46,7 @@ public sealed partial class RdpSessionViewModel(SessionTabViewModel tab) : Obser
     public void ReportConnecting()
     {
         Tab.State = SessionState.Connecting;
-        Message = $"Verbinde mit {Tab.Connection.Hostname} …";
+        Message = $"Connecting to {Tab.Connection.Hostname} …";
     }
 
     public void ReportConnected()
@@ -59,14 +59,14 @@ public sealed partial class RdpSessionViewModel(SessionTabViewModel tab) : Obser
     {
         var normal = RdpPlanBuilder.IsNormalDisconnect(reason);
         Tab.State = normal ? SessionState.Disconnected : SessionState.Failed;
-        Message = normal ? "Verbindung beendet." : $"Verbindung getrennt: {description ?? $"Code 0x{reason:X}"}";
+        Message = normal ? "Connection closed." : $"Disconnected: {description ?? $"Code 0x{reason:X}"}";
     }
 
     /// <summary>Tab wurde in ein anderes Fenster verschoben – die neue Ansicht verbindet neu.</summary>
     public void ReportMoved()
     {
         Tab.State = SessionState.Disconnected;
-        Message = "Wird im neuen Fenster neu verbunden …";
+        Message = "Reconnecting in the new window …";
     }
 
     public void ReportError(string message)

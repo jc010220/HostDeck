@@ -38,7 +38,7 @@ public static class LocalFileNames
         var full = Path.GetFullPath(target);
         var root = Path.GetFullPath(directory).TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar;
         if (!full.StartsWith(root, StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException($"Ungültiger Dateiname vom Server: {fileName}");
+            throw new InvalidOperationException($"Invalid file name from server: {fileName}");
         var stem = Path.GetFileNameWithoutExtension(fileName);
         var ext = Path.GetExtension(fileName);
         for (var i = 1; File.Exists(target) || File.Exists(target + ".hostdeck-part"); i++)

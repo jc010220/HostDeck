@@ -31,7 +31,7 @@ public sealed class RdpView : Grid
     public RdpView()
     {
         _formsHost.Child = _panel;
-        var connectButton = new Wpf.Ui.Controls.Button { Content = "Verbinden", Appearance = Wpf.Ui.Controls.ControlAppearance.Primary, HorizontalAlignment = HorizontalAlignment.Center };
+        var connectButton = new Wpf.Ui.Controls.Button { Content = "Connect", Appearance = Wpf.Ui.Controls.ControlAppearance.Primary, HorizontalAlignment = HorizontalAlignment.Center };
         connectButton.Click += (_, _) => Connect();
         _statusPanel = new Border
         {
@@ -39,7 +39,7 @@ public sealed class RdpView : Grid
         };
         Children.Add(_formsHost);
         Children.Add(_statusPanel);
-        ShowStatus("Bereit.");
+        ShowStatus("Ready.");
 
         _resizeTimer.Tick += (_, _) => { _resizeTimer.Stop(); UpdateResolution(); };
         _panel.SizeChanged += (_, _) => { if (_connected) { _resizeTimer.Stop(); _resizeTimer.Start(); } };
@@ -67,7 +67,7 @@ public sealed class RdpView : Grid
         _vm = vm;
         vm.ConnectRequested += (_, _) => Connect();
         vm.DisconnectRequested += (_, _) => Disconnect();
-        vm.CancelRequested += (_, _) => Safe("Abbruch", CancelConnect);
+        vm.CancelRequested += (_, _) => Safe("Cancel", CancelConnect);
         vm.FullScreenRequested += (_, _) => { if (_host is not null && _connected) Dispatch.TrySet(_host.Ocx, "FullScreen", true); };
         tab.Closed += (_, _) => Teardown();
     }
@@ -104,7 +104,7 @@ public sealed class RdpView : Grid
         _host = CreateHost(out var version);
         if (_host is null)
         {
-            const string msg = "Der Windows-RDP-Client (mstscax.dll) ist nicht verfügbar.";
+            const string msg = "The Windows RDP client (mstscax.dll) is not available.";
             _vm.ReportError(msg);
             ShowStatus(msg);
             return;
@@ -120,8 +120,8 @@ public sealed class RdpView : Grid
         }
         catch (Exception ex)
         {
-            HostDeck.App.Services.Log.Error($"RDP Verbindungsstart {_plan?.Server}", ex);
-            var msg = $"RDP-Verbindung konnte nicht gestartet werden (Client-Version {version}): {(ex.InnerException ?? ex).Message}";
+            HostDeck.App.Services.Log.Error($"RDP connection start {_plan?.Server}", ex);
+            var msg = $"RDP connection could not be started (client version {version}): {(ex.InnerException ?? ex).Message}";
             _vm.ReportError(msg);
             ShowStatus(msg);
             Teardown();
@@ -160,7 +160,7 @@ public sealed class RdpView : Grid
         Dispatch.Set(ocx, "Server", plan.Server);
         Dispatch.Set(ocx, "UserName", plan.UserName);
         Dispatch.Set(ocx, "Domain", plan.Domain);
-        Dispatch.TrySet(ocx, "ConnectingText", $"Verbinde mit {plan.Server} …");
+        Dispatch.TrySet(ocx, "ConnectingText", $"Connecting to {plan.Server} …");
 
         var (width, height) = DesktopSize(plan);
         Dispatch.Set(ocx, "DesktopWidth", width);
@@ -269,8 +269,8 @@ public sealed class RdpView : Grid
                 var extended = Convert.ToInt64(Dispatch.Get(host.Ocx, "ExtendedDisconnectReason") ?? 0) & 0xFFFFFFFF;
                 description = Dispatch.Call(host.Ocx, "GetErrorDescription", unchecked((uint)reason), (uint)extended) as string;
             }
-            catch (Exception ex) { HostDeck.App.Services.Log.Error($"RDP GetErrorDescription (Grund {reason})", ex); }
-            HostDeck.App.Services.Log.Info($"RDP getrennt: {_plan?.Server} Grund={reason} {description}");
+            catch (Exception ex) { HostDeck.App.Services.Log.Error($"RDP GetErrorDescription (reason {reason})", ex); }
+            HostDeck.App.Services.Log.Info($"RDP disconnected: {_plan?.Server} reason={reason}  {description}");
             if (_cancelled)
             {
                 _cancelled = false; // vom Benutzer abgebrochen – Meldung „abgebrochen“ beibehalten
@@ -279,16 +279,16 @@ public sealed class RdpView : Grid
             _vm?.ReportDisconnected(reason, description);
             // WICHTIG: Das Control hier NICHT zerstören – mstscax verarbeitet die Trennung noch (nativer Absturz).
             // Es wird nur ausgeblendet und erst beim nächsten Verbinden bzw. Schließen des Tabs (verzögert) freigegeben.
-            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () => Safe("Status", () => ShowStatus(_vm?.Message ?? "Verbindung beendet.")));
+            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () => Safe("Status", () => ShowStatus(_vm?.Message ?? "Connection closed.")));
         });
         host.FatalError += code => Safe("FatalError", () =>
         {
             _connected = false;
-            HostDeck.App.Services.Log.Info($"RDP schwerer Fehler: {_plan?.Server} Code={code}");
-            _vm?.ReportError($"Schwerer RDP-Fehler (Code {code}).");
+            HostDeck.App.Services.Log.Info($"RDP fatal error: {_plan?.Server} Code={code}");
+            _vm?.ReportError($"Fatal RDP error (code {code}).");
             Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () => Safe("Status", () => ShowStatus(_vm?.Message ?? "")));
         });
-        host.LogonError += code => Safe("LogonError", () => HostDeck.App.Services.Log.Info($"RDP Anmeldefehler: {_plan?.Server} Code={code}"));
+        host.LogonError += code => Safe("LogonError", () => HostDeck.App.Services.Log.Info($"RDP logon error: {_plan?.Server} Code={code}"));
     }
 
     private void ApplyCustomDrives(RdpAxHost host)
@@ -322,8 +322,8 @@ public sealed class RdpView : Grid
         _cancelled = true;
         _connected = false;
         try { Dispatch.Call(_host.Ocx, "Disconnect"); }
-        catch (Exception ex) { HostDeck.App.Services.Log.Error("RDP Abbruch", ex); }
-        ShowStatus("Verbindungsaufbau abgebrochen.");
+        catch (Exception ex) { HostDeck.App.Services.Log.Error("RDP cancel", ex); }
+        ShowStatus("Connecting cancelled.");
         var host = _host;
         var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(3) };
         timer.Tick += (_, _) =>
@@ -352,7 +352,7 @@ public sealed class RdpView : Grid
         {
             if (Convert.ToInt32(Dispatch.Get(host.Ocx, "Connected")) != 0) Dispatch.Call(host.Ocx, "Disconnect");
         }
-        catch (Exception ex) { HostDeck.App.Services.Log.Error("RDP Disconnect beim Abbau", ex); }
+        catch (Exception ex) { HostDeck.App.Services.Log.Error("RDP disconnect during teardown", ex); }
 
         // Control erst freigeben, wenn die Anwendung untätig ist (nie im Rückruf des Controls selbst).
         Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () =>
@@ -362,7 +362,7 @@ public sealed class RdpView : Grid
                 _panel.Controls.Remove(host);
                 host.Dispose();
             }
-            catch (Exception ex) { HostDeck.App.Services.Log.Error("RDP Control freigeben", ex); }
+            catch (Exception ex) { HostDeck.App.Services.Log.Error("RDP control release", ex); }
         });
     }
 

@@ -35,8 +35,8 @@ public partial class VaultWindow : FluentWindow
     {
         if (_vm.Selected is not { } c) return;
         var uses = _vm.UsageCount(c);
-        var msg = uses > 0 ? $"„{c.Name}“ wird von {uses} Eintrag/Einträgen verwendet. Diese erben danach wieder vom Ordner.\n\nLöschen?" : $"„{c.Name}“ löschen?";
-        if (System.Windows.MessageBox.Show(this, msg, "Zugangsdaten löschen", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+        var msg = uses > 0 ? $"“{c.Name}” is used by {uses} entry/entries. They will inherit from their folder again.\n\nDelete?" : $"Delete “{c.Name}”?";
+        if (System.Windows.MessageBox.Show(this, msg, "Delete credentials", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
             _vm.Remove();
     }
 
@@ -44,7 +44,7 @@ public partial class VaultWindow : FluentWindow
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
-            Title = "Privaten Schlüssel laden",
+            Title = "Load private key",
             InitialDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".ssh"),
         };
         if (dialog.ShowDialog(this) == true) _vm.PrivateKey = File.ReadAllText(dialog.FileName);

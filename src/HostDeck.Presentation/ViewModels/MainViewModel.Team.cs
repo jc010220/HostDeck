@@ -69,12 +69,12 @@ public sealed partial class MainViewModel
     [RelayCommand]
     private async Task ConnectTeamLibrary()
     {
-        var path = _dialogs.OpenFile("Team-Bibliothek (gemeinsame confCons.xml) wählen", "mRemoteNG (confCons.xml)|*.xml|Alle Dateien|*.*");
+        var path = _dialogs.OpenFile("Choose team library (shared confCons.xml)", "mRemoteNG (confCons.xml)|*.xml|All files|*.*");
         if (path is null) return;
-        var readOnly = _dialogs.Confirm("Team-Bibliothek",
-            "Soll diese Kopie nur gelesen werden?\n\n" +
-            "„Ja“ für Jumphosts mit lokaler Kopie: Änderungen anderer werden übernommen, Strg+S schreibt nicht.\n" +
-            "„Nein“ (Standard am Arbeitsplatz): Du kannst Team-Einträge ändern und mit Strg+S für alle speichern.");
+        var readOnly = _dialogs.Confirm("Team library",
+            "Should this copy be read-only?\n\n" +
+            "“Yes” for jump hosts with a local copy: changes by others are pulled in, Ctrl+S does not write.\n" +
+            "“No” (default on your workstation): you can edit team entries and save them for everyone with Ctrl+S.");
         await ConnectTeamLibraryAsync(path, readOnly);
     }
 
@@ -84,7 +84,7 @@ public sealed partial class MainViewModel
         _teamBusy = true;
         try
         {
-            StatusText = "Lese Team-Bibliothek …";
+            StatusText = "Reading team library …";
             var resolved = TeamLibraryFile.Resolve(path) ?? path;
             TeamSnapshot snapshot;
             try
@@ -94,8 +94,8 @@ public sealed partial class MainViewModel
             catch (Exception ex) when (ex is ConfConsAuthenticationException or ConfConsFormatException or IOException or UnauthorizedAccessException)
             {
                 if (ex is not ConfConsAuthenticationException { Cancelled: true })
-                    _dialogs.ShowError("Team-Bibliothek", $"Die Datei konnte nicht gelesen werden:\n{ex.Message}");
-                StatusText = "Team-Bibliothek nicht eingerichtet";
+                    _dialogs.ShowError("Team library", $"The file could not be read:\n{ex.Message}");
+                StatusText = "Team library not set up";
                 return false;
             }
 
@@ -113,17 +113,17 @@ public sealed partial class MainViewModel
             var duplicates = tree.Root.Descendants().Where(n => teamIds.Contains(n.Id)).ToList();
             if (duplicates.Count > 0)
             {
-                if (!_dialogs.Confirm("Bisherige Kopie ersetzen?",
-                        $"{duplicates.Count} Einträge aus dieser Datei wurden früher schon importiert.\n\n" +
-                        "Diese alte Kopie wird durch die Team-Bibliothek ersetzt (persönliche Zugangsdaten-Zuordnungen bleiben erhalten). " +
-                        "Vorher wird automatisch eine Sicherung angelegt.\n\nFortfahren?"))
+                if (!_dialogs.Confirm("Replace existing copy?",
+                        $"{duplicates.Count} entries from this file were imported before.\n\n" +
+                        "This old copy will be replaced by the team library (personal credential assignments are kept). " +
+                        "A backup is created automatically first.\n\nContinue?"))
                 {
                     if (existing is not null) tree.Root.Insert(0, existing);
-                    StatusText = "Team-Bibliothek nicht eingerichtet";
+                    StatusText = "Team library not set up";
                     return false;
                 }
-                try { AppLog.Info($"Sicherung vor Team-Einrichtung: {_store.Backup(BackupDirectory)}"); }
-                catch (Exception ex) { AppLog.Error("Sicherung vor Team-Einrichtung", ex); }
+                try { AppLog.Info($"Backup before team setup: {_store.Backup(BackupDirectory)}"); }
+                catch (Exception ex) { AppLog.Error("Backup before team setup", ex); }
                 foreach (var node in duplicates) personal.TryAdd(node.Id, node.Settings.CredentialId);
                 foreach (var node in duplicates.Where(d => !duplicates.Any(o => o != d && d.Ancestors().Contains(o))))
                     node.Parent?.Remove(node);
@@ -145,8 +145,8 @@ public sealed partial class MainViewModel
 
             SessionTree.Load(tree);
             Persist();
-            UpdateTeamStatus($"verbunden ({Flatten(snapshot.Children).OfType<ConnectionNode>().Count()} Verbindungen)");
-            StatusText = "Team-Bibliothek eingerichtet";
+            UpdateTeamStatus($"connected ({Flatten(snapshot.Children).OfType<ConnectionNode>().Count()} connections)");
+            StatusText = "Team library set up";
             WarnIfTeamFileUnprotected(snapshot);
             StartTeamPolling();
             return true;
@@ -162,8 +162,8 @@ public sealed partial class MainViewModel
     private void DisconnectTeamLibrary()
     {
         if (!HasTeamLibrary) return;
-        var keep = _dialogs.Confirm("Team-Bibliothek trennen",
-            "Die Verbindung zur gemeinsamen Datei wird getrennt.\n\n„Ja“: Einträge als persönliche Kopie behalten\n„Nein“: Team-Ordner aus dem Baum entfernen");
+        var keep = _dialogs.Confirm("Disconnect team library",
+            "The link to the shared file will be removed.\n\n“Yes”: keep the entries as a personal copy\n“No”: remove the team folder from the tree");
         if (TeamContainer is { } container)
         {
             if (keep) container.Extensions.Remove(TreeMerge.TeamContainerKey);
@@ -223,7 +223,7 @@ public sealed partial class MainViewModel
         }
         if (Settings.TeamReadOnly && write)
         {
-            if (interactive) _dialogs.ShowInfo("Team-Bibliothek", "Diese Kopie ist schreibgeschützt (z. B. Jumphost). Änderungen bitte am Arbeitsplatz vornehmen.");
+            if (interactive) _dialogs.ShowInfo("Team library", "This copy is read-only (e.g. jump host). Please make changes on your workstation.");
             write = false;
         }
 
@@ -249,21 +249,21 @@ public sealed partial class MainViewModel
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {
-                    UpdateTeamStatus("Datei nicht erreichbar – Offline-Stand");
-                    if (interactive) _dialogs.ShowError("Team-Bibliothek", $"Die Team-Datei ist nicht erreichbar:\n{ex.Message}\n\nDeine Änderungen bleiben lokal erhalten.");
+                    UpdateTeamStatus("file not reachable – offline copy");
+                    if (interactive) _dialogs.ShowError("Team library", $"The team file is not reachable:\n{ex.Message}\n\nYour changes are kept locally.");
                     return false;
                 }
                 catch (ConfConsAuthenticationException ex)
                 {
-                    UpdateTeamStatus(ex.Cancelled ? "Passwort nicht eingegeben" : "Team-Passwort benötigt – Strg+S");
-                    if (interactive && !ex.Cancelled) _dialogs.ShowError("Team-Bibliothek", ex.Message);
+                    UpdateTeamStatus(ex.Cancelled ? "password not entered" : "team password required – Ctrl+S");
+                    if (interactive && !ex.Cancelled) _dialogs.ShowError("Team library", ex.Message);
                     return false;
                 }
                 catch (ConfConsFormatException ex)
                 {
-                    UpdateTeamStatus("Datei beschädigt?");
-                    AppLog.Error("Team-Bibliothek lesen", ex);
-                    if (interactive) _dialogs.ShowError("Team-Bibliothek", $"Die Team-Datei konnte nicht gelesen werden:\n{ex.Message}");
+                    UpdateTeamStatus("file damaged?");
+                    AppLog.Error("Read team library", ex);
+                    if (interactive) _dialogs.ShowError("Team library", $"The team file could not be read:\n{ex.Message}");
                     return false;
                 }
                 if (remote.PasswordWasEntered && remote.Password is { } entered) _store.WriteDocument(TeamPasswordDocument, entered);
@@ -272,10 +272,10 @@ public sealed partial class MainViewModel
                 if (write && merge.Conflicts.Count > 0 && interactive)
                 {
                     var list = string.Join("\n", merge.Conflicts.Take(15).Select(c => "• " + c.Path))
-                               + (merge.Conflicts.Count > 15 ? $"\n… und {merge.Conflicts.Count - 15} weitere" : "");
-                    var keepMine = _dialogs.Confirm("Gleichzeitig geändert",
-                        $"Diese Einträge wurden von dir und von jemand anderem unterschiedlich geändert:\n\n{list}\n\n" +
-                        "„Ja“: deine Version speichern\n„Nein“: Version aus der Team-Datei übernehmen");
+                               + (merge.Conflicts.Count > 15 ? $"\n… and {merge.Conflicts.Count - 15} more" : "");
+                    var keepMine = _dialogs.Confirm("Changed at the same time",
+                        $"These entries were changed differently by you and by someone else:\n\n{list}\n\n" +
+                        "“Yes”: save your version\n“No”: take the version from the team file");
                     if (!keepMine) merge = TreeMerge.Merge(baseline, mine, remote.Children, MergeConflictResolution.TakeTheirs);
                 }
 
@@ -301,15 +301,15 @@ public sealed partial class MainViewModel
                     }
                     catch (TeamFileLockedException ex)
                     {
-                        UpdateTeamStatus("gerade gesperrt – bitte erneut Strg+S");
-                        if (interactive) _dialogs.ShowInfo("Team-Bibliothek", ex.Message);
+                        UpdateTeamStatus("locked right now – please press Ctrl+S again");
+                        if (interactive) _dialogs.ShowInfo("Team library", ex.Message);
                         return false;
                     }
                     catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                     {
-                        AppLog.Error("Team-Bibliothek schreiben", ex);
-                        UpdateTeamStatus("Speichern fehlgeschlagen");
-                        if (interactive) _dialogs.ShowError("Team-Bibliothek", $"Speichern in die Team-Datei fehlgeschlagen:\n{ex.Message}\n\nDeine Änderungen bleiben lokal erhalten.");
+                        AppLog.Error("Write team library", ex);
+                        UpdateTeamStatus("saving failed");
+                        if (interactive) _dialogs.ShowError("Team library", $"Saving to the team file failed:\n{ex.Message}\n\nYour changes are kept locally.");
                         return false;
                     }
                 }
@@ -327,21 +327,21 @@ public sealed partial class MainViewModel
                 _teamProbe = TeamLibraryFile.Probe(path);
 
                 var info = new List<string>();
-                if (merge.RemoteChanges > 0) info.Add($"{merge.RemoteChanges} Änderung(en) übernommen");
-                if (wrote) info.Add($"{merge.LocalChanges} Änderung(en) gespeichert");
-                UpdateTeamStatus(info.Count > 0 ? string.Join(", ", info) : "aktuell");
-                if (interactive && merge.Notes.Count > 0) _dialogs.ShowInfo("Team-Bibliothek", string.Join("\n", merge.Notes.Take(20)));
-                if (interactive || info.Count > 0) StatusText = "Team: " + (info.Count > 0 ? string.Join(", ", info) : "aktuell");
+                if (merge.RemoteChanges > 0) info.Add($"{merge.RemoteChanges} change(s) pulled");
+                if (wrote) info.Add($"{merge.LocalChanges} change(s) saved");
+                UpdateTeamStatus(info.Count > 0 ? string.Join(", ", info) : "up to date");
+                if (interactive && merge.Notes.Count > 0) _dialogs.ShowInfo("Team library", string.Join("\n", merge.Notes.Take(20)));
+                if (interactive || info.Count > 0) StatusText = "Team: " + (info.Count > 0 ? string.Join(", ", info) : "up to date");
                 return true;
             }
-            UpdateTeamStatus("viele gleichzeitige Änderungen – bitte erneut Strg+S");
+            UpdateTeamStatus("many simultaneous changes – please press Ctrl+S again");
             return false;
         }
         catch (Exception ex)
         {
-            AppLog.Error("Team-Synchronisation", ex);
-            UpdateTeamStatus("Fehler bei der Synchronisation");
-            if (interactive) _dialogs.ShowError("Team-Bibliothek", ex.Message);
+            AppLog.Error("Team sync", ex);
+            UpdateTeamStatus("sync error");
+            if (interactive) _dialogs.ShowError("Team library", ex.Message);
             return false;
         }
         finally
@@ -387,7 +387,7 @@ public sealed partial class MainViewModel
             }
             catch (Exception ex)
             {
-                AppLog.Error("Team-Prüfung", ex);
+                AppLog.Error("Team check", ex);
             }
         }, null, TimeSpan.FromSeconds(15), TimeSpan.FromSeconds(15));
     }
@@ -410,8 +410,8 @@ public sealed partial class MainViewModel
         if (!HasTeamLibrary || Settings.TeamReadOnly) return;
         RefreshTeamPending();
         if (TeamPendingChanges == 0) return;
-        if (_dialogs.Confirm("Team-Bibliothek",
-                $"{TeamPendingChanges} Änderung(en) an der Team-Bibliothek sind noch nicht gespeichert.\n\nJetzt für alle speichern?"))
+        if (_dialogs.Confirm("Team library",
+                $"{TeamPendingChanges} change(s) to the team library are not saved yet.\n\nSave them for everyone now?"))
         {
             // Beim Beenden synchron im UI-Thread (kein await auf den blockierten Dispatcher ⇒ kein Deadlock)
             _inlineIo = true;
@@ -444,8 +444,8 @@ public sealed partial class MainViewModel
     {
         if (info is not null) _teamLastInfo = $"{info} ({DateTime.Now:HH:mm})";
         if (!HasTeamLibrary) { TeamStatus = ""; return; }
-        var pending = TeamPendingChanges > 0 ? $" · {TeamPendingChanges} nicht gespeichert – Strg+S" : "";
-        TeamStatus = $"Team{(Settings.TeamReadOnly ? " (nur lesen)" : "")}: {_teamLastInfo}{pending}";
+        var pending = TeamPendingChanges > 0 ? $" · {TeamPendingChanges} unsaved – Ctrl+S" : "";
+        TeamStatus = $"Team{(Settings.TeamReadOnly ? " (read-only)" : "")}: {_teamLastInfo}{pending}";
     }
 
     partial void OnTeamPendingChangesChanged(int value) => UpdateTeamStatus(null);
@@ -477,7 +477,7 @@ public sealed partial class MainViewModel
         return r =>
         {
             string? answer = null;
-            void Ask() => answer = _dialogs.AskMasterPassword($"Team-Bibliothek ({r.SourceName})", r.PreviousAttemptFailed, r.Attempt, r.MaxAttempts);
+            void Ask() => answer = _dialogs.AskMasterPassword($"Team library ({r.SourceName})", r.PreviousAttemptFailed, r.Attempt, r.MaxAttempts);
             if (ui is null || SynchronizationContext.Current == ui) Ask();
             else ui.Send(_ => Ask(), null);
             return answer;
@@ -489,11 +489,11 @@ public sealed partial class MainViewModel
         if (snapshot.Info.CustomMasterPassword) return;
         var withPasswords = Flatten(snapshot.Children).Count(n => !string.IsNullOrEmpty(n.Settings.Password));
         if (withPasswords == 0) return;
-        _dialogs.ShowInfo("Sicherheitshinweis",
-            $"Die Team-Datei enthält {withPasswords} gespeicherte Passwörter, ist aber nicht mit einem eigenen Master-Passwort geschützt.\n\n" +
-            "mRemoteNG verwendet dann einen öffentlich bekannten Standardschlüssel – jeder mit Lesezugriff auf die Datei kann die Passwörter auslesen.\n\n" +
-            "Empfehlung: in mRemoteNG unter Optionen → Sicherheit ein Master-Passwort für die Datei setzen (HostDeck fragt es dann einmalig ab) " +
-            "oder persönliche Logins (z. B. RADIUS) im eigenen Vault hinterlegen statt in der Datei.");
+        _dialogs.ShowInfo("Security notice",
+            $"The team file contains {withPasswords} stored passwords but is not protected by its own master password.\n\n" +
+            "mRemoteNG then uses a publicly known default key – anyone with read access to the file can extract the passwords.\n\n" +
+            "Recommendation: set a master password for the file in mRemoteNG under Options → Security (HostDeck asks for it once) " +
+            "or store personal logins (e.g. RADIUS) in your own vault instead of in the file.");
     }
 
     private static IEnumerable<TreeNode> Flatten(IEnumerable<TreeNode> nodes) =>

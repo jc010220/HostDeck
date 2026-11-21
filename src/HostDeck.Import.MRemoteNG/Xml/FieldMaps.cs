@@ -78,14 +78,14 @@ internal static partial class FieldMaps
             read: (s, v, ctx) =>
             {
                 if (ProtocolNames.TryGetValue(v, out var p)) s.Protocol = p;
-                else ctx.Warn($"Unbekanntes Protokoll '{v}' – es gilt das geerbte/Standardprotokoll.");
+                else ctx.Warn($"Unknown protocol '{v}' – the inherited/default protocol applies.");
             },
             write: (s, _) => s.Protocol is { } p ? ProtocolNames.First(kv => kv.Value == p).Key : null),
         Custom("Port", "InheritPort",
             read: (s, v, ctx) =>
             {
                 if (int.TryParse(v, NumberStyles.Integer, CultureInfo.InvariantCulture, out var port) && port > 0) s.Port = port;
-                else if (v is not ("" or "0")) ctx.Warn($"Ungültiger Port '{v}'.");
+                else if (v is not ("" or "0")) ctx.Warn($"Invalid port '{v}'.");
             },
             write: (s, _) => s.Port?.ToString(CultureInfo.InvariantCulture)),
 
@@ -209,7 +209,7 @@ internal static partial class FieldMaps
         }
         else if (v.Length > 0)
         {
-            ctx.Warn($"Unbekannte RDP-Auflösung '{v}'.");
+            ctx.Warn($"Unknown RDP resolution '{v}'.");
         }
     }
 
@@ -226,7 +226,7 @@ internal static partial class FieldMaps
         // Bis ConfVersion 2.7 boolesch ("True" ⇒ lokale Laufwerke), ab 2.8 Enum.
         if (bool.TryParse(v, out var b)) s.Rdp.RedirectDiskDrives = b ? RdpDiskDrives.Local : RdpDiskDrives.None;
         else if (System.Enum.TryParse<RdpDiskDrives>(v, true, out var d)) s.Rdp.RedirectDiskDrives = d;
-        else ctx.Warn($"Unbekannter Wert für RedirectDiskDrives: '{v}'.");
+        else ctx.Warn($"Unknown value for RedirectDiskDrives: '{v}'.");
     }
 
     private static string? WriteDiskDrives(ConnectionSettings s, WriteContext ctx) => s.Rdp.RedirectDiskDrives switch
@@ -273,7 +273,7 @@ internal static partial class FieldMaps
             (s, v, ctx) =>
             {
                 if (TryParseBool(v, out var b)) set(s, b);
-                else if (v.Length > 0) ctx.Warn($"{attr}: '{v}' ist kein Wahrheitswert.");
+                else if (v.Length > 0) ctx.Warn($"{attr}: '{v}' is not a boolean.");
             },
             (s, _) => get(s) is { } b ? (b ? "true" : "false") : null);
     }
@@ -285,7 +285,7 @@ internal static partial class FieldMaps
             (s, v, ctx) =>
             {
                 if (int.TryParse(v, NumberStyles.Integer, CultureInfo.InvariantCulture, out var i)) set(s, i);
-                else if (v.Length > 0) ctx.Warn($"{attr}: '{v}' ist keine Zahl.");
+                else if (v.Length > 0) ctx.Warn($"{attr}: '{v}' is not a number.");
             },
             (s, _) => get(s)?.ToString(CultureInfo.InvariantCulture));
     }
@@ -298,7 +298,7 @@ internal static partial class FieldMaps
             (s, v, ctx) =>
             {
                 if (System.Enum.TryParse<TEnum>(v, true, out var e) && System.Enum.IsDefined(e)) set(s, e);
-                else if (v.Length > 0) ctx.Warn($"{attr}: unbekannter Wert '{v}'.");
+                else if (v.Length > 0) ctx.Warn($"{attr}: unknown value '{v}'.");
             },
             (s, _) => get(s)?.ToString());
     }
@@ -320,7 +320,7 @@ internal static class Accessor
     public static (Func<ConnectionSettings, T?> Get, Action<ConnectionSettings, T?> Set) Create<T>(Expression<Func<ConnectionSettings, T?>> expr)
     {
         if (expr.Body is not MemberExpression member)
-            throw new ArgumentException("Nur Eigenschaftsketten werden unterstützt.", nameof(expr));
+            throw new ArgumentException("Only property chains are supported.", nameof(expr));
 
         var value = Expression.Parameter(typeof(T), "value");
         var assign = Expression.Assign(member, value);

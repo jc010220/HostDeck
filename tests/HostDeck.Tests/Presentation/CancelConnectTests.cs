@@ -80,7 +80,7 @@ public sealed class CancelConnectTests : IDisposable
         tab.CancelConnectCommand.Execute(null);
         await connect.WaitAsync(TimeSpan.FromSeconds(3), TestContext.Current.CancellationToken);
         Assert.Equal(SessionState.Disconnected, tab.State);
-        Assert.Equal("Verbindungsaufbau abgebrochen.", tab.Vnc.Message);
+        Assert.Equal("Connecting cancelled.", tab.Vnc.Message);
     }
 
     [Fact]
@@ -100,6 +100,6 @@ public sealed class CancelConnectTests : IDisposable
         var (vm, tab) = Open(ProtocolKind.Ssh2);
         tab.State = SessionState.Connecting;
         vm.Palette.Query = ">abbrechen";
-        Assert.Contains(vm.Palette.Results, r => r.Title.StartsWith("Verbindungsaufbau abbrechen", StringComparison.Ordinal));
+        Assert.Contains(vm.Palette.Results, r => r.Title.StartsWith("Cancel connecting", StringComparison.Ordinal));
     }
 }

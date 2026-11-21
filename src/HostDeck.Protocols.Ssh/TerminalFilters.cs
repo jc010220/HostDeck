@@ -77,11 +77,11 @@ public sealed class TerminalHighlighter
 {
     public static IReadOnlyList<HighlightRule> DefaultRules { get; } =
     [
-        new("Fehler", new Regex(@"\b(?:error|errors|failed|failure|fatal|denied|refused|critical|panic|exception|fehler|fehlgeschlagen)\b",
+        new("Error", new Regex(@"\b(?:error|errors|failed|failure|fatal|denied|refused|critical|panic|exception|fehler|fehlgeschlagen)\b",
             RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant), "91"),        // hellrot
-        new("Warnung", new Regex(@"\b(?:warn|warning|warnings|deprecated|warnung)\b",
+        new("Warning", new Regex(@"\b(?:warn|warning|warnings|deprecated|warnung)\b",
             RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant), "93"),        // gelb
-        new("Erfolg", new Regex(@"\b(?:ok|success|successful|succeeded|done|passed|active \(running\)|erfolgreich)\b",
+        new("Success", new Regex(@"\b(?:ok|success|successful|succeeded|done|passed|active \(running\)|erfolgreich)\b",
             RegexOptions.IgnoreCase | RegexOptions.Compiled | RegexOptions.CultureInvariant), "92"),        // grün
         new("IP", new Regex(@"\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)(?:/\d{1,2})?\b",
             RegexOptions.Compiled | RegexOptions.CultureInvariant), "96"),                                  // cyan

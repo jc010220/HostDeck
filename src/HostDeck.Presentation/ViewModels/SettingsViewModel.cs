@@ -51,7 +51,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string _updateToken = "";
 
     public bool HasUpdateToken { get; }
-    public string UpdateTokenHint => HasUpdateToken ? "Token gespeichert – zum Ersetzen neu eingeben" : "Nur für private GitHub-Repos: Token mit Lesezugriff";
+    public string UpdateTokenHint => HasUpdateToken ? "Token stored – enter a new one to replace it" : "Only for private GitHub repos: read-only token";
 
     public bool ThemeChanged => Theme != _settings.Theme;
 

@@ -16,6 +16,7 @@
             <conv:BoolToVisibilityConverter x:Key="InverseBoolToVisibility" Invert="True" />
             <conv:EnumEqualsConverter x:Key="EnumEquals" />
             <conv:CountToVisibilityConverter x:Key="CountToVisibility" />
+            <conv:ThemeIconConverter x:Key="ThemeIcon" />
             <conv:NullToVisibilityConverter x:Key="NullToVisibility" />
             <conv:FileSizeConverter x:Key="FileSize" />
             <conv:InverseBoolConverter x:Key="InverseBool" />

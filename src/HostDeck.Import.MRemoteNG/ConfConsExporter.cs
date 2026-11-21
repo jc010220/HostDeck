@@ -49,7 +49,7 @@ public sealed class ConfConsExporter(ConfConsExportOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(tree);
         if (_options.ConfVersion is < 2.6 or > ConfConsImporter.MaxKnownConfVersion)
-            throw new ArgumentOutOfRangeException(nameof(ConfConsExportOptions.ConfVersion), "Unterstützt: 2.6 bis 2.9.");
+            throw new ArgumentOutOfRangeException(nameof(ConfConsExportOptions.ConfVersion), "Supported: 2.6 to 2.9.");
 
         var cipher = new AeadConfConsCipher(_options.Engine, _options.Mode, _options.KdfIterations);
         var password = string.IsNullOrEmpty(_options.MasterPassword) ? ConfConsDefaults.DefaultPassword : _options.MasterPassword;

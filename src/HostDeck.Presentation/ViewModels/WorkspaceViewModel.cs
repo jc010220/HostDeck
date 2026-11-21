@@ -34,7 +34,7 @@ public sealed partial class SessionTabViewModel : ObservableObject
     public ProtocolKind Protocol => Settings.Protocol ?? ProtocolKind.Rdp;
     public string Endpoint => $"{Connection.Hostname}:{Settings.Port}";
     public string UserDisplay => string.IsNullOrEmpty(Credentials.Domain) ? Credentials.Username : $@"{Credentials.Domain}\{Credentials.Username}";
-    public string ToolTip => $"{Connection.Path}\n{Protocol} → {Endpoint}" + (UserDisplay.Length > 0 ? $"\nBenutzer: {UserDisplay}" : "");
+    public string ToolTip => $"{Connection.Path}\n{Protocol} → {Endpoint}" + (UserDisplay.Length > 0 ? $"\nUser: {UserDisplay}" : "");
 
     [ObservableProperty] private string _title;
     [ObservableProperty] private SessionState _state = SessionState.Disconnected;

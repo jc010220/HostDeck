@@ -64,7 +64,7 @@ public sealed class AeadConfConsCipher : IConfConsCipher
         int kdfIterations = ConfConsDefaults.DefaultKdfIterations)
     {
         if (kdfIterations < 1000)
-            throw new ArgumentOutOfRangeException(nameof(kdfIterations), "mRemoteNG verlangt mindestens 1000 KDF-Iterationen.");
+            throw new ArgumentOutOfRangeException(nameof(kdfIterations), "mRemoteNG requires at least 1000 KDF iterations.");
         Engine = engine;
         Mode = mode;
         KdfIterations = kdfIterations;
@@ -82,14 +82,14 @@ public sealed class AeadConfConsCipher : IConfConsCipher
         if (string.IsNullOrWhiteSpace(cipherTextBase64)) return "";
         RequirePassword(password);
         if (!IsLatin1(password))
-            throw new ConfConsDecryptionException("Passwort enthält Zeichen außerhalb von Latin-1 – mRemoteNG kann solche Passwörter nicht verwenden.");
+            throw new ConfConsDecryptionException("Password contains characters outside Latin-1 – mRemoteNG cannot use such passwords.");
 
         byte[] data;
         try { data = Convert.FromBase64String(cipherTextBase64.Trim()); }
-        catch (FormatException ex) { throw new ConfConsDecryptionException("Wert ist kein gültiges Base64.", ex); }
+        catch (FormatException ex) { throw new ConfConsDecryptionException("Value is not valid Base64.", ex); }
 
         if (data.Length < SaltBytes + NonceBytes + MacBits / 8)
-            throw new ConfConsDecryptionException("Chiffretext ist zu kurz.");
+            throw new ConfConsDecryptionException("Ciphertext is too short.");
 
         var salt = data.AsSpan(0, SaltBytes).ToArray();
         var nonce = data.AsSpan(SaltBytes, NonceBytes).ToArray();
@@ -107,7 +107,7 @@ public sealed class AeadConfConsCipher : IConfConsCipher
         }
         catch (InvalidCipherTextException ex)
         {
-            throw new ConfConsDecryptionException("Entschlüsselung fehlgeschlagen (falsches Passwort oder beschädigte Daten).", ex);
+            throw new ConfConsDecryptionException("Decryption failed (wrong password or damaged data).", ex);
         }
         finally
         {
@@ -120,7 +120,7 @@ public sealed class AeadConfConsCipher : IConfConsCipher
         if (string.IsNullOrEmpty(plainText)) return "";
         RequirePassword(password);
         if (!IsLatin1(password))
-            throw new ArgumentException("Das Master-Passwort darf nur Latin-1-Zeichen enthalten (Einschränkung von mRemoteNG/BouncyCastle).", nameof(password));
+            throw new ArgumentException("The master password may only contain Latin-1 characters (mRemoteNG/BouncyCastle limitation).", nameof(password));
 
         var salt = RandomNumberGenerator.GetBytes(SaltBytes);
         var nonce = RandomNumberGenerator.GetBytes(NonceBytes);
@@ -206,7 +206,7 @@ public sealed class AeadConfConsCipher : IConfConsCipher
     private static void RequirePassword(string password)
     {
         if (string.IsNullOrWhiteSpace(password))
-            throw new ArgumentException("Passwort erforderlich.", nameof(password));
+            throw new ArgumentException("Password required.", nameof(password));
     }
 }
 
@@ -229,7 +229,7 @@ public sealed class LegacyRijndaelConfConsCipher : IConfConsCipher
         {
             var data = Convert.FromBase64String(cipherTextBase64.Trim());
             if (data.Length < 2 * BlockBytes || data.Length % BlockBytes != 0)
-                throw new ConfConsDecryptionException("Chiffretext hat eine ungültige Länge.");
+                throw new ConfConsDecryptionException("Ciphertext has an invalid length.");
 
             using var aes = Aes.Create();
             aes.Key = key;
@@ -241,7 +241,7 @@ public sealed class LegacyRijndaelConfConsCipher : IConfConsCipher
         }
         catch (Exception ex) when (ex is FormatException or CryptographicException)
         {
-            throw new ConfConsDecryptionException("Entschlüsselung fehlgeschlagen (falsches Passwort oder beschädigte Daten).", ex);
+            throw new ConfConsDecryptionException("Decryption failed (wrong password or damaged data).", ex);
         }
         finally
         {
@@ -280,7 +280,7 @@ public sealed class DpapiConfConsCipher : IConfConsCipher
     {
         if (string.IsNullOrWhiteSpace(cipherTextBase64)) return "";
         if (!OperatingSystem.IsWindows())
-            throw new ConfConsDecryptionException("DPAPI-geschützte Dateien können nur unter Windows entschlüsselt werden.");
+            throw new ConfConsDecryptionException("DPAPI-protected files can only be decrypted on Windows.");
         try
         {
             var plain = ProtectedData.Unprotect(Convert.FromBase64String(cipherTextBase64.Trim()), null, DataProtectionScope.CurrentUser);
@@ -289,7 +289,7 @@ public sealed class DpapiConfConsCipher : IConfConsCipher
         catch (Exception ex) when (ex is FormatException or CryptographicException)
         {
             throw new ConfConsDecryptionException(
-                "DPAPI-Entschlüsselung fehlgeschlagen – die Datei wurde unter einem anderen Windows-Konto oder Rechner gespeichert.", ex);
+                "DPAPI decryption failed – the file was saved under a different Windows account or computer.", ex);
         }
     }
 
@@ -297,7 +297,7 @@ public sealed class DpapiConfConsCipher : IConfConsCipher
     {
         if (string.IsNullOrEmpty(plainText)) return "";
         if (!OperatingSystem.IsWindows())
-            throw new PlatformNotSupportedException("DPAPI ist nur unter Windows verfügbar.");
+            throw new PlatformNotSupportedException("DPAPI is only available on Windows.");
         return Convert.ToBase64String(ProtectedData.Protect(Encoding.UTF8.GetBytes(plainText), null, DataProtectionScope.CurrentUser));
     }
 }

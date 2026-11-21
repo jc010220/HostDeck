@@ -52,7 +52,7 @@ public class WorkspacePersistenceTests
         vm.DeleteCommand.Execute(Item(vm, "Folder1/Connection1.2"));
 
         vm.Palette.Query = ">acme web";
-        var open = vm.Palette.Results.First(r => r.Title.StartsWith("Arbeitsbereich öffnen", StringComparison.Ordinal));
+        var open = vm.Palette.Results.First(r => r.Title.StartsWith("Open workspace", StringComparison.Ordinal));
         vm.ExecutePaletteItem(open);
         Assert.Equal(WorkspaceLayout.Grid, vm.Workspace.Layout);
         Assert.Equal(2, vm.Workspace.TabCount); // gelöschte Verbindung übersprungen

@@ -58,11 +58,11 @@ public sealed class ConfConsImporter(ConfConsImportOptions? options = null)
             var doc = ParseXml(content);
             var root = doc.Root!;
             if (root.Name.LocalName != "Connections")
-                throw new ConfConsFormatException($"Kein mRemoteNG-Verbindungsfile: Wurzelelement ist <{root.Name.LocalName}>.");
+                throw new ConfConsFormatException($"Not an mRemoteNG connection file: root element is <{root.Name.LocalName}>.");
 
             _confVersion = ParseConfVersion(root);
             if (_confVersion > MaxKnownConfVersion)
-                _warnings.Add($"ConfVersion {_confVersion.ToString(CultureInfo.InvariantCulture)} ist neuer als die höchste getestete Version {MaxKnownConfVersion.ToString(CultureInfo.InvariantCulture)} – Import nach bestem Wissen.");
+                _warnings.Add($"ConfVersion {_confVersion.ToString(CultureInfo.InvariantCulture)} is newer than the highest tested version {MaxKnownConfVersion.ToString(CultureInfo.InvariantCulture)} – importing on a best-effort basis.");
 
             // 3) Verschlüsselungsverfahren bestimmen.
             var dpapi = string.Equals((string?)root.Attribute("KeyProtection"), "Dpapi", StringComparison.OrdinalIgnoreCase);
@@ -90,7 +90,7 @@ public sealed class ConfConsImporter(ConfConsImportOptions? options = null)
             if (dpapi)
             {
                 if (TryDecrypt(_cipher, protectedValue ?? "", "", out var marker) is false || marker != ConfConsDefaults.NotProtectedMarker)
-                    throw new ConfConsAuthenticationException("DPAPI-geschützte Datei kann mit diesem Windows-Konto nicht entschlüsselt werden.", cancelled: false);
+                    throw new ConfConsAuthenticationException("DPAPI-protected file cannot be decrypted with this Windows account.", cancelled: false);
             }
             else if (_confVersion > 1.3 && !string.IsNullOrEmpty(protectedValue))
             {
@@ -160,8 +160,8 @@ public sealed class ConfConsImporter(ConfConsImportOptions? options = null)
             if (options.MasterPasswordProvider is null)
                 throw new ConfConsAuthenticationException(
                     options.MasterPassword is null
-                        ? "Die Datei ist mit einem Master-Passwort geschützt."
-                        : "Das angegebene Master-Passwort ist falsch.",
+                        ? "The file is protected with a master password."
+                        : "The given master password is wrong.",
                     cancelled: false);
 
             var previousFailed = options.MasterPassword is not null;
@@ -169,7 +169,7 @@ public sealed class ConfConsImporter(ConfConsImportOptions? options = null)
             {
                 var entered = options.MasterPasswordProvider(new MasterPasswordRequest(sourceName, attempt, options.MaxPasswordAttempts, previousFailed));
                 if (string.IsNullOrEmpty(entered))
-                    throw new ConfConsAuthenticationException("Passworteingabe abgebrochen.", cancelled: true);
+                    throw new ConfConsAuthenticationException("Password entry cancelled.", cancelled: true);
 
                 if (TryDecrypt(cipher, cipherText, entered, out var plain) && isValid(plain))
                 {
@@ -179,7 +179,7 @@ public sealed class ConfConsImporter(ConfConsImportOptions? options = null)
                 previousFailed = true;
             }
 
-            throw new ConfConsAuthenticationException($"Master-Passwort {options.MaxPasswordAttempts}× falsch eingegeben.", cancelled: false);
+            throw new ConfConsAuthenticationException($"Master password entered incorrectly {options.MaxPasswordAttempts}×.", cancelled: false);
         }
 
         private static bool TryDecrypt(IConfConsCipher cipher, string cipherText, string password, out string plain)
@@ -200,7 +200,7 @@ public sealed class ConfConsImporter(ConfConsImportOptions? options = null)
         {
             string inner;
             try { inner = _cipher.Decrypt(root.Value.Trim(), _password); }
-            catch (ConfConsDecryptionException ex) { throw new ConfConsFormatException("Full-File-Verschlüsselung konnte nicht entschlüsselt werden.", ex); }
+            catch (ConfConsDecryptionException ex) { throw new ConfConsFormatException("Full-file encryption could not be decrypted.", ex); }
 
             var wrapper = ParseXml($"<r xmlns:mrng=\"{MrngNamespace.NamespaceName}\">{inner}</r>").Root!;
             root.ReplaceNodes(wrapper.Nodes());
@@ -228,7 +228,7 @@ public sealed class ConfConsImporter(ConfConsImportOptions? options = null)
                 if (errors[i] is { } error)
                 {
                     _secretsFailed++;
-                    _warnings.Add($"{secret.NodePath}: {secret.Attribute} konnte nicht entschlüsselt werden ({error}) – Feld bleibt leer.");
+                    _warnings.Add($"{secret.NodePath}: {secret.Attribute} could not be decrypted ({error}) – field left empty.");
                     secret.Apply(null);
                 }
                 else
@@ -262,7 +262,7 @@ public sealed class ConfConsImporter(ConfConsImportOptions? options = null)
                 else
                 {
                     if (!type.Equals("Connection", StringComparison.OrdinalIgnoreCase))
-                        _warnings.Add($"{name}: unbekannter Knotentyp '{type}' – wird als Verbindung importiert.");
+                        _warnings.Add($"{name}: unknown node type '{type}' – imported as a connection.");
                     node = new ConnectionNode(name, id) { Hostname = (string?)element.Attribute("Hostname") ?? "" };
                     _connections++;
                 }
@@ -322,7 +322,7 @@ public sealed class ConfConsImporter(ConfConsImportOptions? options = null)
             if (!string.IsNullOrWhiteSpace(raw))
             {
                 originalId = raw;
-                _warnings.Add($"{(string?)element.Attribute("Name")}: Id '{raw}' ungültig oder doppelt – neue Id vergeben.");
+                _warnings.Add($"{(string?)element.Attribute("Name")}: Id '{raw}' invalid or duplicate – new Id assigned.");
             }
             var fresh = Guid.NewGuid();
             _usedIds.Add(fresh);
@@ -336,26 +336,26 @@ public sealed class ConfConsImporter(ConfConsImportOptions? options = null)
             var raw = (string?)root.Attribute("ConfVersion");
             if (raw is null)
             {
-                _warnings.Add("Kein ConfVersion-Attribut – sehr alte Datei, Import nach bestem Wissen.");
+                _warnings.Add("No ConfVersion attribute – very old file, importing on a best-effort basis.");
                 return 0;
             }
             if (double.TryParse(raw.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture, out var v))
                 return v;
-            throw new ConfConsFormatException($"Ungültige ConfVersion '{raw}'.");
+            throw new ConfConsFormatException($"Invalid ConfVersion '{raw}'.");
         }
 
         private TEnum ParseEnum<TEnum>(string? raw, TEnum fallback, string attribute) where TEnum : struct, Enum
         {
             if (string.IsNullOrEmpty(raw)) return fallback;
             if (Enum.TryParse<TEnum>(raw, true, out var value) && Enum.IsDefined(value)) return value;
-            throw new ConfConsFormatException($"Nicht unterstützter Wert {attribute}='{raw}'.");
+            throw new ConfConsFormatException($"Unsupported value {attribute}='{raw}'.");
         }
 
         private int ParseIterations(string? raw)
         {
             if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out var it) && it >= 1000)
                 return it;
-            _warnings.Add($"KdfIterations '{raw}' ungültig – verwende {ConfConsDefaults.DefaultKdfIterations}.");
+            _warnings.Add($"KdfIterations '{raw}' invalid – using {ConfConsDefaults.DefaultKdfIterations}.");
             return ConfConsDefaults.DefaultKdfIterations;
         }
 
@@ -375,7 +375,7 @@ public sealed class ConfConsImporter(ConfConsImportOptions? options = null)
             }
             catch (XmlException ex)
             {
-                throw new ConfConsFormatException($"Ungültiges XML: {ex.Message}", ex);
+                throw new ConfConsFormatException($"Invalid XML: {ex.Message}", ex);
             }
         }
     }

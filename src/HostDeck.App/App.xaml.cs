@@ -19,9 +19,9 @@ public partial class App : Application
     {
         base.OnStartup(e);
         DispatcherUnhandledException += OnUnhandledException;
-        AppDomain.CurrentDomain.UnhandledException += (_, args) => Log.Error("Unbehandelte Ausnahme", (Exception)args.ExceptionObject);
-        TaskScheduler.UnobservedTaskException += (_, args) => { Log.Error("Hintergrundaufgabe", args.Exception); args.SetObserved(); };
-        Log.Info($"Start, Version {typeof(App).Assembly.GetName().Version}");
+        AppDomain.CurrentDomain.UnhandledException += (_, args) => Log.Error("Unhandled exception", (Exception)args.ExceptionObject);
+        TaskScheduler.UnobservedTaskException += (_, args) => { Log.Error("Background task", args.Exception); args.SetObserved(); };
+        Log.Info($"Startup, version {typeof(App).Assembly.GetName().Version}");
         Log.Cleanup();
         HostDeck.Presentation.Services.AppLog.Sink = Log.Error;
         HostDeck.Presentation.Services.AppLog.InfoSink = Log.Info;
@@ -31,7 +31,7 @@ public partial class App : Application
         _singleInstance = new Mutex(initiallyOwned: true, @"Local\HostDeck.SingleInstance", out var isFirst);
         if (!isFirst)
         {
-            MessageBox.Show("HostDeck läuft bereits.", "HostDeck", MessageBoxButton.OK, MessageBoxImage.Information);
+            MessageBox.Show("HostDeck is already running.", "HostDeck", MessageBoxButton.OK, MessageBoxImage.Information);
             Shutdown();
             return;
         }
@@ -42,7 +42,7 @@ public partial class App : Application
 
         var device = new DpapiDeviceKeyProtector();
         var store = UnlockOrCreate(EncryptedConnectionStore.DefaultPath, device);
-        Log.Info(store is null ? "Entsperren abgebrochen" : $"Datenbank geöffnet: {store.DatabasePath} ({new FileInfo(store.DatabasePath).Length / 1024} KB)");
+        Log.Info(store is null ? "Unlock cancelled" : $"Database opened: {store.DatabasePath} ({new FileInfo(store.DatabasePath).Length / 1024} KB)");
         if (store is null)
         {
             Shutdown();
@@ -71,7 +71,7 @@ public partial class App : Application
             DailyBackup(store);
             var mRemoteNgFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "mRemoteNG", "confCons.xml");
             await viewModel.InitializeAsync(mRemoteNgFile);
-            Log.Info("Start abgeschlossen");
+            Log.Info("Startup complete");
             _ = _updates!.CheckOnStartupAsync();
 
             // Datei per Kommandozeile / "Öffnen mit" (z. B. HostDeck.exe confCons.xml)
@@ -94,7 +94,7 @@ public partial class App : Application
             var today = DateTime.Now.ToString("yyyyMMdd");
             if (Directory.EnumerateFiles(dir, $"HostDeck-Sicherung-{today}-*.hdk").Any()) return;
             if (store.CountConnections() == 0) return; // nichts Sicherungswürdiges (und keine leeren Sicherungen anhäufen)
-            Log.Info($"Tägliche Sicherung: {store.Backup(dir)}");
+            Log.Info($"Daily backup: {store.Backup(dir)}");
 
             foreach (var old in Directory.EnumerateFiles(dir, "HostDeck-Sicherung-*.hdk").OrderByDescending(f => f).Skip(10))
             {
@@ -104,7 +104,7 @@ public partial class App : Application
         }
         catch (Exception ex)
         {
-            Log.Error("Tägliche Sicherung", ex);
+            Log.Error("Daily backup", ex);
         }
     }
 
@@ -140,11 +140,11 @@ public partial class App : Application
             }
             catch (WrongMasterPasswordException)
             {
-                error = "Falsches Master-Passwort.";
+                error = "Wrong master password.";
             }
             catch (InvalidDataException ex)
             {
-                MessageBox.Show(ex.Message, "Datenbank kann nicht geöffnet werden", MessageBoxButton.OK, MessageBoxImage.Error);
+                MessageBox.Show(ex.Message, "Database cannot be opened", MessageBoxButton.OK, MessageBoxImage.Error);
                 return null;
             }
         }
@@ -188,10 +188,10 @@ public partial class App : Application
         {
             try
             {
-                new MessageDialog("Unerwarteter Fehler",
-                    $"{e.Exception.Message}\n\nHostDeck läuft weiter. Details im Fehlerprotokoll:\n{Log.Directory}", isError: true).ShowDialog();
+                new MessageDialog("Unexpected error",
+                    $"{e.Exception.Message}\n\nHostDeck keeps running. Details in the error log:\n{Log.Directory}", isError: true).ShowDialog();
             }
-            catch (Exception ex) { Log.Error("Fehlerdialog", ex); }
+            catch (Exception ex) { Log.Error("Error dialog", ex); }
             finally { _showingError = false; }
         });
     }

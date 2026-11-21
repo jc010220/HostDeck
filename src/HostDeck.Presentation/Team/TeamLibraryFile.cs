@@ -16,10 +16,10 @@ public sealed record TeamSnapshot(
     IReadOnlyList<string> Warnings);
 
 /// <summary>Die Datei wurde zwischen Lesen und Schreiben von jemand anderem geändert ⇒ neu zusammenführen.</summary>
-public sealed class TeamFileChangedException() : Exception("Die Team-Datei wurde inzwischen geändert.");
+public sealed class TeamFileChangedException() : Exception("The team file has been changed in the meantime.");
 
 /// <summary>Jemand anderes schreibt gerade.</summary>
-public sealed class TeamFileLockedException(string holder) : Exception($"Die Team-Datei wird gerade von {holder} gespeichert. Bitte gleich noch einmal versuchen.")
+public sealed class TeamFileLockedException(string holder) : Exception($"The team file is being saved by {holder} right now. Please try again in a moment.")
 {
     public string Holder { get; } = holder;
 }
@@ -110,7 +110,7 @@ public static class TeamLibraryFile
         if (current.Length > 0)
         {
             try { backupPrevious?.Invoke(current); }
-            catch (Exception ex) { Services.AppLog.Error("Team-Sicherung", ex); } // Sicherung darf das Speichern nicht verhindern
+            catch (Exception ex) { Services.AppLog.Error("Team backup", ex); } // Sicherung darf das Speichern nicht verhindern
         }
 
         var temp = path + ".hostdeck-tmp";
@@ -171,11 +171,11 @@ public static class TeamLibraryFile
                 }
                 string holder;
                 try { holder = File.ReadAllText(lockPath).Split(' ')[0]; }
-                catch (IOException) { holder = "einem Kollegen"; }
-                throw new TeamFileLockedException(string.IsNullOrWhiteSpace(holder) ? "einem Kollegen" : holder);
+                catch (IOException) { holder = "a colleague"; }
+                throw new TeamFileLockedException(string.IsNullOrWhiteSpace(holder) ? "a colleague" : holder);
             }
         }
-        throw new TeamFileLockedException("einem Kollegen");
+        throw new TeamFileLockedException("a colleague");
     }
 
     private static void TryDelete(string path)

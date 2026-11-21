@@ -42,6 +42,18 @@ public sealed class BoolToVisibilityConverter : IValueConverter
 }
 
 /// <summary>Vergleicht ein Enum mit dem ConverterParameter (für Layout-Toggle-Buttons).</summary>
+public sealed class ThemeIconConverter : IValueConverter
+{
+    public object Convert(object? value, Type targetType, object? parameter, CultureInfo culture) => value switch
+    {
+        HostDeck.Presentation.Services.AppTheme.Dark => Icons.Moon,
+        HostDeck.Presentation.Services.AppTheme.Light => Icons.Sun,
+        _ => Icons.SystemTheme,
+    };
+
+    public object ConvertBack(object? value, Type targetType, object? parameter, CultureInfo culture) => throw new NotSupportedException();
+}
+
 /// <summary>Zahl &gt; 0 ⇒ sichtbar (z. B. Zähler-Badge).</summary>
 public sealed class CountToVisibilityConverter : IValueConverter
 {

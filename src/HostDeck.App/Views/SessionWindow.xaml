@@ -21,24 +21,24 @@
                     <Setter Property="Margin" Value="0,0,2,0" />
                 </Style>
             </StackPanel.Resources>
-            <ToggleButton ToolTip="Ein Bereich" Command="{Binding SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.Single}"
+            <ToggleButton ToolTip="Single pane" Command="{Binding SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.Single}"
                           IsChecked="{Binding Layout, Mode=OneWay, Converter={StaticResource EnumEquals}, ConverterParameter=Single}">
                 <controls:LayoutGlyph Layout="Single" />
             </ToggleButton>
-            <ToggleButton ToolTip="Zwei nebeneinander" Command="{Binding SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.TwoColumns}"
+            <ToggleButton ToolTip="Two side by side" Command="{Binding SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.TwoColumns}"
                           IsChecked="{Binding Layout, Mode=OneWay, Converter={StaticResource EnumEquals}, ConverterParameter=TwoColumns}">
                 <controls:LayoutGlyph Layout="TwoColumns" />
             </ToggleButton>
-            <ToggleButton ToolTip="Zwei untereinander" Command="{Binding SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.TwoRows}"
+            <ToggleButton ToolTip="Two stacked" Command="{Binding SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.TwoRows}"
                           IsChecked="{Binding Layout, Mode=OneWay, Converter={StaticResource EnumEquals}, ConverterParameter=TwoRows}">
                 <controls:LayoutGlyph Layout="TwoRows" />
             </ToggleButton>
-            <ToggleButton ToolTip="4er-Grid" Command="{Binding SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.Grid}"
+            <ToggleButton ToolTip="2×2 grid" Command="{Binding SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.Grid}"
                           IsChecked="{Binding Layout, Mode=OneWay, Converter={StaticResource EnumEquals}, ConverterParameter=Grid}">
                 <controls:LayoutGlyph Layout="Grid" />
             </ToggleButton>
             <TextBlock Margin="12,0,0,0" VerticalAlignment="Center" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                       Text="Schließen holt die Sessions ins Hauptfenster zurück · Tabs per Drag &amp; Drop zwischen Fenstern verschieben" />
+                       Text="Closing moves the sessions back to the main window · drag &amp; drop tabs between windows" />
         </StackPanel>
         <views:SplitWorkspace x:Name="Workspace" Margin="8,0,8,8" Workspace="{Binding}" />
     </DockPanel>

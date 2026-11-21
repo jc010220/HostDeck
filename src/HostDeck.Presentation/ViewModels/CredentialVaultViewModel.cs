@@ -30,7 +30,7 @@ public sealed partial class CredentialVaultViewModel : ObservableObject
     public string? NewPassphrase { get; set; }
 
     public bool HasSelection => Selected is not null;
-    public string UsageText => Selected is null ? "" : $"Verwendet von {UsageCount(Selected)} Ordner(n)/Verbindung(en).";
+    public string UsageText => Selected is null ? "" : $"Used by {UsageCount(Selected)} folder(s)/connection(s).";
 
     partial void OnSelectedChanged(Credential? value)
     {
@@ -50,7 +50,7 @@ public sealed partial class CredentialVaultViewModel : ObservableObject
     public void Save()
     {
         if (Selected is not { } c) return;
-        c.Name = string.IsNullOrWhiteSpace(Name) ? "(ohne Namen)" : Name.Trim();
+        c.Name = string.IsNullOrWhiteSpace(Name) ? "(unnamed)" : Name.Trim();
         c.Username = Username.Trim();
         c.Domain = Domain.Trim();
         c.PrivateKey = string.IsNullOrWhiteSpace(PrivateKey) ? null : PrivateKey.Trim() + "\n";
@@ -65,7 +65,7 @@ public sealed partial class CredentialVaultViewModel : ObservableObject
     [RelayCommand]
     public void Add()
     {
-        var c = _tree.Vault.Add(new Credential { Name = "Neue Zugangsdaten" });
+        var c = _tree.Vault.Add(new Credential { Name = "New credentials" });
         Items.Add(c);
         Selected = c;
     }

@@ -69,7 +69,7 @@ public sealed class TerminalView : Border
             {
                 Margin = new Thickness(24),
                 TextWrapping = TextWrapping.Wrap,
-                Text = "Das Terminal benötigt die Microsoft Edge WebView2 Runtime (in Windows 10/11 normalerweise vorinstalliert).\n\n" + ex.Message,
+                Text = "The terminal requires the Microsoft Edge WebView2 Runtime (normally preinstalled on Windows 10/11).\n\n" + ex.Message,
             };
             return;
         }
@@ -153,12 +153,12 @@ public sealed class TerminalView : Border
     {
         var lines = text.Replace("\r\n", "\n").TrimEnd('\n').Split('\n');
         if (lines.Length < 2) return text;
-        var preview = string.Join("\n", lines.Take(8).Select(l => l.Length > 100 ? l[..100] + "…" : l)) + (lines.Length > 8 ? $"\n… ({lines.Length - 8} weitere Zeilen)" : "");
+        var preview = string.Join("\n", lines.Take(8).Select(l => l.Length > 100 ? l[..100] + "…" : l)) + (lines.Length > 8 ? $"\n… ({lines.Length - 8} more lines)" : "");
         var owner = Window.GetWindow(this);
-        var message = $"Du fügst {lines.Length} Zeilen ein. Jede Zeile wird sofort ausgeführt:\n\n{preview}\n\nEinfügen?";
+        var message = $"You are pasting {lines.Length} lines. Each line is executed immediately:\n\n{preview}\n\nPaste?";
         var result = owner is null
-            ? MessageBox.Show(message, "Mehrzeilig einfügen", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No)
-            : MessageBox.Show(owner, message, "Mehrzeilig einfügen", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
+            ? MessageBox.Show(message, "Multi-line paste", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No)
+            : MessageBox.Show(owner, message, "Multi-line paste", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
         return result == MessageBoxResult.Yes ? text : null;
     }
 

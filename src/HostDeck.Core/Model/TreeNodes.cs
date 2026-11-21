@@ -50,7 +50,7 @@ public sealed class FolderNode : TreeNode
     {
         ArgumentNullException.ThrowIfNull(child);
         if (child == this || (child is FolderNode f && Ancestors().Contains(f)))
-            throw new InvalidOperationException("Ein Ordner kann nicht in sich selbst verschoben werden.");
+            throw new InvalidOperationException("A folder cannot be moved into itself.");
         child.Parent?._children.Remove(child);
         if (child.Parent == this && index > _children.Count) index = _children.Count;
         _children.Insert(index, child);

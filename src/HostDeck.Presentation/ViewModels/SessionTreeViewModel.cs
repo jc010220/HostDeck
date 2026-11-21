@@ -81,7 +81,7 @@ public sealed partial class TreeItemViewModel : ObservableObject
     {
         var s = SettingsResolver.Resolve(Node);
         Protocol = s.Protocol ?? ProtocolKind.Rdp;
-        Subtitle = Node is ConnectionNode c ? $"{Protocol} · {c.Hostname}:{s.Port}" : $"{Children.Count} Einträge";
+        Subtitle = Node is ConnectionNode c ? $"{Protocol} · {c.Hostname}:{s.Port}" : $"{Children.Count} entries";
     }
 
     public IEnumerable<TreeItemViewModel> SelfAndDescendants()

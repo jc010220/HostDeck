@@ -186,7 +186,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
         else
         {
-            StatusText = "Kein verbundenes Terminal aktiv – Snippet nicht gesendet.";
+            StatusText = "No connected terminal active – snippet not sent.";
         }
     }
 
@@ -209,35 +209,35 @@ public sealed partial class MainViewModel : ObservableObject
     {
         foreach (var action in AppActions) yield return action;
         foreach (var (name, snapshot) in Settings.SavedWorkspaces.OrderBy(w => w.Key, StringComparer.OrdinalIgnoreCase))
-            yield return ($"Arbeitsbereich öffnen: {name}  ({snapshot.ConnectionCount} Sessions)", "workspace arbeitsbereich " + name, () => RestoreWorkspace(snapshot));
-        yield return ("Arbeitsbereich speichern unter …", "workspace arbeitsbereich save speichern", () => SaveWorkspaceCommand.Execute(null));
+            yield return ($"Open workspace: {name}  ({snapshot.ConnectionCount} sessions)", "workspace arbeitsbereich " + name, () => RestoreWorkspace(snapshot));
+        yield return ("Save workspace as …", "workspace arbeitsbereich save speichern", () => SaveWorkspaceCommand.Execute(null));
         foreach (var name in Settings.SavedWorkspaces.Keys.Order())
-            yield return ($"Arbeitsbereich löschen: {name}", "workspace arbeitsbereich delete löschen " + name, () => { Settings.SavedWorkspaces.Remove(name); SaveSettings(); });
-        yield return ("Layout: ein Bereich", "single layout 1", () => Workspace.SetLayout(WorkspaceLayout.Single));
-        yield return ("Layout: zwei nebeneinander", "split vertical columns 2", () => Workspace.SetLayout(WorkspaceLayout.TwoColumns));
-        yield return ("Layout: zwei untereinander", "split horizontal rows 2", () => Workspace.SetLayout(WorkspaceLayout.TwoRows));
-        yield return ("Layout: 4er-Grid", "grid quad 4", () => Workspace.SetLayout(WorkspaceLayout.Grid));
-        yield return ("Multi-Execution umschalten", "multiexec broadcast", () => IsMultiExecutionEnabled = !IsMultiExecutionEnabled);
+            yield return ($"Delete workspace: {name}", "workspace arbeitsbereich delete löschen " + name, () => { Settings.SavedWorkspaces.Remove(name); SaveSettings(); });
+        yield return ("Layout: single pane", "single layout 1", () => Workspace.SetLayout(WorkspaceLayout.Single));
+        yield return ("Layout: two side by side", "split vertical columns 2", () => Workspace.SetLayout(WorkspaceLayout.TwoColumns));
+        yield return ("Layout: two stacked", "split horizontal rows 2", () => Workspace.SetLayout(WorkspaceLayout.TwoRows));
+        yield return ("Layout: 2×2 grid", "grid quad 4", () => Workspace.SetLayout(WorkspaceLayout.Grid));
+        yield return ("Toggle multi-execution", "multiexec broadcast", () => IsMultiExecutionEnabled = !IsMultiExecutionEnabled);
         if (HasTeamLibrary)
         {
-            yield return ("Team-Bibliothek synchronisieren  (Strg+S)", "team sync synchronisieren speichern share laufwerk", () => SyncTeamCommand.Execute(null));
-            yield return ("Team-Bibliothek trennen", "team trennen disconnect", () => DisconnectTeamLibraryCommand.Execute(null));
+            yield return ("Sync team library  (Ctrl+S)", "team sync synchronisieren speichern share laufwerk", () => SyncTeamCommand.Execute(null));
+            yield return ("Disconnect team library", "team trennen disconnect", () => DisconnectTeamLibraryCommand.Execute(null));
         }
-        yield return (HasTeamLibrary ? "Team-Bibliothek neu verbinden …" : "Team-Bibliothek verbinden (gemeinsame confCons.xml) …",
+        yield return (HasTeamLibrary ? "Reconnect team library …" : "Connect team library (shared confCons.xml) …",
             "team bibliothek library share laufwerk gemeinsam confcons keepass", () => ConnectTeamLibraryCommand.Execute(null));
-        yield return ("mRemoteNG-Datei importieren", "import confcons", () => ImportMRemoteNGCommand.Execute(null));
-        yield return ("Als mRemoteNG-Datei exportieren", "export confcons", () => ExportMRemoteNGCommand.Execute(null));
-        yield return ("Hell/Dunkel umschalten", "theme dark light dunkel hell", () => ToggleThemeCommand.Execute(null));
-        yield return ("Neue Verbindung", "new connection add", () => NewConnectionCommand.Execute(null));
-        yield return ("Neuer Ordner", "new folder add", () => NewFolderCommand.Execute(null));
-        yield return ("Zugangsdaten verwalten (Vault)", "vault credentials passwort", () => ManageVaultCommand.Execute(null));
-        yield return ("Master-Passwort ändern", "password security sicherheit", () => ChangeMasterPasswordCommand.Execute(null));
+        yield return ("Import mRemoteNG file", "import confcons", () => ImportMRemoteNGCommand.Execute(null));
+        yield return ("Export as mRemoteNG file", "export confcons", () => ExportMRemoteNGCommand.Execute(null));
+        yield return ("Switch theme (system / dark / light)", "theme dark light dunkel hell", () => ToggleThemeCommand.Execute(null));
+        yield return ("New connection", "new connection add", () => NewConnectionCommand.Execute(null));
+        yield return ("New folder", "new folder add", () => NewFolderCommand.Execute(null));
+        yield return ("Manage credentials (vault)", "vault credentials passwort", () => ManageVaultCommand.Execute(null));
+        yield return ("Change master password", "password security sicherheit", () => ChangeMasterPasswordCommand.Execute(null));
         if (FocusedWorkspace.ActiveTab is { IsConnecting: true } connecting)
-            yield return ($"Verbindungsaufbau abbrechen: {connecting.Title}", "abbrechen cancel stop verbindung", connecting.CancelConnect);
-        yield return ("Alle Tabs schließen", "close all tabs", CloseAllTabs);
-        yield return ("Einstellungen …", "settings optionen einstellungen preferences", () => OpenSettingsCommand.Execute(null));
-        yield return ("Sicherung erstellen …", "backup sicherung export datenbank", () => BackupCommand.Execute(null));
-        yield return (Settings.ShowReachability ? "Online-Status im Baum ausblenden" : "Online-Status im Baum anzeigen", "online status erreichbar ping", () =>
+            yield return ($"Cancel connecting: {connecting.Title}", "abbrechen cancel stop verbindung", connecting.CancelConnect);
+        yield return ("Close all tabs", "close all tabs", CloseAllTabs);
+        yield return ("Settings …", "settings optionen einstellungen preferences", () => OpenSettingsCommand.Execute(null));
+        yield return ("Create backup …", "backup sicherung export datenbank", () => BackupCommand.Execute(null));
+        yield return (Settings.ShowReachability ? "Hide online status in tree" : "Show online status in tree", "online status erreichbar ping", () =>
         {
             Settings.ShowReachability = !Settings.ShowReachability;
             SaveSettings();
@@ -270,7 +270,7 @@ public sealed partial class MainViewModel : ObservableObject
             }
         }
         if (Workspace.Panes.Count > 0) Workspace.ActivePane = Workspace.Panes[0];
-        StatusText = $"Arbeitsbereich wiederhergestellt: {opened} Session(s)";
+        StatusText = $"Workspace restored: {opened} session(s)";
         return opened;
     }
 
@@ -280,13 +280,13 @@ public sealed partial class MainViewModel : ObservableObject
         var snapshot = CaptureWorkspace();
         if (snapshot.ConnectionCount == 0)
         {
-            StatusText = "Keine gespeicherten Verbindungen geöffnet – nichts zu speichern.";
+            StatusText = "No saved connections open – nothing to save.";
             return;
         }
-        if (_dialogs.Prompt("Arbeitsbereich speichern", "Name des Arbeitsbereichs:", "") is not { Length: > 0 } name) return;
+        if (_dialogs.Prompt("Save workspace", "Workspace name:", "") is not { Length: > 0 } name) return;
         Settings.SavedWorkspaces[name.Trim()] = snapshot;
         SaveSettings();
-        StatusText = $"Arbeitsbereich „{name.Trim()}“ gespeichert ({snapshot.ConnectionCount} Sessions) – über Strg+K abrufbar";
+        StatusText = $"Workspace “{name.Trim()}” saved ({snapshot.ConnectionCount} sessions) – open it via Ctrl+K";
     }
 
     /// <summary>Treffer ausführen. <paramref name="split"/>: in einem neuen Split-Bereich öffnen (Strg+Enter).</summary>
@@ -305,7 +305,7 @@ public sealed partial class MainViewModel : ObservableObject
             case PaletteItemKind.Connection:
                 FocusedWorkspace.Open(CreateTab(item.Connection!, SessionTree.Tree.Vault, transient: false), pane);
                 if (SessionTree.FindByNode(item.Connection!) is { } treeItem) RevealInTree(treeItem);
-                StatusText = $"Geöffnet: {item.Connection!.Path}";
+                StatusText = $"Opened: {item.Connection!.Path}";
                 break;
             case PaletteItemKind.QuickConnect:
                 FocusedWorkspace.Open(CreateTab(item.QuickConnect!.ToConnection(), new CredentialVault(), transient: true), pane);
@@ -345,7 +345,7 @@ public sealed partial class MainViewModel : ObservableObject
     public string StoreLocation => _store.Location;
 
     [ObservableProperty] private string _quickConnectText = "";
-    [ObservableProperty] private string _statusText = "Bereit";
+    [ObservableProperty] private string _statusText = "Ready";
     [ObservableProperty] private AppTheme _currentTheme;
     /// <summary>Tastatureingaben an alle markierten Terminal-Tabs senden (Engine folgt in Phase 4).</summary>
     [ObservableProperty] private bool _isMultiExecutionEnabled;
@@ -371,19 +371,19 @@ public sealed partial class MainViewModel : ObservableObject
         {
             SessionTree.Load(_store.Load());
             _loadSucceeded = true;
-            AppLog.Info($"Datenbank geladen: {SessionTree.Tree.Connections.Count()} Verbindungen, {SessionTree.Tree.Folders.Count()} Ordner, {sw.ElapsedMilliseconds} ms");
+            AppLog.Info($"Database loaded: {SessionTree.Tree.Connections.Count()} connections, {SessionTree.Tree.Folders.Count()} folders, {sw.ElapsedMilliseconds} ms");
         }
         catch (Exception ex)
         {
-            AppLog.Error("Datenbank laden", ex);
-            StatusText = "Datenbank konnte nicht geladen werden – es wird nichts gespeichert";
-            _dialogs.ShowError("Verbindungen konnten nicht geladen werden",
-                $"{ex.Message}\n\nZum Schutz deiner Daten speichert HostDeck jetzt nichts. Die Datenbank bleibt unverändert.\n" +
-                "Bitte das Fehlerprotokoll schicken. Sicherungen liegen im Ordner „backups“ neben der Datenbank.");
+            AppLog.Error("Load database", ex);
+            StatusText = "Database could not be loaded – nothing will be saved";
+            _dialogs.ShowError("Connections could not be loaded",
+                $"{ex.Message}\n\nTo protect your data, HostDeck will not save anything now. The database stays unchanged.\n" +
+                "Please send the error log. Backups are in the “backups” folder next to the database.");
             return;
         }
 
-        StatusText = $"{SessionTree.Tree.Connections.Count()} Verbindungen geladen";
+        StatusText = $"{SessionTree.Tree.Connections.Count()} connections loaded";
         if (Settings.RestoreWorkspaceOnStart && Settings.LastWorkspace is { ConnectionCount: > 0 } last)
             RestoreWorkspace(last);
 
@@ -397,8 +397,8 @@ public sealed partial class MainViewModel : ObservableObject
         {
             Settings.FirstRunImportOffered = true;
             SaveSettings();
-            if (_dialogs.Confirm("mRemoteNG gefunden",
-                    $"Es wurde eine mRemoteNG-Verbindungsdatei gefunden:\n{mRemoteNgDefaultFile}\n\nVerbindungen jetzt übernehmen?"))
+            if (_dialogs.Confirm("mRemoteNG found",
+                    $"An mRemoteNG connection file was found:\n{mRemoteNgDefaultFile}\n\nImport these connections now?"))
                 await TryImportAsync(mRemoteNgDefaultFile);
         }
     }
@@ -421,7 +421,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         if (!_loadSucceeded)
         {
-            AppLog.Info("Speichern übersprungen: Datenbank wurde nicht erfolgreich geladen.");
+            AppLog.Info("Save skipped: database was not loaded successfully.");
             return false;
         }
         try
@@ -432,7 +432,7 @@ public sealed partial class MainViewModel : ObservableObject
             if (before >= 10 && after < before / 2)
             {
                 var backup = _store.Backup(BackupDirectory);
-                AppLog.Info($"Automatische Sicherung vor Speichern ({before} → {after} Verbindungen): {backup}");
+                AppLog.Info($"Automatic backup before saving ({before} → {after} connections): {backup}");
             }
             _store.Save(SessionTree.Tree);
             _treeVersion++;
@@ -442,9 +442,9 @@ public sealed partial class MainViewModel : ObservableObject
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException
                                        or System.Data.Common.DbException)
         {
-            AppLog.Error("Speichern", ex);
-            StatusText = "Speichern fehlgeschlagen!";
-            _dialogs.ShowError("Speichern fehlgeschlagen", ex.Message);
+            AppLog.Error("Save", ex);
+            StatusText = "Saving failed!";
+            _dialogs.ShowError("Saving failed", ex.Message);
             return false;
         }
     }
@@ -456,15 +456,15 @@ public sealed partial class MainViewModel : ObservableObject
         try
         {
             _store.ChangeMasterPassword(input.Current, input.New);
-            StatusText = "Master-Passwort geändert";
+            StatusText = "Master password changed";
         }
         catch (UnauthorizedAccessException)
         {
-            _dialogs.ShowError("Master-Passwort", "Das aktuelle Master-Passwort ist falsch.");
+            _dialogs.ShowError("Master password", "The current master password is wrong.");
         }
         catch (ArgumentException ex)
         {
-            _dialogs.ShowError("Master-Passwort", ex.Message);
+            _dialogs.ShowError("Master password", ex.Message);
         }
     }
 
@@ -474,11 +474,11 @@ public sealed partial class MainViewModel : ObservableObject
         try
         {
             _store.SetDeviceUnlock(value);
-            StatusText = value ? "Entsperren ohne Passwort auf diesem PC aktiviert" : "Entsperren ohne Passwort deaktiviert";
+            StatusText = value ? "Unlock without password enabled on this PC" : "Unlock without password disabled";
         }
         catch (Exception ex) when (ex is PlatformNotSupportedException or IOException or System.Security.Cryptography.CryptographicException)
         {
-            _dialogs.ShowError("Auf diesem PC merken", ex.Message);
+            _dialogs.ShowError("Remember on this PC", ex.Message);
             IsDeviceUnlockEnabled = _store.HasDeviceUnlock;
         }
     }
@@ -492,7 +492,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             case ConnectionNode connection:
                 Workspace.Open(CreateTab(connection, SessionTree.Tree.Vault, transient: false));
-                StatusText = $"Geöffnet: {connection.Path}";
+                StatusText = $"Opened: {connection.Path}";
                 break;
             case FolderNode:
                 item.IsExpanded = !item.IsExpanded;
@@ -507,7 +507,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             var owner = AllWorkspaces.FirstOrDefault(w => w.Panes.Contains(pane)) ?? Workspace;
             owner.Open(CreateTab(connection, SessionTree.Tree.Vault, transient: false), pane);
-            StatusText = $"Geöffnet: {connection.Path}";
+            StatusText = $"Opened: {connection.Path}";
         }
         else
         {
@@ -523,7 +523,7 @@ public sealed partial class MainViewModel : ObservableObject
         var tabs = f.Descendants().OfType<ConnectionNode>()
             .Select(c => CreateTab(c, SessionTree.Tree.Vault, transient: false)).ToList();
         Workspace.OpenTiled(tabs);
-        StatusText = $"{tabs.Count} Sessions aus „{f.Name}“ geöffnet";
+        StatusText = $"{tabs.Count} sessions from “{f.Name}” opened";
     }
 
     /// <summary>
@@ -543,7 +543,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (existing is not null)
         {
             Workspace.Open(CreateTab(existing, SessionTree.Tree.Vault, transient: false));
-            StatusText = $"Geöffnet: {existing.Path}";
+            StatusText = $"Opened: {existing.Path}";
         }
         else if (QuickConnectParser.TryParse(text, Settings.QuickConnectDefaultProtocol, out var target))
         {
@@ -552,7 +552,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
         else
         {
-            StatusText = $"Quick-Connect: „{text}“ nicht verstanden (Beispiel: ssh admin@10.0.0.1:22)";
+            StatusText = $"Quick connect: “{text}” not understood (example: ssh admin@10.0.0.1:22)";
             return;
         }
 
@@ -576,18 +576,18 @@ public sealed partial class MainViewModel : ObservableObject
     {
         if (tab is not { IsTransient: true }) return;
         SessionTree.Add(tab.Connection);
-        StatusText = $"„{tab.Connection.Name}“ gespeichert";
+        StatusText = $"“{tab.Connection.Name}” saved";
     }
 
     // ---- Bearbeiten -------------------------------------------------------------------------------
 
     [RelayCommand]
-    private void NewFolder() => SessionTree.Add(new FolderNode("Neuer Ordner") { IsExpanded = true });
+    private void NewFolder() => SessionTree.Add(new FolderNode("New folder") { IsExpanded = true });
 
     [RelayCommand]
     private void NewConnection()
     {
-        var item = SessionTree.Add(new ConnectionNode("Neue Verbindung") { Hostname = "" });
+        var item = SessionTree.Add(new ConnectionNode("New connection") { Hostname = "" });
         if (!Edit(item))
         {
             SessionTree.Delete(item); // abgebrochen ⇒ nicht als leere Verbindung stehen lassen
@@ -604,7 +604,7 @@ public sealed partial class MainViewModel : ObservableObject
     {
         if (item is null) return;
         var copy = DeepCopy(item.Node);
-        copy.Name = $"{item.Node.Name} (Kopie)";
+        copy.Name = $"{item.Node.Name} (copy)";
         var vm = SessionTree.InsertAfter(item, copy);
         if (copy is ConnectionNode)
         {
@@ -612,7 +612,7 @@ public sealed partial class MainViewModel : ObservableObject
             return;
         }
         Persist();
-        StatusText = $"Dupliziert: {copy.Path}";
+        StatusText = $"Duplicated: {copy.Path}";
     }
 
     private static TreeNode DeepCopy(TreeNode node)
@@ -644,14 +644,14 @@ public sealed partial class MainViewModel : ObservableObject
         item.RefreshDisplay(); // Ordner: Kinder erben ggf. neue Werte
         SessionTree.ApplyFilter();
         Persist();
-        StatusText = $"Gespeichert: {item.Node.Path}";
+        StatusText = $"Saved: {item.Node.Path}";
         return true;
     }
 
     [RelayCommand]
     private void Rename(TreeItemViewModel? item)
     {
-        if (item is null || _dialogs.Prompt("Umbenennen", "Neuer Name:", item.Name) is not { Length: > 0 } name) return;
+        if (item is null || _dialogs.Prompt("Rename", "New name:", item.Name) is not { Length: > 0 } name) return;
         item.Name = name;
         Persist();
     }
@@ -678,24 +678,24 @@ public sealed partial class MainViewModel : ObservableObject
         Reachability?.Invalidate();
         if (!Settings.ShowReachability) foreach (var i in SessionTree.AllItems) i.Reachability = Services.Reachability.Unknown;
         foreach (var t in AllTabs.Select(t => t.Terminal).OfType<TerminalSessionViewModel>()) t.HighlightingEnabled = Settings.TerminalHighlighting;
-        StatusText = "Einstellungen gespeichert";
+        StatusText = "Settings saved";
     }
 
     [RelayCommand]
     private void Backup()
     {
-        if (_dialogs.PickFolder("Zielordner für die Sicherung") is not { } folder) return;
+        if (_dialogs.PickFolder("Target folder for the backup") is not { } folder) return;
         try
         {
             Persist();
             var file = _store.Backup(folder);
-            _dialogs.ShowInfo("Sicherung erstellt",
-                $"{file}\n{file}.key\n\nBeide Dateien gehören zusammen. Wiederherstellen: HostDeck beenden und die Dateien als " +
-                "connections.hdk / connections.hdk.key nach %APPDATA%\\HostDeck kopieren. Geöffnet wird mit dem Master-Passwort zum Zeitpunkt der Sicherung.");
+            _dialogs.ShowInfo("Backup created",
+                $"{file}\n{file}.key\n\nBoth files belong together. To restore: close HostDeck and copy the files as " +
+                "connections.hdk / connections.hdk.key to %APPDATA%\\HostDeck. They open with the master password that was valid at the time of the backup.");
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or System.Data.Common.DbException)
         {
-            _dialogs.ShowError("Sicherung fehlgeschlagen", ex.Message);
+            _dialogs.ShowError("Backup failed", ex.Message);
         }
     }
 
@@ -712,15 +712,25 @@ public sealed partial class MainViewModel : ObservableObject
     {
         if (item is null) return;
         SessionTree.Delete(item);
-        StatusText = $"Gelöscht: {item.Name}";
+        StatusText = $"Deleted: {item.Name}";
     }
 
     // ---- Layout / Theme ---------------------------------------------------------------------------
 
+    public string ThemeToolTip => CurrentTheme switch
+    {
+        AppTheme.System => "Theme: System (follows Windows) – click for Dark",
+        AppTheme.Dark => "Theme: Dark – click for Light",
+        _ => "Theme: Light – click for System",
+    };
+
+    partial void OnCurrentThemeChanged(AppTheme value) => OnPropertyChanged(nameof(ThemeToolTip));
+
     [RelayCommand]
     private void ToggleTheme()
     {
-        CurrentTheme = CurrentTheme == AppTheme.Dark ? AppTheme.Light : AppTheme.Dark;
+        // System → Dark → Light → System
+        CurrentTheme = CurrentTheme switch { AppTheme.System => AppTheme.Dark, AppTheme.Dark => AppTheme.Light, _ => AppTheme.System };
         Settings.Theme = CurrentTheme;
         _theme.Apply(CurrentTheme);
         SaveSettings();
@@ -734,7 +744,7 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task ImportMRemoteNG()
     {
-        var path = _dialogs.OpenFile("mRemoteNG-Verbindungen importieren", "mRemoteNG (confCons.xml)|*.xml|Alle Dateien|*.*");
+        var path = _dialogs.OpenFile("Import mRemoteNG connections", "mRemoteNG (confCons.xml)|*.xml|All files|*.*");
         if (path is not null) await TryImportAsync(path);
     }
 
@@ -750,17 +760,17 @@ public sealed partial class MainViewModel : ObservableObject
         if (IsImporting) return false;
         if (!_loadSucceeded)
         {
-            if (!_dialogs.Confirm("Neu aufbauen?",
-                    "Die bisherige Datenbank konnte nicht geladen werden. Soll der Import in eine neue Datenbank erfolgen?\n\n" +
-                    "Die bisherige Datenbank wird vorher in den Ordner „backups“ gesichert."))
+            if (!_dialogs.Confirm("Rebuild?",
+                    "The existing database could not be loaded. Import into a new database?\n\n" +
+                    "The existing database is backed up to the “backups” folder first."))
                 return false;
-            try { AppLog.Info($"Sicherung vor Neuaufbau: {_store.Backup(BackupDirectory)}"); }
-            catch (Exception ex) { AppLog.Error("Sicherung vor Neuaufbau", ex); }
+            try { AppLog.Info($"Backup before rebuild: {_store.Backup(BackupDirectory)}"); }
+            catch (Exception ex) { AppLog.Error("Backup before rebuild", ex); }
             _loadSucceeded = true;
         }
 
         IsImporting = true;
-        StatusText = $"Importiere {Path.GetFileName(path)} …";
+        StatusText = $"Importing {Path.GetFileName(path)} …";
         var ui = SynchronizationContext.Current;
         var sw = System.Diagnostics.Stopwatch.StartNew();
         try
@@ -788,16 +798,16 @@ public sealed partial class MainViewModel : ObservableObject
             }
             catch (ConfConsAuthenticationException ex) when (ex.Cancelled)
             {
-                StatusText = "Import abgebrochen";
+                StatusText = "Import cancelled";
                 return false;
             }
             catch (Exception ex) when (ex is ConfConsAuthenticationException or ConfConsFormatException or IOException or UnauthorizedAccessException)
             {
-                StatusText = "Import fehlgeschlagen";
-                _dialogs.ShowError("Import fehlgeschlagen", ex.Message);
+                StatusText = "Import failed";
+                _dialogs.ShowError("Import failed", ex.Message);
                 return false;
             }
-            AppLog.Info($"Import gelesen: {result.Statistics.Connections} Verbindungen, {result.Statistics.Folders} Ordner, {sw.ElapsedMilliseconds} ms");
+            AppLog.Info($"Import read: {result.Statistics.Connections} connections, {result.Statistics.Folders} folders, {sw.ElapsedMilliseconds} ms");
 
             var current = SessionTree.Tree;
             if (!current.Root.Children.Any() && current.Vault.Count == 0)
@@ -809,24 +819,24 @@ public sealed partial class MainViewModel : ObservableObject
                 MergeInto(current, result.Tree, $"Import {Path.GetFileNameWithoutExtension(path)} {DateTime.Now:yyyy-MM-dd HH-mm}");
                 SessionTree.Load(current);
             }
-            AppLog.Info($"Import angezeigt: {sw.ElapsedMilliseconds} ms");
+            AppLog.Info($"Import shown: {sw.ElapsedMilliseconds} ms");
             OfferSecurityFixes(result.Tree);
             Persist();
-            AppLog.Info($"Import gespeichert: {sw.ElapsedMilliseconds} ms");
+            AppLog.Info($"Import saved: {sw.ElapsedMilliseconds} ms");
 
             Settings.LastImportPath = path;
             SaveSettings();
-            StatusText = $"{result.Statistics.Connections} Verbindungen in {result.Statistics.Folders} Ordnern importiert"
-                         + (result.Warnings.Count > 0 ? $" – {result.Warnings.Count} Warnung(en)" : "");
+            StatusText = $"{result.Statistics.Connections} connections in {result.Statistics.Folders} folders imported"
+                         + (result.Warnings.Count > 0 ? $" – {result.Warnings.Count} warning(s)" : "");
             if (result.Warnings.Count > 0)
-                _dialogs.ShowInfo("Import abgeschlossen mit Warnungen", string.Join(Environment.NewLine, result.Warnings.Take(30)));
+                _dialogs.ShowInfo("Import finished with warnings", string.Join(Environment.NewLine, result.Warnings.Take(30)));
             return true;
         }
         catch (Exception ex)
         {
             AppLog.Error("Import", ex);
-            StatusText = "Import fehlgeschlagen";
-            _dialogs.ShowError("Import fehlgeschlagen", ex.Message);
+            StatusText = "Import failed";
+            _dialogs.ShowError("Import failed", ex.Message);
             return false;
         }
         finally
@@ -845,13 +855,13 @@ public sealed partial class MainViewModel : ObservableObject
         var affectedConnections = imported.Connections.Count(c =>
             Core.Inheritance.SettingsResolver.Resolve(c) is { Protocol: ProtocolKind.Rdp, Rdp.AuthenticationLevel: RdpAuthenticationLevel.NoAuth });
         if (affectedConnections == 0) return 0;
-        if (!_dialogs.Confirm("Sicherheitsprüfung",
-                $"{affectedConnections} RDP-Verbindung(en) prüfen das Server-Zertifikat nicht (mRemoteNG-Standard). " +
-                "Damit sind Man-in-the-Middle-Angriffe unbemerkt möglich.\n\n" +
-                "Auf den sicheren Standard „bei ungültigem Zertifikat warnen“ umstellen? (empfohlen)"))
+        if (!_dialogs.Confirm("Security check",
+                $"{affectedConnections} RDP connection(s) do not verify the server certificate (mRemoteNG default). " +
+                "This allows man-in-the-middle attacks to go unnoticed.\n\n" +
+                "Switch to the secure default “warn on invalid certificate”? (recommended)"))
             return 0;
         foreach (var node in insecure) node.Settings.Rdp.AuthenticationLevel = null; // erbt sicheren Standard
-        StatusText = $"{affectedConnections} RDP-Verbindung(en) auf Zertifikatsprüfung umgestellt";
+        StatusText = $"{affectedConnections} RDP connection(s) switched to certificate verification";
         return affectedConnections;
     }
 
@@ -889,22 +899,22 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void ExportMRemoteNG()
     {
-        var path = _dialogs.SaveFile("Als mRemoteNG-Datei exportieren", "mRemoteNG (confCons.xml)|*.xml", "confCons.xml");
+        var path = _dialogs.SaveFile("Export as mRemoteNG file", "mRemoteNG (confCons.xml)|*.xml", "confCons.xml");
         if (path is null) return;
         try
         {
             new ConfConsExporter().ExportFile(SessionTree.Tree, path);
-            StatusText = $"Exportiert: {path}";
+            StatusText = $"Exported: {path}";
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            _dialogs.ShowError("Export fehlgeschlagen", ex.Message);
+            _dialogs.ShowError("Export failed", ex.Message);
         }
     }
 
     public void SaveSettings()
     {
         try { _settingsStore.Save(Settings); }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusText = $"Einstellungen nicht gespeichert: {ex.Message}"; }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { StatusText = $"Settings not saved: {ex.Message}"; }
     }
 }

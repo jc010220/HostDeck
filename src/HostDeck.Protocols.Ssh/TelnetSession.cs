@@ -73,7 +73,7 @@ public sealed class TelnetSession : ITerminalBackend
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
             client.Dispose();
-            throw new TimeoutException($"Keine Antwort von {_host}:{_port}.");
+            throw new TimeoutException($"No response from {_host}:{_port}.");
         }
         catch
         {

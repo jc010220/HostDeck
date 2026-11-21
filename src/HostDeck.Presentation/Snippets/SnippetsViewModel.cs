@@ -89,7 +89,7 @@ public sealed partial class SnippetsViewModel : ObservableObject
         var result = command;
         foreach (var name in System.Text.RegularExpressions.Regex.Matches(command, @"\{\{([^{}]+)\}\}").Select(m => m.Groups[1].Value).Distinct())
         {
-            var value = _prompt(name, $"Wert für „{name}“:");
+            var value = _prompt(name, $"Value for “{name}”:");
             if (value is null) return null;
             result = result.Replace("{{" + name + "}}", value);
         }
@@ -112,13 +112,13 @@ public sealed partial class SnippetsViewModel : ObservableObject
 
     private static List<Snippet> DefaultSnippets() =>
     [
-        new() { Category = "Linux", Name = "Systemlast", Command = "uptime && free -h && df -h -x tmpfs -x devtmpfs" },
-        new() { Category = "Linux", Name = "Fehlgeschlagene Dienste", Command = "systemctl --failed" },
-        new() { Category = "Linux", Name = "Dienst-Status", Command = "systemctl status {{Dienst}} --no-pager" },
-        new() { Category = "Linux", Name = "Log verfolgen", Command = "journalctl -u {{Dienst}} -f" },
-        new() { Category = "Linux", Name = "Offene Ports", Command = "ss -tulpn" },
-        new() { Category = "Linux", Name = "Größte Verzeichnisse", Command = "du -xh --max-depth=1 . 2>/dev/null | sort -rh | head -15" },
-        new() { Category = "Netzwerk", Name = "Show interfaces (Cisco)", Command = "show ip interface brief" },
-        new() { Category = "Netzwerk", Name = "Show running-config (Cisco)", Command = "terminal length 0\rshow running-config" },
+        new() { Category = "Linux", Name = "System load", Command = "uptime && free -h && df -h -x tmpfs -x devtmpfs" },
+        new() { Category = "Linux", Name = "Failed services", Command = "systemctl --failed" },
+        new() { Category = "Linux", Name = "Service status", Command = "systemctl status {{Service}} --no-pager" },
+        new() { Category = "Linux", Name = "Follow log", Command = "journalctl -u {{Service}} -f" },
+        new() { Category = "Linux", Name = "Open ports", Command = "ss -tulpn" },
+        new() { Category = "Linux", Name = "Largest directories", Command = "du -xh --max-depth=1 . 2>/dev/null | sort -rh | head -15" },
+        new() { Category = "Network", Name = "Show interfaces (Cisco)", Command = "show ip interface brief" },
+        new() { Category = "Network", Name = "Show running-config (Cisco)", Command = "terminal length 0\rshow running-config" },
     ];
 }

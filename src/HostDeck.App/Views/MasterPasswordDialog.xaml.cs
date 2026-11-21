@@ -8,10 +8,10 @@ public partial class MasterPasswordDialog : FluentWindow
     public MasterPasswordDialog(string? sourceName, bool previousAttemptFailed, int attempt, int maxAttempts)
     {
         InitializeComponent();
-        Message.Text = $"„{sourceName ?? "Verbindungsdatei"}“ ist mit einem Master-Passwort geschützt.";
+        Message.Text = $"“{sourceName ?? "Connection file"}” is protected with a master password.";
         if (previousAttemptFailed)
         {
-            ErrorText.Text = $"Falsches Passwort – Versuch {attempt} von {maxAttempts}.";
+            ErrorText.Text = $"Wrong password – attempt {attempt} of {maxAttempts}.";
             ErrorText.Visibility = Visibility.Visible;
         }
     }

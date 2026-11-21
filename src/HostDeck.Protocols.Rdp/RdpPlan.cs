@@ -62,7 +62,7 @@ public sealed class RdpPlan
     /// <summary>Nur bei RdpDiskDrives.Custom: zu verbindende Laufwerksbuchstaben (z. B. "C", "D").</summary>
     public IReadOnlyList<string> RedirectDriveLetters { get; init; } = [];
 
-    public override string ToString() => $"{UserName}@{Server}:{Port} ({Properties.Count} Eigenschaften)";
+    public override string ToString() => $"{UserName}@{Server}:{Port} ({Properties.Count} properties)";
 }
 
 public sealed class RdpPlanException(string message) : Exception(message);
@@ -85,7 +85,7 @@ public static class RdpPlanBuilder
     {
         ArgumentNullException.ThrowIfNull(connection);
         var host = connection.Hostname.Trim();
-        if (host.Length == 0) throw new RdpPlanException($"„{connection.Name}“ hat keinen Hostnamen.");
+        if (host.Length == 0) throw new RdpPlanException($"“{connection.Name}” has no hostname.");
 
         var rdp = resolved.Rdp;
         var gw = rdp.Gateway;

@@ -123,8 +123,8 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
             var qc = new PaletteItem
             {
                 Kind = PaletteItemKind.QuickConnect,
-                Title = $"Verbinden: {target!.DisplayName}",
-                Subtitle = $"{target.Protocol} → {target.Host}:{target.EffectivePort} (Quick-Connect, nicht gespeichert)",
+                Title = $"Connect: {target!.DisplayName}",
+                Subtitle = $"{target.Protocol} → {target.Host}:{target.EffectivePort} (quick connect, not saved)",
                 Badge = target.Protocol.ToString().ToUpperInvariant(),
                 Protocol = target.Protocol,
                 QuickConnect = target,
@@ -172,5 +172,5 @@ public sealed partial class CommandPaletteViewModel : ObservableObject
             .Select(a => (a, score: query.Length == 0 ? 1 : Math.Max(FuzzyMatcher.Score(query, a.Title) * 2, FuzzyMatcher.Score(query, a.Keywords))))
             .Where(x => x.score > 0)
             .OrderByDescending(x => x.score)
-            .Select(x => new PaletteItem { Kind = PaletteItemKind.Action, Title = x.a.Title, Subtitle = "Befehl", Action = x.a.Run, Score = x.score });
+            .Select(x => new PaletteItem { Kind = PaletteItemKind.Action, Title = x.a.Title, Subtitle = "Command", Action = x.a.Run, Score = x.score });
 }

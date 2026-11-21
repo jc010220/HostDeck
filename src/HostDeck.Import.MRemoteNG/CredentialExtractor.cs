@@ -28,11 +28,11 @@ public static class CredentialExtractor
             var (user, domain, password) = group.Key;
             var credential = tree.Vault.Add(new Credential
             {
-                Name = UniqueName(string.IsNullOrEmpty(domain) ? (user.Length > 0 ? user : "(ohne Benutzer)") : $"{domain}\\{user}", usedNames),
+                Name = UniqueName(string.IsNullOrEmpty(domain) ? (user.Length > 0 ? user : "(no user)") : $"{domain}\\{user}", usedNames),
                 Username = user,
                 Domain = domain,
                 Password = password,
-                Notes = $"Aus mRemoteNG importiert, verwendet von {group.Count()} Knoten.",
+                Notes = $"Imported from mRemoteNG, used by {group.Count()} nodes.",
             });
 
             foreach (var node in group)

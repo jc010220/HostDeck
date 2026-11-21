@@ -20,6 +20,8 @@ public static class Icons
     public static SymbolRegular Export => SymbolRegular.ArrowExportLtr24;
     public static SymbolRegular Save => SymbolRegular.Save24;
     public static SymbolRegular Moon => SymbolRegular.WeatherMoon24;
+    public static SymbolRegular Sun => SymbolRegular.WeatherSunny24;
+    public static SymbolRegular SystemTheme => SymbolRegular.DarkTheme24;
     public static SymbolRegular Keyboard => SymbolRegular.KeyboardShift24;
     public static SymbolRegular Plug => SymbolRegular.PlugConnected24;
     public static SymbolRegular Lock => SymbolRegular.LockClosed24;

@@ -30,7 +30,7 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
         _node = node;
         Vault = vault;
         _inherited = node.Parent is { } parent ? SettingsResolver.Resolve(parent) : SettingsResolver.Resolve(new FolderNode("_"));
-        InheritedFrom = node.Parent is { Parent: not null } p ? p.Name : "Standard";
+        InheritedFrom = node.Parent is { Parent: not null } p ? p.Name : "Defaults";
 
         var s = node.Settings;
         _name = node.Name;
@@ -41,7 +41,7 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
         _tags = s.EnvironmentTags ?? "";
         _favorite = s.Favorite;
 
-        CredentialOptions = [new CredentialOption(null, "(keiner – Benutzer/Passwort unten bzw. geerbt)"),
+        CredentialOptions = [new CredentialOption(null, "(none – username/password below or inherited)"),
             .. vault.Items.OrderBy(c => c.Name).Select(c => new CredentialOption(c.Id, $"{c.Name}  ({c.DisplayUser})"))];
         _credential = CredentialOptions.FirstOrDefault(o => o.Id == s.CredentialId) ?? CredentialOptions[0];
         _username = s.Username ?? "";
@@ -69,7 +69,7 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
     public bool IsConnection => _node is ConnectionNode;
     public bool IsFolder => _node is FolderNode;
     public string InheritedFrom { get; }
-    public string Title => IsFolder ? $"Ordner „{_node.Name}“ – Standardwerte für alle Einträge darin" : $"Verbindung „{_node.Name}“";
+    public string Title => IsFolder ? $"Folder “{_node.Name}” – defaults for all entries inside" : $"Connection “{_node.Name}”";
 
     // ---- Allgemein --------------------------------------------------------------------------------
     [ObservableProperty] private string _name;
@@ -81,7 +81,7 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
     [ObservableProperty] private bool? _favorite;
 
     public IReadOnlyList<Option<ProtocolKind>> ProtocolOptions { get; }
-    public string PortPlaceholder => _inherited.Port is { } p && IsInheritedProtocolPort ? $"geerbt: {p}" : $"Standard: {ProtocolDefaults.DefaultPort(Protocol.Value ?? _inherited.Protocol ?? ProtocolKind.Rdp)}";
+    public string PortPlaceholder => _inherited.Port is { } p && IsInheritedProtocolPort ? $"inherited: {p}" : $"default: {ProtocolDefaults.DefaultPort(Protocol.Value ?? _inherited.Protocol ?? ProtocolKind.Rdp)}";
     private bool IsInheritedProtocolPort => _node.Parent is not null && SettingsResolver.FindOrigin(_node.Parent, x => x.Port) is not null;
     public string DescriptionPlaceholder => Hint(_inherited.Description);
     public string TagsPlaceholder => Hint(_inherited.EnvironmentTags);
@@ -100,8 +100,8 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
 
     public string UsernamePlaceholder => Hint(InheritedCredentials.Username);
     public string DomainPlaceholder => Hint(InheritedCredentials.Domain);
-    public string PasswordHint => HasOwnPassword ? "Ein eigenes Passwort ist gespeichert – leer lassen, um es zu behalten."
-        : InheritPassword && InheritedCredentials.Password.Length > 0 ? $"Passwort wird von „{InheritedFrom}“ geerbt." : "Kein Passwort gespeichert.";
+    public string PasswordHint => HasOwnPassword ? "A password is stored – leave empty to keep it."
+        : InheritPassword && InheritedCredentials.Password.Length > 0 ? $"Password is inherited from “{InheritedFrom}”." : "No password stored.";
     private ResolvedCredentials InheritedCredentials => _node.Parent is { } parent ? CredentialResolver.Resolve(parent, Vault)
         : new ResolvedCredentials("", "", "", null, null);
 
@@ -129,8 +129,8 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
 
     /// <summary>Warnung bei unsicherer Einstellung (z. B. Zertifikat nicht prüfen).</summary>
     public string? SecurityWarning => (AuthLevel.Value ?? _inherited.Rdp.AuthenticationLevel) == RdpAuthenticationLevel.NoAuth
-        ? "Unsicher: Das Server-Zertifikat wird nicht geprüft (anfällig für Man-in-the-Middle). Empfohlen: „Warnen“."
-        : (UseCredSsp ?? _inherited.Rdp.UseCredSsp) == false ? "Unsicher: NLA/CredSSP ist deaktiviert." : null;
+        ? "Insecure: the server certificate is not verified (vulnerable to man-in-the-middle). Recommended: “Warn”."
+        : (UseCredSsp ?? _inherited.Rdp.UseCredSsp) == false ? "Insecure: NLA/CredSSP is disabled." : null;
 
     partial void OnAuthLevelChanged(Option<RdpAuthenticationLevel> value) => OnPropertyChanged(nameof(SecurityWarning));
     partial void OnUseCredSspChanged(bool? value) => OnPropertyChanged(nameof(SecurityWarning));
@@ -140,12 +140,12 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
     /// <summary>Prüft und schreibt zurück. Liefert eine Fehlermeldung oder <c>null</c>.</summary>
     public string? Apply()
     {
-        if (string.IsNullOrWhiteSpace(Name)) return "Bitte einen Namen eingeben.";
+        if (string.IsNullOrWhiteSpace(Name)) return "Please enter a name.";
         int? port = null;
         if (Port.Trim().Length > 0)
         {
             if (!int.TryParse(Port.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var p) || p is < 1 or > 65535)
-                return "Der Port muss eine Zahl zwischen 1 und 65535 sein.";
+                return "The port must be a number between 1 and 65535.";
             port = p;
         }
 
@@ -184,10 +184,10 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
     }
 
     private static string? NullIfEmpty(string value) => value.Trim().Length == 0 ? null : value.Trim();
-    private string Hint(string? inherited) => string.IsNullOrEmpty(inherited) ? "" : $"geerbt von {InheritedFrom}: {inherited}";
+    private string Hint(string? inherited) => string.IsNullOrEmpty(inherited) ? "" : $"inherited from {InheritedFrom}: {inherited}";
 
     private static IReadOnlyList<Option<T>> Options<T>(T? inherited) where T : struct, Enum =>
-        [new Option<T>(null, $"(geerbt: {Label(inherited)})"), .. Enum.GetValues<T>().Select(v => new Option<T>(v, Label<T>(v)))];
+        [new Option<T>(null, $"(inherited: {Label(inherited)})"), .. Enum.GetValues<T>().Select(v => new Option<T>(v, Label<T>(v)))];
 
     private static Option<T> Find<T>(IReadOnlyList<Option<T>> options, T? value) where T : struct =>
         options.First(o => EqualityComparer<T?>.Default.Equals(o.Value, value));
@@ -196,12 +196,12 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
     internal static string Label<T>(T? value) where T : struct, Enum => value switch
     {
         null => "–",
-        RdpResolutionMode m => m switch { RdpResolutionMode.FitToWindow => "An Fenster anpassen (dynamisch)", RdpResolutionMode.SmartSize => "Skalieren (Smart Sizing)", RdpResolutionMode.Fullscreen => "Vollbild", _ => "Feste Auflösung" },
+        RdpResolutionMode m => m switch { RdpResolutionMode.FitToWindow => "Fit to window (dynamic)", RdpResolutionMode.SmartSize => "Scale (smart sizing)", RdpResolutionMode.Fullscreen => "Full screen", _ => "Fixed resolution" },
         RdpColorDepth d => $"{(int)d} Bit",
-        RdpAuthenticationLevel a => a switch { RdpAuthenticationLevel.NoAuth => "Nicht prüfen (unsicher)", RdpAuthenticationLevel.AuthRequired => "Prüfen, bei Fehler abbrechen", _ => "Prüfen, bei Fehler warnen" },
-        RdpSoundRedirection snd => snd switch { RdpSoundRedirection.BringToThisComputer => "Auf diesem PC", RdpSoundRedirection.LeaveAtRemoteComputer => "Auf dem Server", _ => "Nicht wiedergeben" },
-        RdpDiskDrives dd => dd switch { RdpDiskDrives.None => "Keine", RdpDiskDrives.Local => "Lokale Laufwerke", RdpDiskDrives.All => "Alle (auch USB)", _ => "Benutzerdefiniert" },
-        RdGatewayUsage g => g switch { RdGatewayUsage.Never => "Nie", RdGatewayUsage.Always => "Immer", _ => "Automatisch erkennen" },
+        RdpAuthenticationLevel a => a switch { RdpAuthenticationLevel.NoAuth => "Don't verify (insecure)", RdpAuthenticationLevel.AuthRequired => "Verify, abort on error", _ => "Verify, warn on error" },
+        RdpSoundRedirection snd => snd switch { RdpSoundRedirection.BringToThisComputer => "On this PC", RdpSoundRedirection.LeaveAtRemoteComputer => "On the server", _ => "Don't play" },
+        RdpDiskDrives dd => dd switch { RdpDiskDrives.None => "None", RdpDiskDrives.Local => "Local drives", RdpDiskDrives.All => "All (incl. USB)", _ => "Custom" },
+        RdGatewayUsage g => g switch { RdGatewayUsage.Never => "Never", RdGatewayUsage.Always => "Always", _ => "Detect automatically" },
         ProtocolKind p => p switch { ProtocolKind.Ssh2 => "SSH", ProtocolKind.Rdp => "RDP", _ => p.ToString().ToUpperInvariant() },
         _ => value.ToString()!,
     };

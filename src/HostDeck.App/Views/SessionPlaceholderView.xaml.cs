@@ -10,6 +10,6 @@ public partial class SessionPlaceholderView : UserControl
         InitializeComponent();
         // Passwort nie anzeigen – nur ob eines vorhanden ist.
         DataContextChanged += (_, _) =>
-            PasswordState.Text = DataContext is SessionTabViewModel { Credentials.Password.Length: > 0 } ? "gespeichert ●●●●●●" : "–";
+            PasswordState.Text = DataContext is SessionTabViewModel { Credentials.Password.Length: > 0 } ? "stored ●●●●●●" : "–";
     }
 }

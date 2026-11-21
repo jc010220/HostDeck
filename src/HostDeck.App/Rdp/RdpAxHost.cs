@@ -10,7 +10,7 @@ internal sealed class RdpAxHost : AxHost
 
     public RdpAxHost(string clsid) : base(clsid) { }
 
-    public object Ocx => GetOcx() ?? throw new InvalidOperationException("RDP-Control nicht erzeugt.");
+    public object Ocx => GetOcx() ?? throw new InvalidOperationException("RDP control not created.");
 
     public event Action? Connecting;
     public event Action? Connected;

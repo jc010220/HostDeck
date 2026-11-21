@@ -111,7 +111,7 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
     private void ReportCancelled()
     {
         SetState(SessionState.Disconnected);
-        WriteStatus("Verbindungsaufbau abgebrochen. Enter verbindet erneut.");
+        WriteStatus("Connecting cancelled. Press Enter to try again.");
     }
 
     private void Wire(ITerminalBackend session)
@@ -126,7 +126,7 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
         {
             if (_tab.State != SessionState.Connected) return;
             SetState(SessionState.Disconnected);
-            WriteStatus("Verbindung beendet" + (reason is null ? "." : $": {reason}") + " – Enter oder Doppelklick auf den Tab verbindet neu.");
+            WriteStatus("Connection closed" + (reason is null ? "." : $": {reason}") + " – press Enter or double-click the tab to reconnect.");
         });
     }
 
@@ -135,7 +135,7 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
         var host = _tab.Connection.Hostname;
         var port = _tab.Settings.Port ?? (raw ? 23 : 23);
         SetState(SessionState.Connecting);
-        WriteStatus($"Verbinde ({(raw ? "Raw-TCP" : "Telnet")}) mit {host}:{port} …" + (raw ? "" : "  (unverschlüsselt!)") + "  – Esc bricht ab");
+        WriteStatus($"Connecting ({(raw ? "raw TCP" : "Telnet")}) to {host}:{port} …" + (raw ? "" : "  (unencrypted!)") + "  – Esc cancels");
         var session = new TelnetSession(host, port, raw, _tab.Credentials.Username, _tab.Credentials.Password)
         {
             HighlightingEnabled = _settings.TerminalHighlighting,
@@ -158,7 +158,7 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
                 AppLog.Error($"Telnet/Raw {host}:{port}", ex);
             await session.DisposeAsync();
             SetState(SessionState.Failed);
-            WriteStatus($"Verbindung fehlgeschlagen: {Describe(ex)}");
+            WriteStatus($"Connection failed: {Describe(ex)}");
         }
     }
 
@@ -166,7 +166,7 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
     {
         var endpoint = BuildEndpoint();
         SetState(SessionState.Connecting);
-        WriteStatus($"Verbinde mit {endpoint.Username}@{endpoint.Host}:{endpoint.Port} …  – Esc bricht ab");
+        WriteStatus($"Connecting to {endpoint.Username}@{endpoint.Host}:{endpoint.Port} …  – Esc cancels");
 
         var session = new SshTerminalSession(endpoint, _knownHosts, new SshSessionOptions
         {
@@ -197,7 +197,7 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
                 AppLog.Error($"SSH {endpoint.Host}:{endpoint.Port}", ex);
             await session.DisposeAsync();
             SetState(SessionState.Failed);
-            WriteStatus($"Verbindung fehlgeschlagen: {Describe(ex)}");
+            WriteStatus($"Connection failed: {Describe(ex)}");
         }
     }
 
@@ -206,7 +206,7 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
         var c = _tab.Credentials;
         var username = c.Username;
         if (string.IsNullOrEmpty(username))
-            username = _dialogs.Prompt(_tab.Connection.Hostname, "Benutzername:") ?? "";
+            username = _dialogs.Prompt(_tab.Connection.Hostname, "Username:") ?? "";
         return new SshEndpoint(_tab.Connection.Hostname, _tab.Settings.Port ?? 22, username)
         {
             Password = string.IsNullOrEmpty(c.Password) ? null : c.Password,
@@ -217,10 +217,10 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
 
     private static string Describe(Exception ex) => ex switch
     {
-        SshAuthenticationException => "Anmeldung abgelehnt (Benutzername/Passwort/Schlüssel prüfen).",
+        SshAuthenticationException => "Login rejected (check username/password/key).",
         HostKeyRejectedException h => h.Message,
-        System.Net.Sockets.SocketException s => $"Netzwerkfehler ({s.SocketErrorCode}).",
-        SshOperationTimeoutException or TimeoutException => "Zeitüberschreitung.",
+        System.Net.Sockets.SocketException s => $"Network error ({s.SocketErrorCode}).",
+        SshOperationTimeoutException or TimeoutException => "Timed out.",
         _ => ex.Message,
     };
 
@@ -326,8 +326,8 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
         }
         catch (Exception ex)
         {
-            if (ex is not (SshException or System.Net.Sockets.SocketException)) AppLog.Error("SFTP-Verbindung", ex);
-            Status = $"SFTP nicht verfügbar: {ex.Message}";
+            if (ex is not (SshException or System.Net.Sockets.SocketException)) AppLog.Error("SFTP connection", ex);
+            Status = $"SFTP not available: {ex.Message}";
             _sftp = null;
         }
         finally { IsBusy = false; }
@@ -354,13 +354,13 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
                 Path = path;
                 Entries.Clear();
                 foreach (var e in entries) Entries.Add(e);
-                Status = $"{entries.Count} Einträge";
+                Status = $"{entries.Count} entries";
             });
         }
         catch (OperationCanceledException) { }
         catch (Exception ex) when (ex is SshException or InvalidOperationException)
         {
-            Post(() => Status = ex is SftpPermissionDeniedException ? $"Kein Zugriff auf {path}" : ex.Message);
+            Post(() => Status = ex is SftpPermissionDeniedException ? $"No access to {path}" : ex.Message);
         }
         finally { Post(() => IsBusy = false); }
     }
@@ -378,7 +378,7 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
     {
         var entries = selection?.OfType<RemoteEntry>().Where(e => !e.IsDirectory).ToList() ?? [];
         if (entries.Count == 0) return Task.CompletedTask;
-        var folder = _dialogs.PickFolder("Zielordner für den Download");
+        var folder = _dialogs.PickFolder("Target folder for the download");
         return folder is null ? Task.CompletedTask : DownloadToAsync(entries, folder);
     }
 
@@ -387,7 +387,7 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
         if (_sftp is null) return;
         Directory.CreateDirectory(folder);
         await TransferAsync(entries.Count, async (i, progress) => await _sftp.DownloadAsync(entries[i]!, folder, progress));
-        Status = $"{entries.Count} Datei(en) heruntergeladen nach {folder}";
+        Status = $"{entries.Count} file(s) downloaded to {folder}";
     }
 
     /// <summary>Upload, z. B. per Drag &amp; Drop aus dem Explorer.</summary>
@@ -395,7 +395,7 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
     {
         if (_sftp is null || localFiles.Count == 0) return;
         var files = localFiles.Where(File.Exists).ToList();
-        if (files.Count < localFiles.Count) Status = "Ordner-Upload wird noch nicht unterstützt – nur Dateien.";
+        if (files.Count < localFiles.Count) Status = "Uploading folders is not supported yet – files only.";
         await TransferAsync(files.Count, async (i, progress) => await _sftp.UploadAsync(files[i], Path, progress));
         await NavigateAsync(Path);
     }
@@ -418,7 +418,7 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
         }
         catch (Exception ex) when (ex is SshException or IOException or UnauthorizedAccessException)
         {
-            _dialogs.ShowError("Übertragung fehlgeschlagen", ex.Message);
+            _dialogs.ShowError("Transfer failed", ex.Message);
         }
         finally
         {
@@ -430,14 +430,14 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
     [RelayCommand]
     private async Task NewFolder()
     {
-        if (_sftp is null || _dialogs.Prompt("Neuer Ordner", "Name:") is not { Length: > 0 } name) return;
+        if (_sftp is null || _dialogs.Prompt("New folder", "Name:") is not { Length: > 0 } name) return;
         await Run(() => _sftp.CreateDirectoryAsync(SftpSession.Combine(Path, name)));
     }
 
     [RelayCommand]
     private async Task Rename(RemoteEntry? entry)
     {
-        if (_sftp is null || entry is null || _dialogs.Prompt("Umbenennen", "Neuer Name:", entry.Name) is not { Length: > 0 } name || name == entry.Name) return;
+        if (_sftp is null || entry is null || _dialogs.Prompt("Rename", "New name:", entry.Name) is not { Length: > 0 } name || name == entry.Name) return;
         await Run(() => _sftp.RenameAsync(entry.FullPath, SftpSession.Combine(SftpSession.Parent(entry.FullPath), name)));
     }
 
@@ -446,8 +446,8 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
     {
         var entries = selection?.OfType<RemoteEntry>().ToList() ?? [];
         if (_sftp is null || entries.Count == 0) return;
-        var what = entries.Count == 1 ? $"„{entries[0].Name}“" : $"{entries.Count} Einträge";
-        if (!_dialogs.Confirm("Löschen", $"{what} auf dem Server löschen? (Ordner nur, wenn leer)")) return;
+        var what = entries.Count == 1 ? $"“{entries[0].Name}”" : $"{entries.Count} entries";
+        if (!_dialogs.Confirm("Delete", $"Delete {what} on the server? (folders only if empty)")) return;
         foreach (var e in entries) await Run(() => _sftp.DeleteAsync(e), refresh: false);
         await NavigateAsync(Path);
     }

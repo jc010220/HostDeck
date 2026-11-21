@@ -452,6 +452,10 @@ public class MainViewModelTests
         var (vm, _, settings, _) = Create();
         vm.ToggleThemeCommand.Execute(null);
         Assert.Equal(AppTheme.Dark, settings.Stored.Theme);
+        vm.ToggleThemeCommand.Execute(null);
+        Assert.Equal(AppTheme.Light, settings.Stored.Theme);
+        vm.ToggleThemeCommand.Execute(null);
+        Assert.Equal(AppTheme.System, settings.Stored.Theme);
     }
 }
 

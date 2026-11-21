@@ -71,7 +71,7 @@ public sealed class RfbClient : IAsyncDisposable
         catch (OperationCanceledException) when (!ct.IsCancellationRequested)
         {
             tcp.Dispose();
-            throw new TimeoutException($"Keine Antwort von {host}:{port}.");
+            throw new TimeoutException($"No response from {host}:{port}.");
         }
         catch
         {
@@ -88,7 +88,7 @@ public sealed class RfbClient : IAsyncDisposable
     {
         var versionBytes = await ReadExactAsync(12, ct).ConfigureAwait(false);
         ServerVersion = Encoding.ASCII.GetString(versionBytes).Trim();
-        if (!ServerVersion.StartsWith("RFB ", StringComparison.Ordinal)) throw new IOException("Kein VNC-Server (ungültige Protokollkennung).");
+        if (!ServerVersion.StartsWith("RFB ", StringComparison.Ordinal)) throw new IOException("Not a VNC server (invalid protocol version).");
         var minor = int.Parse(ServerVersion.Split('.')[1]);
         var useMinor = minor >= 8 ? 8 : minor >= 7 ? 7 : 3;
         await WriteAsync(Encoding.ASCII.GetBytes($"RFB 003.00{useMinor}\n"), ct).ConfigureAwait(false);
@@ -105,15 +105,15 @@ public sealed class RfbClient : IAsyncDisposable
             if (count == 0) throw new IOException(await ReadReasonAsync(ct).ConfigureAwait(false));
             var types = await ReadExactAsync(count, ct).ConfigureAwait(false);
             securityType = types.Contains((byte)1) ? 1 : types.Contains((byte)2) ? 2
-                : throw new IOException($"Kein unterstütztes Sicherheitsverfahren angeboten ({string.Join(",", types)}). Unterstützt: None, VNC-Passwort.");
+                : throw new IOException($"No supported security type offered ({string.Join(",", types)}). Supported: None, VNC password.");
             await WriteAsync([(byte)securityType], ct).ConfigureAwait(false);
         }
 
-        SecurityType = securityType == 1 ? "Keine" : "VNC-Passwort";
+        SecurityType = securityType == 1 ? "None" : "VNC password";
         if (securityType == 2)
         {
             var challenge = await ReadExactAsync(16, ct).ConfigureAwait(false);
-            var password = passwordProvider() ?? throw new VncAuthenticationException("Passworteingabe abgebrochen.");
+            var password = passwordProvider() ?? throw new VncAuthenticationException("Password entry cancelled.");
             await WriteAsync(EncryptChallenge(challenge, password), ct).ConfigureAwait(false);
         }
 
@@ -122,8 +122,8 @@ public sealed class RfbClient : IAsyncDisposable
             var result = await ReadU32Async(ct).ConfigureAwait(false);
             if (result != 0)
             {
-                var reason = useMinor == 8 ? await ReadReasonAsync(ct).ConfigureAwait(false) : "Anmeldung fehlgeschlagen.";
-                throw new VncAuthenticationException(string.IsNullOrWhiteSpace(reason) ? "Falsches VNC-Passwort." : reason);
+                var reason = useMinor == 8 ? await ReadReasonAsync(ct).ConfigureAwait(false) : "Authentication failed.";
+                throw new VncAuthenticationException(string.IsNullOrWhiteSpace(reason) ? "Wrong VNC password." : reason);
             }
         }
 
@@ -205,7 +205,7 @@ public sealed class RfbClient : IAsyncDisposable
                         var text = Encoding.Latin1.GetString(await ReadExactAsync((int)Math.Min(len, 10_000_000), ct).ConfigureAwait(false));
                         ClipboardReceived?.Invoke(text);
                         break;
-                    default: throw new IOException($"Unbekannte Servernachricht {type}.");
+                    default: throw new IOException($"Unknown server message {type}.");
                 }
             }
         }
@@ -231,7 +231,7 @@ public sealed class RfbClient : IAsyncDisposable
                 DesktopResized?.Invoke(w, h);
                 continue;
             }
-            if (x + w > Width || y + h > Height) throw new InvalidDataException("Rechteck außerhalb des Framebuffers.");
+            if (x + w > Width || y + h > Height) throw new InvalidDataException("Rectangle outside the framebuffer.");
 
             switch (encoding)
             {
@@ -252,7 +252,7 @@ public sealed class RfbClient : IAsyncDisposable
                     DecodeZrle(data, x, y, w, h);
                     break;
                 default:
-                    throw new InvalidDataException($"Nicht angeforderte Kodierung {encoding}.");
+                    throw new InvalidDataException($"Unrequested encoding {encoding}.");
             }
             FramebufferUpdated?.Invoke(new DirtyRect(x, y, w, h));
         }
@@ -404,7 +404,7 @@ public sealed class RfbClient : IAsyncDisposable
                 }
                 else
                 {
-                    throw new InvalidDataException($"Ungültige ZRLE-Unterkodierung {sub}.");
+                    throw new InvalidDataException($"Invalid ZRLE subencoding {sub}.");
                 }
 
                 lock (_fbLock)
@@ -424,7 +424,7 @@ public sealed class RfbClient : IAsyncDisposable
     private static int ReadByte(Stream s)
     {
         var b = s.ReadByte();
-        return b >= 0 ? b : throw new InvalidDataException("ZRLE-Daten unvollständig.");
+        return b >= 0 ? b : throw new InvalidDataException("Incomplete ZRLE data.");
     }
 
     /// <summary>CPIXEL bei 32 bpp/Tiefe 24 Little Endian: 3 Bytes B, G, R.</summary>

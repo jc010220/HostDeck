@@ -10,7 +10,7 @@
         <StackPanel Margin="24,4,24,0">
             <Border x:Name="WarningBox" Background="#33E81123" BorderBrush="#E81123" BorderThickness="1" CornerRadius="6" Padding="12" Margin="0,0,0,12" Visibility="Collapsed">
                 <TextBlock TextWrapping="Wrap" FontWeight="SemiBold"
-                           Text="ACHTUNG: Der Host-Key hat sich geändert! Das kann eine Neuinstallation des Servers bedeuten – oder einen Man-in-the-Middle-Angriff. Nur fortfahren, wenn die Änderung bekannt ist." />
+                           Text="WARNING: The host key has changed! This can mean the server was reinstalled – or a man-in-the-middle attack. Only continue if you know about the change." />
             </Border>
             <TextBlock x:Name="Intro" TextWrapping="Wrap" Margin="0,0,0,12" />
             <Grid Margin="0,0,0,12">
@@ -18,17 +18,17 @@
                 <Grid.RowDefinitions><RowDefinition /><RowDefinition /><RowDefinition /><RowDefinition /></Grid.RowDefinitions>
                 <TextBlock Text="Host" Margin="0,2,16,2" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                 <TextBlock x:Name="HostText" Grid.Column="1" Margin="0,2" />
-                <TextBlock Grid.Row="1" Text="Schlüsseltyp" Margin="0,2,16,2" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                <TextBlock Grid.Row="1" Text="Key type" Margin="0,2,16,2" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                 <TextBlock x:Name="TypeText" Grid.Row="1" Grid.Column="1" Margin="0,2" />
                 <TextBlock Grid.Row="2" Text="Fingerprint" Margin="0,2,16,2" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                 <TextBox x:Name="FingerprintText" Grid.Row="2" Grid.Column="1" IsReadOnly="True" BorderThickness="0" Background="Transparent" FontFamily="{StaticResource MonoFont}" TextWrapping="Wrap" />
-                <TextBlock x:Name="PreviousLabel" Grid.Row="3" Text="Bisher" Margin="0,2,16,2" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                <TextBlock x:Name="PreviousLabel" Grid.Row="3" Text="Previous" Margin="0,2,16,2" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                 <TextBox x:Name="PreviousText" Grid.Row="3" Grid.Column="1" IsReadOnly="True" BorderThickness="0" Background="Transparent" FontFamily="{StaticResource MonoFont}" TextWrapping="Wrap" />
             </Grid>
             <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                <ui:Button Content="Abbrechen" IsCancel="True" MinWidth="96" Margin="0,0,8,0" />
-                <ui:Button Content="Nur diesmal" MinWidth="96" Margin="0,0,8,0" Click="OnOnce" />
-                <ui:Button x:Name="SaveButton" Content="Vertrauen und speichern" Appearance="Primary" MinWidth="160" Click="OnSave" />
+                <ui:Button Content="Cancel" IsCancel="True" MinWidth="96" Margin="0,0,8,0" />
+                <ui:Button Content="Only this time" MinWidth="96" Margin="0,0,8,0" Click="OnOnce" />
+                <ui:Button x:Name="SaveButton" Content="Trust and save" Appearance="Primary" MinWidth="160" Click="OnSave" />
             </StackPanel>
         </StackPanel>
     </StackPanel>

@@ -31,7 +31,7 @@ public sealed partial class VncSessionViewModel(SessionTabViewModel tab, IDialog
         var host = Tab.Connection.Hostname;
         var port = Tab.Settings.Port ?? 5900;
         Tab.State = SessionState.Connecting;
-        Message = $"Verbinde mit {host}:{port} …";
+        Message = $"Connecting to {host}:{port} …";
 
         var client = new RfbClient { ViewOnly = ViewOnly };
         using var cts = new CancellationTokenSource();
@@ -40,7 +40,7 @@ public sealed partial class VncSessionViewModel(SessionTabViewModel tab, IDialog
         {
             if (Client != client) return;
             Tab.State = SessionState.Disconnected;
-            Message = "Verbindung beendet" + (reason is null ? "." : $": {reason}");
+            Message = "Connection closed" + (reason is null ? "." : $": {reason}");
             Client = null;
         });
         try
@@ -54,7 +54,7 @@ public sealed partial class VncSessionViewModel(SessionTabViewModel tab, IDialog
         {
             await client.DisposeAsync();
             Tab.State = SessionState.Disconnected;
-            Message = "Verbindungsaufbau abgebrochen.";
+            Message = "Connecting cancelled.";
         }
         catch (Exception ex)
         {
@@ -62,7 +62,7 @@ public sealed partial class VncSessionViewModel(SessionTabViewModel tab, IDialog
                 AppLog.Error($"VNC {host}:{port}", ex);
             await client.DisposeAsync();
             Tab.State = SessionState.Failed;
-            Message = ex is VncAuthenticationException ? $"Anmeldung fehlgeschlagen: {ex.Message}" : $"Verbindung fehlgeschlagen: {ex.Message}";
+            Message = ex is VncAuthenticationException ? $"Authentication failed: {ex.Message}" : $"Connection failed: {ex.Message}";
         }
     }
 
@@ -71,7 +71,7 @@ public sealed partial class VncSessionViewModel(SessionTabViewModel tab, IDialog
     {
         if (!string.IsNullOrEmpty(Tab.Credentials.Password)) return Tab.Credentials.Password;
         string? result = null;
-        void Ask() => result = dialogs.Prompt(Tab.Connection.Hostname, "VNC-Passwort:", secret: true);
+        void Ask() => result = dialogs.Prompt(Tab.Connection.Hostname, "VNC password:", secret: true);
         if (_ui is null || SynchronizationContext.Current == _ui) Ask();
         else _ui.Send(_ => Ask(), null);
         return result;

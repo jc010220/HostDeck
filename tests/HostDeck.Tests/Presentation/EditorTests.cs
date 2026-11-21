@@ -22,12 +22,12 @@ public class ConnectionEditorTests
     {
         var (tree, _, conn) = Tree();
         var e = new ConnectionEditorViewModel(conn, tree.Vault);
-        Assert.Equal("geerbt von Kunde ACME: acme-admin", e.UsernamePlaceholder);
+        Assert.Equal("inherited from Kunde ACME: acme-admin", e.UsernamePlaceholder);
         Assert.Null(e.Protocol.Value);
-        Assert.Equal("(geerbt: SSH)", e.Protocol.Label);
-        Assert.Equal("Standard: 22", e.PortPlaceholder);
+        Assert.Equal("(inherited: SSH)", e.Protocol.Label);
+        Assert.Equal("default: 22", e.PortPlaceholder);
         Assert.True(e.InheritPassword);
-        Assert.Contains("geerbt", e.PasswordHint);
+        Assert.Contains("inherited", e.PasswordHint);
     }
 
     [Fact]
@@ -76,7 +76,7 @@ public class ConnectionEditorTests
         var e = new ConnectionEditorViewModel(conn, tree.Vault);
         Assert.Null(e.SecurityWarning);                                // sicherer Standard
         e.AuthLevel = e.AuthLevelOptions.Single(o => o.Value == RdpAuthenticationLevel.NoAuth);
-        Assert.Contains("Zertifikat", e.SecurityWarning);
+        Assert.Contains("certificate", e.SecurityWarning);
     }
 
     [Fact]

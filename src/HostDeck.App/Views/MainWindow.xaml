@@ -50,48 +50,48 @@
                 </DockPanel.Resources>
 
                 <ToggleButton x:Name="SidebarToggle" Click="OnSidebarToggle" IsChecked="True"
-                              ToolTip="Seitenleiste ein-/ausblenden  (Strg+Umschalt+B)">
+                              ToolTip="Show/hide sidebar  (Ctrl+Shift+B)">
                     <ui:SymbolIcon Symbol="{x:Static app:Icons.Sidebar}" />
                 </ToggleButton>
                 <Separator />
-                <ui:Button Command="{Binding ImportMRemoteNGCommand}" ToolTip="mRemoteNG-Datei (confCons.xml) importieren  (Strg+O)">
+                <ui:Button Command="{Binding ImportMRemoteNGCommand}" ToolTip="Import mRemoteNG file (confCons.xml)  (Ctrl+O)">
                     <StackPanel Orientation="Horizontal">
                         <ui:SymbolIcon Symbol="{x:Static app:Icons.Import}" Margin="0,0,6,0" />
                         <TextBlock Text="Import" />
                     </StackPanel>
                 </ui:Button>
-                <ui:Button Command="{Binding ExportMRemoteNGCommand}" ToolTip="Als mRemoteNG-Datei exportieren">
+                <ui:Button Command="{Binding ExportMRemoteNGCommand}" ToolTip="Export as mRemoteNG file">
                     <ui:SymbolIcon Symbol="{x:Static app:Icons.Export}" />
                 </ui:Button>
                 <Separator />
-                <ui:Button Command="{Binding NewConnectionCommand}" ToolTip="Neue Verbindung  (Strg+N)">
+                <ui:Button Command="{Binding NewConnectionCommand}" ToolTip="New connection  (Ctrl+N)">
                     <ui:SymbolIcon Symbol="{x:Static app:Icons.Add}" />
                 </ui:Button>
-                <ui:Button Command="{Binding NewFolderCommand}" ToolTip="Neuer Ordner  (Strg+Umschalt+N)">
+                <ui:Button Command="{Binding NewFolderCommand}" ToolTip="New folder  (Ctrl+Shift+N)">
                     <ui:SymbolIcon Symbol="{x:Static app:Icons.FolderAdd}" />
                 </ui:Button>
                 <Separator />
 
                 <!-- Split-Screen -->
-                <ToggleButton ToolTip="Ein Bereich  (Strg+Alt+1)" Command="{Binding Workspace.SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.Single}"
+                <ToggleButton ToolTip="Single pane  (Ctrl+Alt+1)" Command="{Binding Workspace.SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.Single}"
                               IsChecked="{Binding Workspace.Layout, Mode=OneWay, Converter={StaticResource EnumEquals}, ConverterParameter=Single}">
                     <controls:LayoutGlyph Layout="Single" />
                 </ToggleButton>
-                <ToggleButton ToolTip="Zwei Bereiche nebeneinander  (Strg+Alt+2)" Command="{Binding Workspace.SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.TwoColumns}"
+                <ToggleButton ToolTip="Two panes side by side  (Ctrl+Alt+2)" Command="{Binding Workspace.SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.TwoColumns}"
                               IsChecked="{Binding Workspace.Layout, Mode=OneWay, Converter={StaticResource EnumEquals}, ConverterParameter=TwoColumns}">
                     <controls:LayoutGlyph Layout="TwoColumns" />
                 </ToggleButton>
-                <ToggleButton ToolTip="Zwei Bereiche untereinander  (Strg+Alt+3)" Command="{Binding Workspace.SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.TwoRows}"
+                <ToggleButton ToolTip="Two panes stacked  (Ctrl+Alt+3)" Command="{Binding Workspace.SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.TwoRows}"
                               IsChecked="{Binding Workspace.Layout, Mode=OneWay, Converter={StaticResource EnumEquals}, ConverterParameter=TwoRows}">
                     <controls:LayoutGlyph Layout="TwoRows" />
                 </ToggleButton>
-                <ToggleButton ToolTip="4er-Grid  (Strg+Alt+4)" Command="{Binding Workspace.SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.Grid}"
+                <ToggleButton ToolTip="2×2 grid  (Ctrl+Alt+4)" Command="{Binding Workspace.SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.Grid}"
                               IsChecked="{Binding Workspace.Layout, Mode=OneWay, Converter={StaticResource EnumEquals}, ConverterParameter=Grid}">
                     <controls:LayoutGlyph Layout="Grid" />
                 </ToggleButton>
                 <Separator />
                 <ui:Button Command="{Binding SyncTeamCommand}" Visibility="{Binding HasTeamLibrary, Converter={StaticResource BoolToVisibility}}"
-                           ToolTip="Team-Bibliothek synchronisieren: Änderungen anderer übernehmen, eigene speichern  (Strg+S)">
+                           ToolTip="Sync team library: pull others' changes, save your own  (Ctrl+S)">
                     <StackPanel Orientation="Horizontal">
                         <ui:SymbolIcon Symbol="{x:Static app:Icons.Sync}" Margin="0,0,6,0" />
                         <TextBlock Text="Team" />
@@ -102,31 +102,31 @@
                     </StackPanel>
                 </ui:Button>
                 <ToggleButton IsChecked="{Binding IsMultiExecutionEnabled}"
-                              ToolTip="Multi-Execution: Eingaben an alle Terminal-Tabs senden  (Strg+Umschalt+M)">
+                              ToolTip="Multi-execution: send input to all terminal tabs  (Ctrl+Shift+M)">
                     <StackPanel Orientation="Horizontal">
                         <ui:SymbolIcon Symbol="{x:Static app:Icons.Keyboard}" Margin="0,0,6,0" />
                         <TextBlock Text="Multi-Exec" />
                     </StackPanel>
                 </ToggleButton>
 
-                <ui:Button DockPanel.Dock="Right" Click="OnPaletteButton" ToolTip="Schnellsuche  (Strg+K)" Margin="0,0,8,0">
+                <ui:Button DockPanel.Dock="Right" Click="OnPaletteButton" ToolTip="Quick search  (Ctrl+K)" Margin="0,0,8,0">
                     <StackPanel Orientation="Horizontal">
                         <ui:SymbolIcon Symbol="{x:Static app:Icons.Search}" Margin="0,0,6,0" />
-                        <TextBlock Text="Suchen …" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
+                        <TextBlock Text="Search …" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                         <Border Margin="10,0,0,0" Padding="5,0" CornerRadius="3" BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
-                            <TextBlock Text="Strg+K" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                            <TextBlock Text="Ctrl+K" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                         </Border>
                     </StackPanel>
                 </ui:Button>
-                <ui:Button DockPanel.Dock="Right" ToolTip="Einstellungen &amp; Sicherheit" Click="OnSecurityMenu">
+                <ui:Button DockPanel.Dock="Right" ToolTip="Settings &amp; security" Click="OnSecurityMenu">
                     <ui:SymbolIcon Symbol="{x:Static app:Icons.Lock}" />
                     <ui:Button.ContextMenu>
                         <ContextMenu>
-                            <MenuItem Header="Einstellungen …" Command="{Binding OpenSettingsCommand}" />
-                            <MenuItem Header="Zugangsdaten verwalten (Vault) …" Command="{Binding ManageVaultCommand}" />
-                            <MenuItem Header="Master-Passwort ändern …" Command="{Binding ChangeMasterPasswordCommand}" />
-                            <MenuItem Header="Sicherung erstellen …" Command="{Binding BackupCommand}" />
-                            <MenuItem Header="Auf diesem PC merken (ohne Passwort entsperren)" IsCheckable="True"
+                            <MenuItem Header="Settings …" Command="{Binding OpenSettingsCommand}" />
+                            <MenuItem Header="Manage credentials (vault) …" Command="{Binding ManageVaultCommand}" />
+                            <MenuItem Header="Change master password …" Command="{Binding ChangeMasterPasswordCommand}" />
+                            <MenuItem Header="Create backup …" Command="{Binding BackupCommand}" />
+                            <MenuItem Header="Remember on this PC (unlock without password)" IsCheckable="True"
                                       IsChecked="{Binding IsDeviceUnlockEnabled}"
                                       Visibility="{Binding DeviceUnlockSupported, Converter={StaticResource BoolToVisibility}}" />
                             <Separator />
@@ -134,8 +134,8 @@
                         </ContextMenu>
                     </ui:Button.ContextMenu>
                 </ui:Button>
-                <ui:Button DockPanel.Dock="Right" Command="{Binding ToggleThemeCommand}" ToolTip="Hell / Dunkel umschalten">
-                    <ui:SymbolIcon Symbol="{x:Static app:Icons.Moon}" />
+                <ui:Button DockPanel.Dock="Right" Command="{Binding ToggleThemeCommand}" ToolTip="{Binding ThemeToolTip}">
+                    <ui:SymbolIcon Symbol="{Binding CurrentTheme, Converter={StaticResource ThemeIcon}}" />
                 </ui:Button>
             </DockPanel>
         </Border>
@@ -152,14 +152,14 @@
             <Border x:Name="SidebarPanel" CornerRadius="6" Padding="6" Background="{DynamicResource CardBackgroundFillColorDefaultBrush}"
                     BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="1">
               <TabControl x:Name="SidebarTabs" Background="Transparent" BorderThickness="0" Padding="0,6,0,0">
-                <TabItem Header="Sitzungen">
+                <TabItem Header="Sessions">
                 <DockPanel>
                     <ComboBox x:Name="QuickConnectBox" DockPanel.Dock="Top" IsEditable="True" Margin="0,0,0,6"
                               Text="{Binding QuickConnectText, UpdateSourceTrigger=PropertyChanged}"
                               ItemsSource="{Binding QuickConnectHistory}" PreviewKeyDown="OnQuickConnectKeyDown"
-                              ToolTip="Quick-Connect: ssh user@host:22 · rdp server · mstsc /v:host · telnet host 23 · Name aus der Liste  (Strg+L)" />
+                              ToolTip="Quick-Connect: ssh user@host:22 · rdp server · mstsc /v:host · telnet host 23 · name from the list  (Ctrl+L)" />
 
-                    <ui:TextBox x:Name="SearchBox" DockPanel.Dock="Top" Margin="0,0,0,6" PlaceholderText="Suchen …  (Strg+F)"
+                    <ui:TextBox x:Name="SearchBox" DockPanel.Dock="Top" Margin="0,0,0,6" PlaceholderText="Search …  (Ctrl+F)"
                                 Text="{Binding SessionTree.FilterText, UpdateSourceTrigger=PropertyChanged}"
                                 ClearButtonEnabled="True" PreviewKeyDown="OnSearchKeyDown">
                         <ui:TextBox.Icon>
@@ -168,7 +168,7 @@
                     </ui:TextBox>
 
                     <TextBlock DockPanel.Dock="Bottom" Margin="4,6,0,0" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}">
-                        <Run Text="{Binding SessionTree.VisibleConnectionCount, Mode=OneWay}" /><Run Text=" Verbindungen" />
+                        <Run Text="{Binding SessionTree.VisibleConnectionCount, Mode=OneWay}" /><Run Text=" connections" />
                     </TextBlock>
 
                     <TreeView x:Name="SessionTreeView" ItemsSource="{Binding SessionTree.Items}"
@@ -186,18 +186,18 @@
                         </TreeView.ItemContainerStyle>
                         <TreeView.ContextMenu>
                             <ContextMenu>
-                                <MenuItem Header="Verbinden" InputGestureText="Enter" Click="OnMenuOpen" FontWeight="SemiBold" />
-                                <MenuItem Header="Alle im Split-Screen öffnen" Click="OnMenuOpenTiled" />
+                                <MenuItem Header="Connect" InputGestureText="Enter" Click="OnMenuOpen" FontWeight="SemiBold" />
+                                <MenuItem Header="Open all in split view" Click="OnMenuOpenTiled" />
                                 <Separator />
-                                <MenuItem Header="Neue Verbindung" InputGestureText="Strg+N" Command="{Binding NewConnectionCommand}" />
-                                <MenuItem Header="Neuer Ordner" InputGestureText="Strg+Umschalt+N" Command="{Binding NewFolderCommand}" />
+                                <MenuItem Header="New connection" InputGestureText="Ctrl+N" Command="{Binding NewConnectionCommand}" />
+                                <MenuItem Header="New folder" InputGestureText="Ctrl+Shift+N" Command="{Binding NewFolderCommand}" />
                                 <Separator />
-                                <MenuItem Header="Eigenschaften …" InputGestureText="F4" Click="OnMenuEdit" />
-                                <MenuItem Header="Umbenennen" InputGestureText="F2" Click="OnMenuRename" />
-                                <MenuItem Header="Duplizieren" InputGestureText="Strg+D" Click="OnMenuDuplicate" />
-                                <MenuItem Header="Löschen" InputGestureText="Entf" Click="OnMenuDelete" />
+                                <MenuItem Header="Properties …" InputGestureText="F4" Click="OnMenuEdit" />
+                                <MenuItem Header="Rename" InputGestureText="F2" Click="OnMenuRename" />
+                                <MenuItem Header="Duplicate" InputGestureText="Ctrl+D" Click="OnMenuDuplicate" />
+                                <MenuItem Header="Delete" InputGestureText="Del" Click="OnMenuDelete" />
                                 <Separator />
-                                <MenuItem Header="Zugangsdaten verwalten (Vault) …" Command="{Binding ManageVaultCommand}" />
+                                <MenuItem Header="Manage credentials (vault) …" Command="{Binding ManageVaultCommand}" />
                             </ContextMenu>
                         </TreeView.ContextMenu>
                         <TreeView.ItemTemplate>
@@ -219,12 +219,12 @@
                                     <DataTrigger Binding="{Binding Reachability}" Value="Online">
                                         <Setter TargetName="StatusDot" Property="Visibility" Value="Visible" />
                                         <Setter TargetName="StatusDot" Property="Fill" Value="#16C60C" />
-                                        <Setter TargetName="StatusDot" Property="ToolTip" Value="Erreichbar" />
+                                        <Setter TargetName="StatusDot" Property="ToolTip" Value="Reachable" />
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding Reachability}" Value="Offline">
                                         <Setter TargetName="StatusDot" Property="Visibility" Value="Visible" />
                                         <Setter TargetName="StatusDot" Property="Fill" Value="#E81123" />
-                                        <Setter TargetName="StatusDot" Property="ToolTip" Value="Nicht erreichbar (Port antwortet nicht)" />
+                                        <Setter TargetName="StatusDot" Property="ToolTip" Value="Not reachable (port does not respond)" />
                                     </DataTrigger>
                                     <DataTrigger Binding="{Binding IsMatch}" Value="True">
                                         <Setter TargetName="NameText" Property="FontWeight" Value="SemiBold" />
@@ -241,23 +241,23 @@
                 <TabItem Header="SFTP">
                     <Grid>
                         <TextBlock Margin="8,24" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                                   Text="Öffne eine SSH-Session – der Dateibrowser folgt dann automatisch dem Verzeichnis im Terminal."
+                                   Text="Open an SSH session – the file browser then automatically follows the terminal's current directory."
                                    Visibility="{Binding ActiveSftp, Converter={StaticResource NullToVisibility}, ConverterParameter=invert}" />
                         <DockPanel DataContext="{Binding ActiveSftp}"
                                    Visibility="{Binding Converter={StaticResource NullToVisibility}}">
                             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
-                                <ui:Button DockPanel.Dock="Left" Appearance="Transparent" Padding="6,4" Command="{Binding UpCommand}" ToolTip="Übergeordneter Ordner">
+                                <ui:Button DockPanel.Dock="Left" Appearance="Transparent" Padding="6,4" Command="{Binding UpCommand}" ToolTip="Parent folder">
                                     <ui:SymbolIcon Symbol="{x:Static app:Icons.ArrowUp}" />
                                 </ui:Button>
-                                <ui:Button DockPanel.Dock="Right" Appearance="Transparent" Padding="6,4" Command="{Binding RefreshCommand}" ToolTip="Aktualisieren">
+                                <ui:Button DockPanel.Dock="Right" Appearance="Transparent" Padding="6,4" Command="{Binding RefreshCommand}" ToolTip="Refresh">
                                     <ui:SymbolIcon Symbol="{x:Static app:Icons.Refresh}" />
                                 </ui:Button>
                                 <TextBox x:Name="SftpPath" Text="{Binding Path, Mode=OneWay}" FontFamily="{StaticResource MonoFont}" FontSize="12"
-                                         KeyDown="OnSftpPathKeyDown" ToolTip="Pfad eingeben und Enter drücken" />
+                                         KeyDown="OnSftpPathKeyDown" ToolTip="Enter a path and press Enter" />
                             </DockPanel>
                             <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6" LastChildFill="False">
-                                <CheckBox Content="Terminal folgen" IsChecked="{Binding FollowTerminal}" ToolTip="Ordner wechselt mit „cd“ im Terminal" />
-                                <ui:Button DockPanel.Dock="Right" Appearance="Transparent" Padding="6,4" Command="{Binding NewFolderCommand}" ToolTip="Neuer Ordner">
+                                <CheckBox Content="Follow terminal" IsChecked="{Binding FollowTerminal}" ToolTip="Folder follows “cd” in the terminal" />
+                                <ui:Button DockPanel.Dock="Right" Appearance="Transparent" Padding="6,4" Command="{Binding NewFolderCommand}" ToolTip="New folder">
                                     <ui:SymbolIcon Symbol="{x:Static app:Icons.FolderAdd}" />
                                 </ui:Button>
                             </DockPanel>
@@ -294,13 +294,13 @@
                                 </ListView.ItemTemplate>
                                 <ListView.ContextMenu>
                                     <ContextMenu>
-                                        <MenuItem Header="Öffnen / Herunterladen (Downloads)" Click="OnSftpOpen" FontWeight="SemiBold" />
-                                        <MenuItem Header="Herunterladen nach …" Click="OnSftpDownload" />
-                                        <MenuItem Header="Umbenennen" Click="OnSftpRename" />
-                                        <MenuItem Header="Löschen" Click="OnSftpDelete" />
+                                        <MenuItem Header="Open / download (Downloads)" Click="OnSftpOpen" FontWeight="SemiBold" />
+                                        <MenuItem Header="Download to …" Click="OnSftpDownload" />
+                                        <MenuItem Header="Rename" Click="OnSftpRename" />
+                                        <MenuItem Header="Delete" Click="OnSftpDelete" />
                                         <Separator />
-                                        <MenuItem Header="Dateien hochladen …" Click="OnSftpUpload" />
-                                        <MenuItem Header="Neuer Ordner" Command="{Binding NewFolderCommand}" />
+                                        <MenuItem Header="Upload files …" Click="OnSftpUpload" />
+                                        <MenuItem Header="New folder" Command="{Binding NewFolderCommand}" />
                                     </ContextMenu>
                                 </ListView.ContextMenu>
                             </ListView>
@@ -310,19 +310,19 @@
                 <!-- ===== Snippets / Makros ===== -->
                 <TabItem Header="Snippets">
                     <DockPanel DataContext="{Binding Snippets}">
-                        <ui:TextBox DockPanel.Dock="Top" Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Snippets filtern …" Margin="0,0,0,6" />
+                        <ui:TextBox DockPanel.Dock="Top" Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Filter snippets …" Margin="0,0,0,6" />
                         <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,6,0,0">
-                            <ui:Button Click="OnSnippetAdd" Appearance="Transparent" Padding="6,4" ToolTip="Neues Snippet">
+                            <ui:Button Click="OnSnippetAdd" Appearance="Transparent" Padding="6,4" ToolTip="New snippet">
                                 <ui:SymbolIcon Symbol="{x:Static app:Icons.Add}" />
                             </ui:Button>
-                            <ui:Button Click="OnSnippetEdit" Appearance="Transparent" Padding="6,4" ToolTip="Bearbeiten">
+                            <ui:Button Click="OnSnippetEdit" Appearance="Transparent" Padding="6,4" ToolTip="Edit">
                                 <ui:SymbolIcon Symbol="{x:Static app:Icons.Edit}" />
                             </ui:Button>
-                            <ui:Button Click="OnSnippetDelete" Appearance="Transparent" Padding="6,4" ToolTip="Löschen">
+                            <ui:Button Click="OnSnippetDelete" Appearance="Transparent" Padding="6,4" ToolTip="Delete">
                                 <ui:SymbolIcon Symbol="{x:Static app:Icons.Delete}" />
                             </ui:Button>
                             <TextBlock Margin="8,0,0,0" VerticalAlignment="Center" FontSize="11" TextWrapping="Wrap" MaxWidth="170"
-                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" Text="Doppelklick sendet an das aktive Terminal (Multi-Exec: an alle)" />
+                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}" Text="Double-click sends to the active terminal (multi-exec: to all)" />
                         </StackPanel>
                         <ListBox x:Name="SnippetList" ItemsSource="{Binding Visible}" SelectedItem="{Binding Selected}"
                                  MouseDoubleClick="OnSnippetRun" KeyDown="OnSnippetKeyDown" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
@@ -355,23 +355,23 @@
         <!-- ===== Statusleiste ===== -->
         <DockPanel Grid.Row="3" Margin="12,4,12,6">
             <TextBlock DockPanel.Dock="Right" Foreground="{DynamicResource TextFillColorSecondaryBrush}">
-                <Run Text="{Binding Workspace.TabCount, Mode=OneWay}" /><Run Text=" Session(s)" />
+                <Run Text="{Binding Workspace.TabCount, Mode=OneWay}" /><Run Text=" session(s)" />
             </TextBlock>
             <ui:ProgressRing DockPanel.Dock="Right" IsIndeterminate="True" Width="14" Height="14" Margin="0,0,12,0"
-                             Visibility="{Binding IsImporting, Converter={StaticResource BoolToVisibility}}" ToolTip="Import läuft …" />
+                             Visibility="{Binding IsImporting, Converter={StaticResource BoolToVisibility}}" ToolTip="Import running …" />
             <ui:Button DockPanel.Dock="Right" Margin="0,0,12,0" Padding="10,2" FontSize="12"
                        Command="{Binding Workspace.ActiveTab.CancelConnectCommand}"
                        Visibility="{Binding Workspace.ActiveTab.IsConnecting, Converter={StaticResource BoolToVisibility}, FallbackValue=Collapsed}"
-                       ToolTip="Verbindungsaufbau des aktiven Tabs abbrechen (im Terminal: Esc)">
+                       ToolTip="Cancel connecting the active tab (in the terminal: Esc)">
                 <StackPanel Orientation="Horizontal">
                     <ui:ProgressRing IsIndeterminate="True" Width="12" Height="12" Margin="0,0,8,0" />
-                    <TextBlock Text="Verbinde … Abbrechen" />
+                    <TextBlock Text="Connecting … Cancel" />
                 </StackPanel>
             </ui:Button>
             <Border DockPanel.Dock="Right" Margin="0,0,12,0" Padding="8,0" CornerRadius="4"
                     Background="{DynamicResource AccentFillColorDefaultBrush}"
                     Visibility="{Binding IsMultiExecutionEnabled, Converter={StaticResource BoolToVisibility}}">
-                <TextBlock Text="MULTI-EXEC AKTIV" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
+                <TextBlock Text="MULTI-EXEC ON" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource TextOnAccentFillColorPrimaryBrush}" />
             </Border>
             <TextBlock DockPanel.Dock="Right" Margin="0,0,12,0" Text="{Binding TeamStatus}" VerticalAlignment="Center"
                        Foreground="{DynamicResource TextFillColorSecondaryBrush}" />

@@ -31,10 +31,10 @@ public sealed class UpdateService(MainViewModel vm, IDialogService dialogs, ICon
         }
         vm.SettingsApplied += () => _ = CheckAsync(interactive: false);
 
-        vm.AppActions.Add(("Nach Updates suchen", "update aktualisieren version", () => _ = CheckAsync(interactive: true)));
-        vm.AppActions.Add(("Update-Quelle festlegen …", "update quelle source share freigabe github", ConfigureSource));
-        vm.AppActions.Add(($"Version anzeigen ({CurrentVersion})", "version info about über", () =>
-            dialogs.ShowInfo("HostDeck", $"Version {CurrentVersion}\nUpdate-Quelle: {vm.Settings.UpdateSource ?? "(keine)"}\nInstalliert: {(Manager?.IsInstalled == true ? "ja" : "nein (portable)")}")));
+        vm.AppActions.Add(("Check for updates", "update aktualisieren version", () => _ = CheckAsync(interactive: true)));
+        vm.AppActions.Add(("Set update source …", "update quelle source share freigabe github", ConfigureSource));
+        vm.AppActions.Add(($"Show version ({CurrentVersion})", "version info about über", () =>
+            dialogs.ShowInfo("HostDeck", $"Version {CurrentVersion}\nUpdate source: {vm.Settings.UpdateSource ?? "(none)"}\nInstalled: {(Manager?.IsInstalled == true ? "yes" : "no (portable)")}")));
     }
 
     public string CurrentVersion => Manager?.CurrentVersion?.ToString()
@@ -83,12 +83,12 @@ public sealed class UpdateService(MainViewModel vm, IDialogService dialogs, ICon
         var manager = Manager;
         if (manager is null)
         {
-            if (interactive) dialogs.ShowInfo("Updates", "Es ist keine Update-Quelle festgelegt (Strg+K → „Update-Quelle festlegen“).");
+            if (interactive) dialogs.ShowInfo("Updates", "No update source is set (Ctrl+K → “Set update source”).");
             return;
         }
         if (!manager.IsInstalled)
         {
-            if (interactive) dialogs.ShowInfo("Updates", "Diese HostDeck-Kopie wurde nicht über den Installer installiert (portable) – automatische Updates sind nur für installierte Versionen verfügbar.");
+            if (interactive) dialogs.ShowInfo("Updates", "This copy of HostDeck was not installed via the installer (portable) – automatic updates are only available for installed versions.");
             return;
         }
         try
@@ -98,29 +98,29 @@ public sealed class UpdateService(MainViewModel vm, IDialogService dialogs, ICon
             vm.SaveSettings();
             if (info is null)
             {
-                if (interactive) dialogs.ShowInfo("Updates", $"HostDeck {CurrentVersion} ist aktuell.");
+                if (interactive) dialogs.ShowInfo("Updates", $"HostDeck {CurrentVersion} is up to date.");
                 return;
             }
-            vm.StatusText = $"Lade Update {info.TargetFullRelease.Version} …";
-            await manager.DownloadUpdatesAsync(info, p => vm.StatusText = $"Lade Update {info.TargetFullRelease.Version} … {p} %");
+            vm.StatusText = $"Downloading update {info.TargetFullRelease.Version} …";
+            await manager.DownloadUpdatesAsync(info, p => vm.StatusText = $"Downloading update {info.TargetFullRelease.Version} … {p} %");
             _pending = info;
-            vm.StatusText = $"Update {info.TargetFullRelease.Version} bereit – wird beim Beenden installiert (Strg+K → „Jetzt aktualisieren“).";
-            if (!vm.AppActions.Any(a => a.Title.StartsWith("Jetzt aktualisieren", StringComparison.Ordinal)))
-                vm.AppActions.Insert(0, ($"Jetzt aktualisieren auf {info.TargetFullRelease.Version} (Neustart)", "update neustart restart", ApplyNow));
+            vm.StatusText = $"Update {info.TargetFullRelease.Version} ready – installed on exit (Ctrl+K → “Update now”).";
+            if (!vm.AppActions.Any(a => a.Title.StartsWith("Update now", StringComparison.Ordinal)))
+                vm.AppActions.Insert(0, ($"Update now to {info.TargetFullRelease.Version} (restart)", "update neustart restart", ApplyNow));
         }
         catch (Exception ex) // Hintergrundprüfung darf nie die App stören (Velopack wirft teils eigene Typen)
         {
             var missingToken = IsGithub(vm.Settings.UpdateSource) && string.IsNullOrEmpty(store.ReadDocument(TokenDocument));
-            var hint = missingToken ? " Für das private GitHub-Repository fehlt der Zugriffstoken (Einstellungen → Updates)." : "";
-            if (interactive) dialogs.ShowError("Updates", $"Update-Prüfung fehlgeschlagen: {ex.Message}{hint}");
-            else vm.StatusText = "Update-Prüfung fehlgeschlagen." + hint;
+            var hint = missingToken ? " The access token for the private GitHub repository is missing (Settings → Updates)." : "";
+            if (interactive) dialogs.ShowError("Updates", $"Update check failed: {ex.Message}{hint}");
+            else vm.StatusText = "Update check failed." + hint;
         }
     }
 
     private void ApplyNow()
     {
         if (_pending is null || Manager is null) return;
-        if (!dialogs.Confirm("Jetzt aktualisieren", "HostDeck wird beendet, aktualisiert und neu gestartet. Offene Verbindungen werden getrennt (der Arbeitsbereich wird wiederhergestellt).\n\nFortfahren?")) return;
+        if (!dialogs.Confirm("Update now", "HostDeck will close, update and restart. Open connections will be disconnected (the workspace is restored).\n\nContinue?")) return;
         vm.Shutdown();
         Manager.ApplyUpdatesAndRestart(_pending);
     }
@@ -135,8 +135,8 @@ public sealed class UpdateService(MainViewModel vm, IDialogService dialogs, ICon
 
     private void ConfigureSource()
     {
-        var value = dialogs.Prompt("Update-Quelle",
-            "Netzwerkfreigabe (z. B. \\\\server\\software\\HostDeck), HTTP(S)-URL oder GitHub-Repo-URL. Leer = keine Updates.",
+        var value = dialogs.Prompt("Update source",
+            "Network share (e.g. \\\\server\\software\\HostDeck), HTTP(S) URL or GitHub repo URL. Empty = no updates.",
             vm.Settings.UpdateSource ?? "");
         if (value is null) return;
         vm.Settings.UpdateSource = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
@@ -145,7 +145,7 @@ public sealed class UpdateService(MainViewModel vm, IDialogService dialogs, ICon
         _manager = null;
 
         if (vm.Settings.UpdateSource?.StartsWith("https://github.com/", StringComparison.OrdinalIgnoreCase) == true &&
-            dialogs.Prompt("GitHub-Token", "Nur für private Repositories: Personal Access Token (nur Lesezugriff auf Releases). Leer lassen für öffentliche Repos.", "", secret: true) is { Length: > 0 } token)
+            dialogs.Prompt("GitHub token", "Only for private repositories: personal access token (read-only access to releases). Leave empty for public repos.", "", secret: true) is { Length: > 0 } token)
             store.WriteDocument(TokenDocument, token);
 
         _ = CheckAsync(interactive: true);

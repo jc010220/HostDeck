@@ -29,10 +29,10 @@ public sealed class WebView : DockPanel
             DockPanel.SetDock(b, dock);
             bar.Children.Add(b);
         }
-        Btn("←", "Zurück", () => { if (_web?.CanGoBack == true) _web.GoBack(); });
-        Btn("→", "Vorwärts", () => { if (_web?.CanGoForward == true) _web.GoForward(); });
-        Btn("⟳", "Neu laden", () => _web?.Reload());
-        Btn("↗", "Im Standardbrowser öffnen", () =>
+        Btn("←", "Back", () => { if (_web?.CanGoBack == true) _web.GoBack(); });
+        Btn("→", "Forward", () => { if (_web?.CanGoForward == true) _web.GoForward(); });
+        Btn("⟳", "Reload", () => _web?.Reload());
+        Btn("↗", "Open in default browser", () =>
         {
             if (Uri.TryCreate(_address.Text, UriKind.Absolute, out var u) && u.Scheme is "http" or "https")
                 System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo(u.ToString()) { UseShellExecute = true });
@@ -70,7 +70,7 @@ public sealed class WebView : DockPanel
         catch (Exception ex) when (ex is WebView2RuntimeNotFoundException or System.Runtime.InteropServices.COMException)
         {
             Children.Remove(_web);
-            Children.Add(new TextBlock { Margin = new Thickness(24), TextWrapping = TextWrapping.Wrap, Text = "Microsoft Edge WebView2 Runtime fehlt.\n" + ex.Message });
+            Children.Add(new TextBlock { Margin = new Thickness(24), TextWrapping = TextWrapping.Wrap, Text = "Microsoft Edge WebView2 Runtime is missing.\n" + ex.Message });
             _web = null;
             return;
         }
@@ -123,11 +123,11 @@ public sealed class WebView : DockPanel
             using (deferral)
             {
                 var cert = e.ServerCertificate;
-                var message = $"Das Zertifikat von {host} ist nicht vertrauenswürdig ({e.ErrorStatus}).\n\n" +
-                              $"Ausgestellt für: {cert.Subject}\nAussteller: {cert.Issuer}\nGültig bis: {cert.ValidTo:d}\n\n" +
-                              "Bei Geräten mit selbstsigniertem Zertifikat (Switch, Firewall, iLO/iDRAC) ist das üblich. " +
-                              "Bei öffentlichen Webseiten kann es ein Angriff sein.\n\nFür diesen Tab trotzdem fortfahren?";
-                var ok = System.Windows.MessageBox.Show(Window.GetWindow(this)!, message, "Zertifikatswarnung",
+                var message = $"The certificate of {host} is not trusted ({e.ErrorStatus}).\n\n" +
+                              $"Issued to: {cert.Subject}\nIssuer: {cert.Issuer}\nValid until: {cert.ValidTo:d}\n\n" +
+                              "This is common for devices with a self-signed certificate (switch, firewall, iLO/iDRAC). " +
+                              "For public websites it can be an attack.\n\nContinue anyway for this tab?";
+                var ok = System.Windows.MessageBox.Show(Window.GetWindow(this)!, message, "Certificate warning",
                     MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No) == MessageBoxResult.Yes;
                 if (ok) _vm.AcceptedCertificateHosts.Add(host);
                 e.Action = ok ? CoreWebView2ServerCertificateErrorAction.AlwaysAllow : CoreWebView2ServerCertificateErrorAction.Cancel;

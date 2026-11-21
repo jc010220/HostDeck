@@ -260,7 +260,7 @@ public partial class MainWindow : FluentWindow
     /// <summary>Klick auf die leere Fläche im Baum hebt die Auswahl auf ⇒ „Neu …“ legt dann auf oberster Ebene an.</summary>
     private void OnTreeEmptyAreaClick(object sender, MouseButtonEventArgs e)
     {
-        if (e.OriginalSource is DependencyObject d && FindAncestor<TreeViewItem>(d) is not null) return;
+        if (e.OriginalSource is DependencyObject d && FindAncestor<System.Windows.Controls.TreeViewItem>(d) is not null) return;
         _vm.SessionTree.ClearSelection();
     }
 

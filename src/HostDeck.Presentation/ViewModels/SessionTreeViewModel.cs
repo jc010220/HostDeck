@@ -173,8 +173,20 @@ public sealed partial class SessionTreeViewModel : ObservableObject
 
     // ---- Drag & Drop ------------------------------------------------------------------------------
 
+    /// <summary>Gesperrte Knoten (schreibgeschützte Team-Kopie) dürfen nicht verschoben werden.</summary>
+    public Func<TreeNode, bool>? IsLocked { get; set; }
+
+    /// <summary>Gesperrte Zielordner – dort darf nichts hineingezogen werden.</summary>
+    public Func<FolderNode, bool>? IsLockedDestination { get; set; }
+
     public bool CanMove(TreeItemViewModel source, TreeItemViewModel? target, DropPosition position)
     {
+        if (IsLocked?.Invoke(source.Node) == true) return false;
+        if (target is not null && IsLockedDestination is { } lockedDestination)
+        {
+            var destination = position == DropPosition.Into ? target.Node as FolderNode : target.Node.Parent;
+            if (destination is not null && lockedDestination(destination)) return false;
+        }
         if (target is null) return true; // auf leere Fläche ⇒ ans Ende der obersten Ebene
         if (source == target) return false;
         if (source.IsAncestorOf(target)) return false; // Ordner nicht in eigenen Unterordner

@@ -305,4 +305,59 @@ public sealed class TeamLibraryTests : IDisposable
     [InlineData("Grüße-aus-Zürich", true)]        // Umlaute sind Latin-1
     public void Team_password_rules_match_mRemoteNG(string password, bool ok)
         => Assert.Equal(ok, MainViewModel.TeamPasswordProblem(password) is null);
+
+    [Fact]
+    public async Task Connecting_via_command_is_read_write_by_default()
+    {
+        WriteTeamFile(Sample());
+        var (vm, dialogs, _, store) = Create();
+        store.Location = Path.Combine(_dir, "carol", "hostdeck.db");
+        dialogs.FileToOpen = TeamFile;
+        dialogs.ConfirmAnswer = true; // eine evtl. Rückfrage dürfte NICHT „nur lesen“ bedeuten
+        await vm.ConnectTeamLibraryCommand.ExecuteAsync(null);
+        Assert.True(vm.HasTeamLibrary);
+        Assert.False(vm.Settings.TeamReadOnly);
+        Assert.DoesNotContain("read-only", vm.TeamStatus);
+    }
+
+    [Fact]
+    public void Read_only_copy_blocks_changes_instead_of_silently_losing_them()
+    {
+        WriteTeamFile(Sample());
+        var (jump, dialogs, _) = User("jump", readOnly: true);
+        var sw01 = jump.SessionTree.AllItems.Single(i => i.Node.Name == "sw01");
+        var net = jump.SessionTree.AllItems.Single(i => i.Node.Name == "Netzwerk");
+        var before = File.ReadAllBytes(TeamFile);
+
+        jump.DeleteCommand.Execute(sw01);
+        jump.DuplicateCommand.Execute(sw01);
+        dialogs.PromptAnswer = _ => "renamed";
+        jump.RenameCommand.Execute(sw01);
+        jump.SessionTree.SelectedItem = net;
+        jump.NewConnectionCommand.Execute(null);
+        jump.NewFolderCommand.Execute(null);
+        Assert.False(jump.SessionTree.CanMove(sw01, null, DropPosition.After));
+
+        Assert.Equal(["sw01", "sw02"], ((FolderNode)net.Node).Children.Select(c => c.Name));
+        Assert.Equal(before, File.ReadAllBytes(TeamFile));
+
+        // Eigenschaften: Team-Werte werden zurückgesetzt, persönliche Login-Zuordnung bleibt
+        var radius = jump.SessionTree.Tree.Vault.Add(new Credential { Name = "RADIUS", Username = "me", Password = "x" });
+        dialogs.EditAnswer = e =>
+        {
+            e.Hostname = "6.6.6.6";
+            e.Credential = e.CredentialOptions.Single(o => o.Id == radius.Id);
+            return e.Apply() is null;
+        };
+        jump.EditItemCommand.Execute(jump.SessionTree.AllItems.Single(i => i.Node.Name == "sw01"));
+        var reverted = Conn(jump, "sw01");
+        Assert.Equal("10.0.0.1", reverted.Hostname);
+        Assert.Equal(radius.Id, reverted.Settings.CredentialId);
+
+        // Personal-Bereich bleibt normal bearbeitbar
+        jump.SessionTree.SelectedItem = null;
+        dialogs.EditAnswer = e => e.Apply() is null;
+        jump.NewFolderCommand.Execute(null);
+        Assert.Contains(jump.SessionTree.Items, i => i.Node.Name == "New folder");
+    }
 }

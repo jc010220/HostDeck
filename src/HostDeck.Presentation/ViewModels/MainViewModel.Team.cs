@@ -71,11 +71,34 @@ public sealed partial class MainViewModel
     {
         var path = _dialogs.OpenFile("Choose team library (shared confCons.xml)", "mRemoteNG (confCons.xml)|*.xml|All files|*.*");
         if (path is null) return;
-        var readOnly = _dialogs.Confirm("Team library",
-            "Should this copy be read-only?\n\n" +
-            "“Yes” for jump hosts with a local copy: changes by others are pulled in, Ctrl+S does not write.\n" +
-            "“No” (default on your workstation): you can edit team entries and save them for everyone with Ctrl+S.");
-        await ConnectTeamLibraryAsync(path, readOnly);
+        // Standard am Arbeitsplatz: bearbeiten und speichern. „Nur lesen“ (Jumphost) bewusst nur über die Einstellungen –
+        // eine Ja/Nein-Frage beim Verbinden war missverständlich.
+        await ConnectTeamLibraryAsync(path, readOnly: false);
+    }
+
+    // ---- Schreibschutz (Jumphost) -----------------------------------------------------------------
+
+    /// <summary>Liegt der Knoten in einer schreibgeschützten Team-Kopie? (Team-Ordner selbst zählt nicht – löschen = trennen.)</summary>
+    public bool IsReadOnlyTeamNode(TreeNode? node) =>
+        node is not null && Settings.TeamReadOnly && HasTeamLibrary && TeamContainer is { } container
+        && node != container && node.Ancestors().Contains(container);
+
+    /// <summary>Zielordner für neue Einträge (ausgewählter Ordner bzw. Ordner der ausgewählten Verbindung).</summary>
+    private bool TargetIsReadOnlyTeam()
+    {
+        var selected = SessionTree.SelectedItem?.Node;
+        var parent = selected is FolderNode f ? f : selected?.Parent;
+        return parent is not null && (IsReadOnlyTeamNode(parent) || (Settings.TeamReadOnly && parent == TeamContainer));
+    }
+
+    private bool BlockReadOnlyTeam(bool blocked)
+    {
+        if (!blocked) return false;
+        _dialogs.ShowInfo("Team library is read-only",
+            "This team library copy is read-only (Settings → Team library → “Read-only”), so its entries cannot be changed here.\n\n" +
+            "You can still assign your own login from the vault (Properties → Login).\n" +
+            "To edit team entries, turn off “Read-only” in the settings.");
+        return true;
     }
 
     public async Task<bool> ConnectTeamLibraryAsync(string path, bool readOnly)

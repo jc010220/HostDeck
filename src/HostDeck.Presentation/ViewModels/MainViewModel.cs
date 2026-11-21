@@ -27,6 +27,8 @@ public sealed partial class MainViewModel : ObservableObject
         _currentTheme = Settings.Theme;
         _isDeviceUnlockEnabled = store.HasDeviceUnlock;
         SessionTree.Changed += (_, _) => Persist();
+        SessionTree.IsLocked = IsReadOnlyTeamNode;
+        SessionTree.IsLockedDestination = f => IsReadOnlyTeamNode(f) || (Settings.TeamReadOnly && f == TeamContainer);
         FocusedWorkspace = Workspace;
         Workspace.PropertyChanged += (_, e) =>
         {
@@ -583,11 +585,16 @@ public sealed partial class MainViewModel : ObservableObject
     // ---- Bearbeiten -------------------------------------------------------------------------------
 
     [RelayCommand]
-    private void NewFolder() => SessionTree.Add(new FolderNode("New folder") { IsExpanded = true });
+    private void NewFolder()
+    {
+        if (BlockReadOnlyTeam(TargetIsReadOnlyTeam())) return;
+        SessionTree.Add(new FolderNode("New folder") { IsExpanded = true });
+    }
 
     [RelayCommand]
     private void NewConnection()
     {
+        if (BlockReadOnlyTeam(TargetIsReadOnlyTeam())) return;
         var item = SessionTree.Add(new ConnectionNode("New connection") { Hostname = "" });
         if (!Edit(item))
         {
@@ -603,7 +610,7 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void Duplicate(TreeItemViewModel? item)
     {
-        if (item is null) return;
+        if (item is null || BlockReadOnlyTeam(IsReadOnlyTeamNode(item.Node))) return;
         var copy = DeepCopy(item.Node);
         copy.Name = $"{item.Node.Name} (copy)";
         var vm = SessionTree.InsertAfter(item, copy);
@@ -639,8 +646,26 @@ public sealed partial class MainViewModel : ObservableObject
     private bool Edit(TreeItemViewModel? item)
     {
         if (item is null) return false;
+        var readOnlyTeam = IsReadOnlyTeamNode(item.Node);
+        var before = readOnlyTeam ? Core.Sync.TreeMerge.Fingerprint(item.Node) : null;
+        var original = readOnlyTeam ? (Name: item.Node.Name, Host: (item.Node as ConnectionNode)?.Hostname, Settings: item.Node.Settings.Clone()) : default;
         var editor = new ConnectionEditorViewModel(item.Node, SessionTree.Tree.Vault);
         if (!_dialogs.EditConnection(editor)) return false;
+        if (readOnlyTeam && Core.Sync.TreeMerge.Fingerprint(item.Node) != before)
+        {
+            // Schreibgeschützte Team-Kopie: nur die persönliche Login-Zuordnung bleibt, alles andere wird zurückgesetzt
+            var credential = item.Node.Settings.CredentialId;
+            item.Node.Name = original.Name;
+            if (item.Node is ConnectionNode c) c.Hostname = original.Host ?? "";
+            item.Node.Settings = original.Settings;
+            item.Node.Settings.CredentialId = credential;
+            item.NotifyNameChanged();
+            item.RefreshDisplay();
+            Persist();
+            _dialogs.ShowInfo("Team library is read-only",
+                "Changes to team entries are not kept on a read-only copy and were undone.\nYour own login assignment (vault) is kept.");
+            return true;
+        }
         item.NotifyNameChanged();
         item.RefreshDisplay(); // Ordner: Kinder erben ggf. neue Werte
         SessionTree.ApplyFilter();
@@ -652,7 +677,8 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void Rename(TreeItemViewModel? item)
     {
-        if (item is null || _dialogs.Prompt("Rename", "New name:", item.Name) is not { Length: > 0 } name) return;
+        if (item is null || BlockReadOnlyTeam(IsReadOnlyTeamNode(item.Node))) return;
+        if (_dialogs.Prompt("Rename", "New name:", item.Name) is not { Length: > 0 } name) return;
         item.Name = name;
         Persist();
     }
@@ -711,7 +737,7 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void Delete(TreeItemViewModel? item)
     {
-        if (item is null) return;
+        if (item is null || BlockReadOnlyTeam(IsReadOnlyTeamNode(item.Node))) return;
         SessionTree.Delete(item);
         StatusText = $"Deleted: {item.Name}";
     }

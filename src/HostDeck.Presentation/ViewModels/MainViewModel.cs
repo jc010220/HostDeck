@@ -582,6 +582,43 @@ public sealed partial class MainViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Duplizieren (Strg+D / Kontextmenü): Kopie direkt unter dem Original, alle Einstellungen und
+    /// Zugangsdaten übernommen. Bei Verbindungen öffnet sich sofort der Eigenschaften-Dialog, damit nur
+    /// noch Name und Host angepasst werden müssen; Abbrechen verwirft die Kopie.
+    /// </summary>
+    [RelayCommand]
+    private void Duplicate(TreeItemViewModel? item)
+    {
+        if (item is null) return;
+        var copy = DeepCopy(item.Node);
+        copy.Name = $"{item.Node.Name} (Kopie)";
+        var vm = SessionTree.InsertAfter(item, copy);
+        if (copy is ConnectionNode)
+        {
+            if (!Edit(vm)) SessionTree.Delete(vm);
+            return;
+        }
+        Persist();
+        StatusText = $"Dupliziert: {copy.Path}";
+    }
+
+    private static TreeNode DeepCopy(TreeNode node)
+    {
+        TreeNode copy = node switch
+        {
+            FolderNode f => new FolderNode(f.Name) { IsExpanded = f.IsExpanded },
+            ConnectionNode c => new ConnectionNode(c.Name) { Hostname = c.Hostname },
+            _ => throw new NotSupportedException(node.GetType().Name),
+        };
+        copy.Settings = node.Settings.Clone();
+        foreach (var (k, v) in node.Extensions) copy.Extensions[k] = v;
+        if (node is FolderNode folder)
+            foreach (var child in folder.Children)
+                ((FolderNode)copy).Add(DeepCopy(child));
+        return copy;
+    }
+
     /// <summary>Eigenschaften bearbeiten (F4 / Doppelklick mit Alt / Kontextmenü).</summary>
     [RelayCommand]
     private void EditItem(TreeItemViewModel? item) => Edit(item);

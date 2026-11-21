@@ -183,6 +183,7 @@
                                 <Separator />
                                 <MenuItem Header="Eigenschaften …" InputGestureText="F4" Click="OnMenuEdit" />
                                 <MenuItem Header="Umbenennen" InputGestureText="F2" Click="OnMenuRename" />
+                                <MenuItem Header="Duplizieren" InputGestureText="Strg+D" Click="OnMenuDuplicate" />
                                 <MenuItem Header="Löschen" InputGestureText="Entf" Click="OnMenuDelete" />
                                 <Separator />
                                 <MenuItem Header="Zugangsdaten verwalten (Vault) …" Command="{Binding ManageVaultCommand}" />

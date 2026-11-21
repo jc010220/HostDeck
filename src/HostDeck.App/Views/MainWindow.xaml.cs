@@ -247,6 +247,10 @@ public partial class MainWindow : FluentWindow
                 _vm.EditItemCommand.Execute(item);
                 e.Handled = true;
                 break;
+            case Key.D when Keyboard.Modifiers == ModifierKeys.Control:
+                _vm.DuplicateCommand.Execute(item);
+                e.Handled = true;
+                break;
         }
     }
 
@@ -260,6 +264,7 @@ public partial class MainWindow : FluentWindow
 
     private void OnMenuEdit(object sender, RoutedEventArgs e) => _vm.EditItemCommand.Execute(_vm.SessionTree.SelectedItem);
     private void OnMenuRename(object sender, RoutedEventArgs e) => _vm.RenameCommand.Execute(_vm.SessionTree.SelectedItem);
+    private void OnMenuDuplicate(object sender, RoutedEventArgs e) => _vm.DuplicateCommand.Execute(_vm.SessionTree.SelectedItem);
 
     private void OnMenuDelete(object sender, RoutedEventArgs e)
     {

@@ -247,6 +247,22 @@ public sealed partial class SessionTreeViewModel : ObservableObject
         return vm;
     }
 
+    /// <summary>Fügt einen Knoten direkt hinter <paramref name="sibling"/> ein und wählt ihn aus.</summary>
+    public TreeItemViewModel InsertAfter(TreeItemViewModel sibling, TreeNode node)
+    {
+        var parentFolder = sibling.Node.Parent ?? _tree.Root;
+        var index = parentFolder.Children.ToList().IndexOf(sibling.Node) + 1;
+        parentFolder.Insert(index, node);
+
+        var siblings = SiblingsOf(sibling);
+        var vm = new TreeItemViewModel(node, sibling.Parent);
+        siblings.Insert(siblings.IndexOf(sibling) + 1, vm);
+        SelectedItem = vm;
+        ApplyFilter();
+        NotifyChanged();
+        return vm;
+    }
+
     public void Delete(TreeItemViewModel item)
     {
         (item.Node.Parent ?? _tree.Root).Remove(item.Node);

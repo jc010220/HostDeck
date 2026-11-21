@@ -62,6 +62,10 @@ public sealed class ConnectionSettings
     /// <summary>Eingebaute Standardwerte (Wurzel der Vererbungskette).</summary>
     public static ConnectionSettings Defaults { get; } = CreateDefaults();
 
+    /// <summary>Tiefe Kopie (inkl. SSH/RDP/VNC-Gruppen) – z. B. zum Duplizieren einer Verbindung.</summary>
+    public ConnectionSettings Clone() =>
+        System.Text.Json.JsonSerializer.Deserialize<ConnectionSettings>(System.Text.Json.JsonSerializer.Serialize(this))!;
+
     public static ConnectionSettings CreateDefaults() => new()
     {
         Protocol = ProtocolKind.Rdp,

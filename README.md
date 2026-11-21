@@ -35,6 +35,7 @@ Ist mRemoteNG installiert, wird die Übernahme von `%APPDATA%\mRemoteNG\confCons
 | **Strg+K** (im Terminal Strg+Umschalt+K) | Schnellsuche – Enter verbinden, Strg+Enter im Split-Screen, Alt+Enter im Baum zeigen |
 | Strg+L / Strg+F | Quick-Connect / Filter im Baum |
 | F2 / F4 / Entf | Umbenennen / Eigenschaften / Löschen |
+| Strg+D (im Baum) | Verbindung duplizieren – Eigenschaften öffnen sich direkt zum Anpassen von Name und Host |
 | Strg+N / Strg+Umschalt+N | Neue Verbindung / Neuer Ordner |
 | Strg+Tab, Strg+W (Terminal: Strg+Umschalt+W) | Tab wechseln / schließen |
 | Strg+Alt+1…4 | Layout |

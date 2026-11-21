@@ -241,7 +241,12 @@ public class MainViewModelTests
         public (string, string)? PasswordChange;
         public string? OpenFile(string title, string filter) => FileToOpen;
         public string? SaveFile(string title, string filter, string defaultFileName) => null;
-        public string? AskMasterPassword(string? s, bool failed, int attempt, int max) => Passwords.Count > 0 ? Passwords.Dequeue() : null;
+        public List<int> PasswordPromptThreads = [];
+        public string? AskMasterPassword(string? s, bool failed, int attempt, int max)
+        {
+            PasswordPromptThreads.Add(Environment.CurrentManagedThreadId);
+            return Passwords.Count > 0 ? Passwords.Dequeue() : null;
+        }
         public void ShowInfo(string title, string message) { }
         public void ShowError(string title, string message) => Errors.Add(message);
         public bool Confirm(string title, string message) { ConfirmCalls++; return ConfirmAnswer; }

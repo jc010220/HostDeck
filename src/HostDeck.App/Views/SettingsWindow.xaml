@@ -37,8 +37,11 @@
             </Grid>
 
             <TextBlock Text="Team library" FontWeight="SemiBold" Margin="0,16,0,6" />
-            <ui:TextBox Text="{Binding TeamLibraryPath, UpdateSourceTrigger=PropertyChanged}"
+            <DockPanel>
+                <ui:Button DockPanel.Dock="Right" Content="Browse …" Margin="8,0,0,0" Click="OnBrowseTeamLibrary" />
+                <ui:TextBox Text="{Binding TeamLibraryPath, UpdateSourceTrigger=PropertyChanged}"
                         PlaceholderText="\\server\team\confCons.xml  ·  Jumphost: C:\HostDeck\Team" />
+            </DockPanel>
             <CheckBox Content="Read-only (e.g. jump host with a local copy)" IsChecked="{Binding TeamReadOnly}" Margin="0,6,0,0" />
             <TextBlock Margin="0,4,0,0" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                        Text="Shared confCons.xml (stays compatible with mRemoteNG). Changes by others appear automatically, save your own with Ctrl+S. Folder instead of file: the newest .xml in it is used." />

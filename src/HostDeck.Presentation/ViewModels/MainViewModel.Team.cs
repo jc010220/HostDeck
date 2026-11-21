@@ -112,7 +112,9 @@ public sealed partial class MainViewModel
             TeamSnapshot snapshot;
             try
             {
-                snapshot = await Io(() => TeamLibraryFile.Read(resolved, null, AskTeamPassword()));
+                // Passwort-Rückfrage im UI-Thread erzeugen (sie merkt sich den UI-Kontext) – nicht erst im Hintergrund-Thread
+                var ask = AskTeamPassword();
+                snapshot = await Io(() => TeamLibraryFile.Read(resolved, null, ask));
             }
             catch (Exception ex) when (ex is ConfConsAuthenticationException or ConfConsFormatException or IOException or UnauthorizedAccessException)
             {
@@ -185,13 +187,14 @@ public sealed partial class MainViewModel
     private void DisconnectTeamLibrary()
     {
         if (!HasTeamLibrary) return;
-        var keep = _dialogs.Confirm("Disconnect team library",
-            "The link to the shared file will be removed.\n\n“Yes”: keep the entries as a personal copy\n“No”: remove the team folder from the tree");
-        if (TeamContainer is { } container)
-        {
-            if (keep) container.Extensions.Remove(TreeMerge.TeamContainerKey);
-            else SessionTree.Tree.Root.Remove(container);
-        }
+        RefreshTeamPending();
+        var pending = TeamPendingChanges > 0
+            ? $"\n\nWarning: {TeamPendingChanges} change(s) have not been saved to the team file yet and will be lost. Press Ctrl+S first to keep them."
+            : "";
+        if (!_dialogs.Confirm("Disconnect team library",
+                "The Team folder will be removed from your tree. The shared file itself is not changed – you can connect again at any time." + pending))
+            return;
+        if (TeamContainer is { } container) SessionTree.Tree.Root.Remove(container);
         Settings.TeamLibraryPath = null;
         SaveSettings();
         _store.WriteDocument(TeamBaseDocument, "{}");
@@ -302,8 +305,9 @@ public sealed partial class MainViewModel
                 try
                 {
                     var knownPassword = _store.ReadDocument(TeamPasswordDocument);
+                    var ask = interactive ? AskTeamPassword() : null; // im UI-Thread erzeugen
                     remote = await Io(() => TeamLibraryFile.Read(path, string.IsNullOrEmpty(knownPassword) ? null : knownPassword,
-                        interactive ? AskTeamPassword() : null));
+                        ask));
                 }
                 catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
                 {

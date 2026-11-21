@@ -360,4 +360,47 @@ public sealed class TeamLibraryTests : IDisposable
         jump.NewFolderCommand.Execute(null);
         Assert.Contains(jump.SessionTree.Items, i => i.Node.Name == "New folder");
     }
+
+    [Fact]
+    public async Task Password_prompts_for_the_team_file_run_on_the_UI_thread()
+    {
+        var tree = new ConnectionTree();
+        foreach (var n in Sample()) tree.Root.Add(n);
+        new ConfConsExporter(new ConfConsExportOptions { MasterPassword = "TeamPass#2026" }).ExportFile(tree, TeamFile);
+
+        using var ui = new UiThread();
+        var (vm, dialogs, _, store) = await ui.Run(() => Create());
+        store.Location = Path.Combine(_dir, "ui", "hostdeck.db");
+        dialogs.Passwords.Enqueue("TeamPass#2026");
+
+        Assert.True(await ui.Run(() => vm.ConnectTeamLibraryAsync(TeamFile, false)));
+        Assert.NotEmpty(dialogs.PasswordPromptThreads);
+        Assert.All(dialogs.PasswordPromptThreads, id => Assert.Equal(ui.ThreadId, id));
+
+        // gespeichertes Passwort vergessen ⇒ beim Synchronisieren erneut fragen – ebenfalls im UI-Thread
+        store.Documents[MainViewModel.TeamPasswordDocument] = "";
+        dialogs.Passwords.Enqueue("TeamPass#2026");
+        Assert.True(await ui.Run(() => vm.SyncTeamAsync(write: false, interactive: true)));
+        Assert.Equal(2, dialogs.PasswordPromptThreads.Count);
+        Assert.All(dialogs.PasswordPromptThreads, id => Assert.Equal(ui.ThreadId, id));
+    }
+
+    [Fact]
+    public void Disconnect_removes_the_team_folder_but_keeps_the_file()
+    {
+        WriteTeamFile(Sample());
+        var (alice, dialogs, _) = User("alice");
+        var before = File.ReadAllBytes(TeamFile);
+
+        dialogs.ConfirmAnswer = false; // abbrechen
+        alice.DisconnectTeamLibraryCommand.Execute(null);
+        Assert.True(alice.HasTeamLibrary);
+
+        dialogs.ConfirmAnswer = true;
+        alice.DisconnectTeamLibraryCommand.Execute(null);
+        Assert.False(alice.HasTeamLibrary);
+        Assert.Null(alice.TeamContainer);
+        Assert.DoesNotContain(alice.SessionTree.Tree.Root.Descendants(), n => n.Name is "sw01" or "Team");
+        Assert.Equal(before, File.ReadAllBytes(TeamFile));
+    }
 }

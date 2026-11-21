@@ -29,6 +29,9 @@ public partial class MainWindow : FluentWindow
         // Terminal (WebView2) – Kürzel, Theme und Schriftgröße
         TerminalView.FontSize = viewModel.Settings.TerminalFontSize;
         TerminalView.FontSizeChanged = size => { viewModel.Settings.TerminalFontSize = size; viewModel.SaveSettings(); };
+        // Windows wechselt hell/dunkel (Modus „System“) ⇒ Terminals sofort mitziehen
+        Wpf.Ui.Appearance.ApplicationThemeManager.Changed += (theme, _) =>
+            Dispatcher.BeginInvoke(() => TerminalView.BroadcastTheme(theme == Wpf.Ui.Appearance.ApplicationTheme.Light ? "light" : "dark"));
         TerminalView.CurrentTheme = () => Wpf.Ui.Appearance.ApplicationThemeManager.GetAppTheme() == Wpf.Ui.Appearance.ApplicationTheme.Light ? "light" : "dark";
         TerminalView.ShortcutHandler = OnTerminalShortcut;
 
@@ -45,8 +48,10 @@ public partial class MainWindow : FluentWindow
 
         viewModel.PropertyChanged += (_, e) =>
         {
+            // Erst NACH dem Umstellen der App übernehmen (bei „System“ steht das echte Schema erst danach fest)
             if (e.PropertyName == nameof(MainViewModel.CurrentTheme))
-                TerminalView.BroadcastTheme(TerminalView.CurrentTheme!());
+                Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background,
+                    () => TerminalView.BroadcastTheme(TerminalView.CurrentTheme!()));
         };
     }
 

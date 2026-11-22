@@ -46,8 +46,8 @@
   term.onSelectionChange(() => { const s = term.getSelection(); if (s) send({ t: 'copy', d: s }); });
   // Einfügen läuft IMMER über C# (Rückfrage bei mehreren Zeilen) – auch Strg+V, Umschalt+Einfg und Browser-Paste
   let lastPasteRequest = 0;
-  const requestPaste = () => { const now = Date.now(); if (now - lastPasteRequest < 400) return; lastPasteRequest = now; send({ t: 'paste-request' }); };
-  container.addEventListener('contextmenu', (e) => { e.preventDefault(); requestPaste(); });
+  const requestPaste = (src) => { const now = Date.now(); if (now - lastPasteRequest < 400) return; lastPasteRequest = now; send({ t: 'paste-request', src: src || 'key' }); };
+  container.addEventListener('contextmenu', (e) => { e.preventDefault(); requestPaste('rightclick'); });
   container.addEventListener('paste', (e) => { e.preventDefault(); e.stopPropagation(); requestPaste(); }, true);
   container.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); }, true); // kein Text per Drag & Drop
 

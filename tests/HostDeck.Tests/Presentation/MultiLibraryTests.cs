@@ -217,3 +217,16 @@ public sealed class TerminalFontSizeSettingTests
         Assert.Equal(20, settings.TerminalFontSize);
     }
 }
+
+public sealed class RightClickPasteSettingTests
+{
+    [Fact]
+    public void Right_click_paste_asks_by_default_and_can_be_turned_off()
+    {
+        var settings = new AppSettings();
+        Assert.True(settings.ConfirmRightClickPaste);
+        var vm = new SettingsViewModel(settings) { ConfirmRightClickPaste = false };
+        vm.Apply();
+        Assert.False(settings.ConfirmRightClickPaste);
+    }
+}

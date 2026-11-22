@@ -91,6 +91,8 @@ public sealed class AppSettings
     public CredentialExtractionMode CredentialExtraction { get; set; } = CredentialExtractionMode.SharedOnly;
     public bool TerminalHighlighting { get; set; } = true;
     public bool SftpFollowsTerminal { get; set; } = true;
+    /// <summary>Rechtsklick ins Terminal fügt erst nach Rückfrage ein (gegen versehentliches Einfügen).</summary>
+    public bool ConfirmRightClickPaste { get; set; } = true;
     /// <summary>Online-Status im Baum anzeigen (TCP-Test des Dienst-Ports sichtbarer Verbindungen).</summary>
     public bool ShowReachability { get; set; } = true;
     public int TerminalFontSize { get; set; } = 14;

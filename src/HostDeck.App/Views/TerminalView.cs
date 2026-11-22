@@ -42,6 +42,8 @@ public sealed class TerminalView : Border
     public static Func<string>? CurrentTheme { get; set; }
     public static Action<int>? FontSizeChanged { get; set; }
     public static int FontSize { get; set; } = 14;
+    /// <summary>Rechtsklick fügt erst nach Rückfrage ein (Einstellung, Standard: an) – gegen versehentliches Einfügen.</summary>
+    public static Func<bool> ConfirmRightClickPaste { get; set; } = () => true;
 
     private static event Action<string>? ThemeChanged;
     public static void BroadcastTheme(string theme) => ThemeChanged?.Invoke(theme);
@@ -141,7 +143,9 @@ public sealed class TerminalView : Border
                 TrySetClipboard(m.GetProperty("d").GetString());
                 break;
             case "paste-request":
-                if (Clipboard.ContainsText() && ConfirmPaste(Clipboard.GetText()) is { } text) Post(new { t = "paste", d = text.Replace("\r\n", "\r") });
+                var rightClick = m.TryGetProperty("src", out var src) && src.GetString() == "rightclick";
+                if (Clipboard.ContainsText() && ConfirmPaste(Clipboard.GetText(), rightClick && ConfirmRightClickPaste()) is { } text)
+                    Post(new { t = "paste", d = text.Replace("\r\n", "\r") });
                 break;
             case "link":
                 var uri = m.GetProperty("uri").GetString();
@@ -162,14 +166,27 @@ public sealed class TerminalView : Border
     /// Mehrzeiliges Einfügen führt jede Zeile sofort aus (auch versteckte Befehle aus kopierten Webseiten).
     /// Daher wie Windows Terminal nachfragen – bei Multi-Exec sogar für alle Server gleichzeitig.
     /// </summary>
-    private string? ConfirmPaste(string text)
+    private string? ConfirmPaste(string text, bool alwaysAsk = false)
     {
         // Bracketed-Paste-Ende im Text würde den Schutz der Shell aushebeln ⇒ entfernen
         text = text.Replace("\u001b[201~", "").Replace("\u001b[200~", "");
         // Jede Art Zeilenumbruch zählt (auch einzelnes CR, U+2028/2029, U+0085) – sonst „ok\rrm -rf …“ als eine Zeile
         var normalized = text.Replace("\r\n", "\n").Replace('\r', '\n').Replace('\u2028', '\n').Replace('\u2029', '\n').Replace('\u0085', '\n');
         var lines = normalized.TrimEnd('\n').Split('\n');
-        if (lines.Length < 2) return text;
+        if (lines.Length < 2 && !alwaysAsk) return text;
+        if (lines.Length < 2)
+        {
+            if (text.Length == 0) return null;
+            var single = text.TrimEnd('\r', '\n');
+            var shown = single.Length > 200 ? single[..200] + "…" : single;
+            var ownerWindow = Window.GetWindow(this);
+            var question = $"Paste into the terminal?\n\n{shown}" + (text.EndsWith('\n') || text.EndsWith('\r') ? "\n\n(Contains a line break – it is executed immediately.)" : "") +
+                           "\n\n(Turn this question off in Settings → Behavior.)";
+            var answer = ownerWindow is null
+                ? MessageBox.Show(question, "Paste", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No)
+                : MessageBox.Show(ownerWindow, question, "Paste", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No);
+            return answer == MessageBoxResult.Yes ? text : null;
+        }
         var preview = string.Join("\n", lines.Take(8).Select(l => l.Length > 100 ? l[..100] + "…" : l)) + (lines.Length > 8 ? $"\n… ({lines.Length - 8} more lines)" : "");
         var owner = Window.GetWindow(this);
         var message = $"You are pasting {lines.Length} lines. Each line is executed immediately:\n\n{preview}\n\nPaste?";

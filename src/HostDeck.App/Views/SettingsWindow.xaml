@@ -29,7 +29,7 @@
                     <ui:SymbolIcon Symbol="{x:Static app:Icons.Menu}" />
                 </ui:Button>
                 <ListBox x:Name="Nav" Background="Transparent" BorderThickness="0" SelectionChanged="OnNavChanged">
-                    <ListBoxItem Tag="SecAppearance" IsSelected="True"><StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="{x:Static app:Icons.Appearance}" Margin="0,0,12,0" /><TextBlock Text="Appearance" /></StackPanel></ListBoxItem>
+                    <ListBoxItem Tag="SecAppearance"><StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="{x:Static app:Icons.Appearance}" Margin="0,0,12,0" /><TextBlock Text="Appearance" /></StackPanel></ListBoxItem>
                     <ListBoxItem Tag="SecBehavior"><StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="{x:Static app:Icons.Behavior}" Margin="0,0,12,0" /><TextBlock Text="Behavior" /></StackPanel></ListBoxItem>
                     <ListBoxItem Tag="SecTeam"><StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="{x:Static app:Icons.Team}" Margin="0,0,12,0" /><TextBlock Text="Team library" /></StackPanel></ListBoxItem>
                     <ListBoxItem Tag="SecBackups"><StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="{x:Static app:Icons.History}" Margin="0,0,12,0" /><TextBlock Text="Personal backups" /></StackPanel></ListBoxItem>

@@ -11,13 +11,15 @@ public partial class SettingsWindow : FluentWindow
         DataContext = vm;
         InitializeComponent();
         MaxHeight = SystemParameters.WorkArea.Height - 40;
+        Nav.SelectedIndex = 0; // erst jetzt – alle Bereiche sind geladen
     }
 
     // ---- Navigation ----
 
     private void OnNavChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
-        if (Nav.SelectedItem is not System.Windows.Controls.ListBoxItem { Tag: string target }) return;
+        // Während InitializeComponent existieren die Bereiche evtl. noch nicht
+        if (SecAppearance is null || Nav.SelectedItem is not System.Windows.Controls.ListBoxItem { Tag: string target }) return;
         foreach (var section in new[] { SecAppearance, SecBehavior, SecTeam, SecBackups, SecUpdates })
             section.Visibility = section.Name == target ? Visibility.Visible : Visibility.Collapsed;
     }

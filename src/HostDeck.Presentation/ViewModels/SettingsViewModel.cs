@@ -31,6 +31,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         _teamReadOnly = settings.TeamReadOnly;
         _autoUpdate = settings.AutoUpdate;
         _autoBackup = settings.AutoBackup;
+        _autoLock = AutoLockOptions.FirstOrDefault(o => o.Minutes == settings.AutoLockMinutes) ?? AutoLockOptions[0];
+        _lockWithWindows = settings.LockWithWindows;
         _backupFolder = settings.BackupFolder ?? "";
         _keepDaily = settings.BackupKeepDaily;
         _keepWeekly = settings.BackupKeepWeekly;
@@ -57,6 +59,18 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string _teamLibraryPath;
     [ObservableProperty] private bool _teamReadOnly;
     [ObservableProperty] private bool _autoUpdate;
+
+    // ---- Sperre ----
+    public sealed record LockOption(int Minutes, string Label)
+    {
+        public override string ToString() => Label;
+    }
+
+    public IReadOnlyList<LockOption> AutoLockOptions { get; } =
+        [new(0, "Off"), new(5, "after 5 minutes"), new(10, "after 10 minutes"), new(15, "after 15 minutes"), new(30, "after 30 minutes"), new(60, "after 1 hour")];
+
+    [ObservableProperty] private LockOption _autoLock;
+    [ObservableProperty] private bool _lockWithWindows;
 
     // ---- Sicherungen ----
     [ObservableProperty] private bool _autoBackup;
@@ -158,6 +172,8 @@ public sealed partial class SettingsViewModel : ObservableObject
         RetentionChanged = (KeepDaily, KeepWeekly, KeepMonthly) != (_settings.BackupKeepDaily, _settings.BackupKeepWeekly, _settings.BackupKeepMonthly)
                            || BackupFolder.Trim() != (_settings.BackupFolder ?? "");
         _settings.AutoBackup = AutoBackup;
+        _settings.AutoLockMinutes = AutoLock.Minutes;
+        _settings.LockWithWindows = LockWithWindows;
         _settings.BackupFolder = string.IsNullOrWhiteSpace(BackupFolder) ? null : BackupFolder.Trim();
         _settings.BackupKeepDaily = KeepDaily;
         _settings.BackupKeepWeekly = KeepWeekly;

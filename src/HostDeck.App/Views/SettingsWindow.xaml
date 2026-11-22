@@ -58,6 +58,13 @@
                 <TextBlock Text="Behavior" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,12" />
             <Grid Margin="0,0,0,4">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="220" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                <TextBlock Text="Lock automatically" VerticalAlignment="Center" />
+                <ComboBox Grid.Column="1" ItemsSource="{Binding AutoLockOptions}" SelectedItem="{Binding AutoLock}" DisplayMemberPath="Label"
+                          ToolTip="Hide all HostDeck windows after this time without keyboard/mouse input; unlock with the master password. Sessions keep running." />
+            </Grid>
+            <CheckBox Content="Lock when Windows is locked (Win+L)" IsChecked="{Binding LockWithWindows}" Margin="0,4,0,8" />
+            <Grid Margin="0,0,0,4">
+                <Grid.ColumnDefinitions><ColumnDefinition Width="220" /><ColumnDefinition /></Grid.ColumnDefinitions>
                 <TextBlock Text="Quick connect default protocol" VerticalAlignment="Center" />
                 <ComboBox Grid.Column="1" ItemsSource="{Binding Protocols}" SelectedItem="{Binding DefaultProtocol}" ItemTemplate="{StaticResource EnumDisplayTemplate}" />
             </Grid>

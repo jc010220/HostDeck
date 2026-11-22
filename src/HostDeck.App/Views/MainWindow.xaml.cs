@@ -65,6 +65,7 @@ public partial class MainWindow : FluentWindow
         {
             case "ctrl+shift+k" or "ctrl+shift+p": ShowPalette(Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive) ?? this); break;
             case "ctrl+,": _vm.OpenSettingsCommand.Execute(null); break;
+            case "ctrl+alt+l": _vm.LockNowCommand.Execute(null); break;
             case "ctrl+tab": _vm.FocusedWorkspace.SelectNextTab(); break;
             case "ctrl+shift+tab": _vm.FocusedWorkspace.SelectNextTab(backwards: true); break;
             case "ctrl+shift+w": _vm.FocusedWorkspace.Close(_vm.FocusedWorkspace.ActiveTab); break;
@@ -97,6 +98,11 @@ public partial class MainWindow : FluentWindow
             if ((key == Key.K && mods == ModifierKeys.Control) || (key == Key.P && mods == (ModifierKeys.Control | ModifierKeys.Shift)))
             {
                 main.ShowPalette((Window)sender);
+                e.Handled = true;
+            }
+            else if (key == Key.L && mods == (ModifierKeys.Control | ModifierKeys.Alt))
+            {
+                main._vm.LockNowCommand.Execute(null);
                 e.Handled = true;
             }
             else if (key == Key.OemComma && mods == ModifierKeys.Control)

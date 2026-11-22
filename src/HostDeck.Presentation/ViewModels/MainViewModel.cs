@@ -224,6 +224,12 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Installierte Version (von der App gesetzt), z. B. „1.0.18“.</summary>
     [ObservableProperty] private string _appVersion = typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "";
 
+    /// <summary>HostDeck sperren (von der App gesetzt).</summary>
+    public Action? LockAction { get; set; }
+
+    [RelayCommand]
+    private void LockNow() => LockAction?.Invoke();
+
     /// <summary>Sicherung wiederherstellen (von der App gesetzt: prüft, sichert den aktuellen Stand, ersetzt, startet neu).</summary>
     public Action<string>? RestoreBackupAction { get; set; }
 
@@ -272,6 +278,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (FocusedWorkspace.ActiveTab is { IsConnecting: true } connecting)
             yield return ($"Cancel connecting: {connecting.Title}", "abbrechen cancel stop verbindung", connecting.CancelConnect);
         yield return ("Close all tabs", "close all tabs", CloseAllTabs);
+        yield return ("Lock HostDeck  (Ctrl+Alt+L)", "lock sperren", () => LockNowCommand.Execute(null));
         yield return ("Settings …", "settings optionen einstellungen preferences", () => OpenSettingsCommand.Execute(null));
         yield return ("Create personal backup …", "backup sicherung export datenbank", () => BackupCommand.Execute(null));
         yield return (Settings.ShowReachability ? "Hide online status in tree" : "Show online status in tree", "online status erreichbar ping", () =>

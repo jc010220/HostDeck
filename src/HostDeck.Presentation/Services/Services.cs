@@ -99,6 +99,10 @@ public sealed class AppSettings
     /// <summary>Standard-Update-Quelle wurde einmalig eingetragen (danach gilt die Wahl des Benutzers, auch „leer“).</summary>
     public bool UpdateSourceDefaulted { get; set; }
     public DateTime? LastUpdateCheckUtc { get; set; }
+    /// <summary>Automatisch sperren nach so vielen Minuten ohne Eingabe (0 = aus, Standard).</summary>
+    public int AutoLockMinutes { get; set; }
+    /// <summary>Sperren, sobald Windows gesperrt wird (Win+L).</summary>
+    public bool LockWithWindows { get; set; }
     /// <summary>Tägliche automatische Sicherung (verschlüsselt).</summary>
     public bool AutoBackup { get; set; } = true;
     /// <summary>Zielordner; leer = %APPDATA%\HostDeck\backups. Z. B. OneDrive- oder Netzwerkordner.</summary>

@@ -15,6 +15,7 @@ public partial class App : Application
     private StoreAdapter? _store;
     private UpdateService? _updates;
     private BackupService? _backups;
+    private LockService? _lock;
     private DpapiDeviceKeyProtector? _device;
     private MainViewModel? _viewModel;
 
@@ -61,6 +62,8 @@ public partial class App : Application
         viewModel.AppVersion = _updates.CurrentVersion;
         viewModel.CheckForUpdatesAction = () => _ = _updates.CheckAsync(interactive: true);
         viewModel.RestoreBackupAction = RestoreBackup;
+        _lock = new LockService(viewModel, pw => _store?.VerifyMasterPassword(pw) == true);
+        viewModel.LockAction = () => _lock.Lock();
         _viewModel = viewModel;
         var window = new MainWindow(viewModel);
         Views.MainWindow.RegisterGlobalShortcuts(window);
@@ -270,6 +273,7 @@ public partial class App : Application
     {
         _updates?.ApplyOnExit();
         _backups?.Dispose();
+        _lock?.Dispose();
         _store?.Dispose();
         _singleInstance?.Dispose();
         base.OnExit(e);

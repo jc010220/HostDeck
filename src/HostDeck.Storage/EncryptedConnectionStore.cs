@@ -107,6 +107,19 @@ public sealed class EncryptedConnectionStore : IDisposable
 
     // ---- Schlüsselverwaltung -----------------------------------------------------------------------
 
+    /// <summary>Master-Passwort prüfen (z. B. zum Entsperren nach automatischer Sperre), ohne etwas zu ändern.</summary>
+    public bool VerifyMasterPassword(string password)
+    {
+        if (string.IsNullOrEmpty(password)) return false;
+        try
+        {
+            var dek = _keyFile.UnlockWithPassword(password);
+            try { return CryptographicOperations.FixedTimeEquals(dek, _dek); }
+            finally { CryptographicOperations.ZeroMemory(dek); }
+        }
+        catch (WrongMasterPasswordException) { return false; }
+    }
+
     public void ChangeMasterPassword(string currentPassword, string newPassword)
     {
         KeyFile.ValidatePassword(newPassword);

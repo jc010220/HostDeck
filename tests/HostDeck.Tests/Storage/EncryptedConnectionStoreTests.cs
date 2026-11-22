@@ -210,4 +210,13 @@ public sealed class EncryptedConnectionStoreTests : IDisposable
         };
         Assert.Equal("0d640df58d78766c08c037a34a8b53c9d01ef0452d75b65eb52520e96b01e659", Convert.ToHexStringLower(argon.GetBytes(32)));
     }
+
+    [Fact]
+    public void Master_password_can_be_verified_for_unlocking_after_auto_lock()
+    {
+        using var store = Create();
+        Assert.True(store.VerifyMasterPassword(Password));
+        Assert.False(store.VerifyMasterPassword("falsch-falsch"));
+        Assert.False(store.VerifyMasterPassword(""));
+    }
 }

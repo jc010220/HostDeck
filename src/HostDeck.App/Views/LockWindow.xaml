@@ -1,0 +1,30 @@
+<ui:FluentWindow x:Class="HostDeck.App.Views.LockWindow"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 xmlns:app="clr-namespace:HostDeck.App"
+                 Title="HostDeck – locked" Width="440" SizeToContent="Height"
+                 WindowStartupLocation="CenterScreen" ResizeMode="NoResize" Topmost="True"
+                 ExtendsContentIntoTitleBar="True" WindowBackdropType="Mica" ShowInTaskbar="True"
+                 FocusManager.FocusedElement="{Binding ElementName=PasswordInput}">
+    <StackPanel Margin="0,0,0,20">
+        <ui:TitleBar Title="HostDeck" ShowMinimize="True" ShowMaximize="False" ShowClose="False" />
+        <StackPanel Margin="24,8,24,0">
+            <StackPanel Orientation="Horizontal" Margin="0,0,0,12">
+                <ui:SymbolIcon Symbol="{x:Static app:Icons.Lock}" FontSize="32" Margin="0,0,14,0" />
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="HostDeck is locked" FontSize="18" FontWeight="SemiBold" />
+                    <TextBlock x:Name="Reason" FontSize="12" TextWrapping="Wrap" MaxWidth="330"
+                               Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                               Text="Enter your master password to continue. Open sessions keep running." />
+                </StackPanel>
+            </StackPanel>
+            <PasswordBox x:Name="PasswordInput" Margin="0,0,0,8" />
+            <TextBlock x:Name="ErrorText" Foreground="#E81123" Visibility="Collapsed" Margin="0,0,0,8" Text="Wrong master password." />
+            <DockPanel Margin="0,8,0,0">
+                <ui:Button DockPanel.Dock="Left" Content="Exit HostDeck" Appearance="Transparent" Click="OnExit" />
+                <ui:Button Content="Unlock" Appearance="Primary" IsDefault="True" MinWidth="96" HorizontalAlignment="Right" Click="OnUnlock" />
+            </DockPanel>
+        </StackPanel>
+    </StackPanel>
+</ui:FluentWindow>

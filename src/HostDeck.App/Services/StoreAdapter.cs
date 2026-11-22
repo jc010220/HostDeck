@@ -38,6 +38,8 @@ public sealed class StoreAdapter(EncryptedConnectionStore store, IDeviceKeyProte
         }
     }
 
+    public bool VerifyMasterPassword(string password) { lock (_lock) return store.VerifyMasterPassword(password); }
+
     public void ChangeMasterPassword(string currentPassword, string newPassword)
     {
         try { lock (_lock) store.ChangeMasterPassword(currentPassword, newPassword); }

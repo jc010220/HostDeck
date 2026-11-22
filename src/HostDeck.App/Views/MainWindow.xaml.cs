@@ -206,7 +206,7 @@ public partial class MainWindow : FluentWindow
         Bind(Key.O, ModifierKeys.Control, () => _vm.ImportMRemoteNGCommand.Execute(null));
         Bind(Key.N, ModifierKeys.Control, () => _vm.NewConnectionCommand.Execute(null));
         Bind(Key.N, ModifierKeys.Control | ModifierKeys.Shift, () => _vm.NewFolderCommand.Execute(null));
-        Bind(Key.W, ModifierKeys.Control, () => _vm.Workspace.Close(_vm.Workspace.ActiveTab));
+        Bind(Key.W, ModifierKeys.Control | ModifierKeys.Shift, () => _vm.Workspace.Close(_vm.Workspace.ActiveTab)); // Strg+W bleibt „Wort löschen“ (Shell)
         Bind(Key.Tab, ModifierKeys.Control, () => _vm.Workspace.SelectNextTab());
         Bind(Key.Tab, ModifierKeys.Control | ModifierKeys.Shift, () => _vm.Workspace.SelectNextTab(backwards: true));
         Bind(Key.Right, ModifierKeys.Control | ModifierKeys.Alt, () => _vm.Workspace.FocusNextPane());

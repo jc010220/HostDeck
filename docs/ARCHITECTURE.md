@@ -157,7 +157,7 @@ MainWindow (FluentWindow, Mica, PerMonitorV2 DPI)
 | Ctrl+N / Ctrl+Shift+N | New connection / new folder |
 | Ctrl+D | Duplicate (in the tree) |
 | Enter / double-click / Del | Connect / connect / delete (in the tree) |
-| Ctrl+W, middle-click | Close tab |
+| Ctrl+Shift+W, middle-click | Close tab |
 | Ctrl+Tab / Ctrl+Shift+Tab | Next / previous tab |
 | Ctrl+Alt+1…4 | Layout: 1 / 2 side by side / 2 stacked / 2×2 grid |
 | Ctrl+Alt+→ | Next pane |

@@ -30,7 +30,7 @@ public partial class SessionWindow : FluentWindow
         UpdateTitle();
 
         void Bind(Key key, ModifierKeys mod, Action action) => InputBindings.Add(new KeyBinding(new RelayCommand(action), key, mod));
-        Bind(Key.W, ModifierKeys.Control, () => workspace.Close(workspace.ActiveTab));
+        Bind(Key.W, ModifierKeys.Control | ModifierKeys.Shift, () => workspace.Close(workspace.ActiveTab)); // Strg+W bleibt „Wort löschen“ (Shell)
         Bind(Key.Tab, ModifierKeys.Control, () => workspace.SelectNextTab());
         Bind(Key.Tab, ModifierKeys.Control | ModifierKeys.Shift, () => workspace.SelectNextTab(backwards: true));
         Bind(Key.K, ModifierKeys.Control, () => (Application.Current.MainWindow as MainWindow)?.ShowPalette(this));

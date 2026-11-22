@@ -40,7 +40,7 @@ If mRemoteNG is installed, HostDeck offers to import `%APPDATA%\mRemoteNG\confCo
 | Ctrl+S | Sync team library |
 | Ctrl+D (in the tree) | Duplicate connection: properties open right away so you only adjust name and host |
 | Ctrl+N / Ctrl+Shift+N | New connection / new folder |
-| Ctrl+Tab, Ctrl+W (terminal: Ctrl+Shift+W) | Switch / close tab |
+| Ctrl+Tab, Ctrl+Shift+W | Switch / close tab (Ctrl+W stays "delete word" in the shell) |
 | Ctrl+Alt+1…4 | Layout |
 | Ctrl+Shift+M | Multi-execution |
 | Ctrl+Shift+B | Show/hide the sidebar (also via the leftmost toolbar button) |

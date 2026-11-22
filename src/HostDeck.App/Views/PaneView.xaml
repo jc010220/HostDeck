@@ -71,7 +71,7 @@
                                     <MenuItem Header="Receives multi-exec input" IsCheckable="True" IsChecked="{Binding IsMultiExecutionTarget}"
                                               Visibility="{Binding IsTerminal, Converter={StaticResource BoolToVisibility}}" />
                                     <Separator />
-                                    <MenuItem Header="Close" InputGestureText="Ctrl+W" Command="{Binding RequestCloseCommand}" />
+                                    <MenuItem Header="Close" InputGestureText="Ctrl+Shift+W" Command="{Binding RequestCloseCommand}" />
                                     <MenuItem Header="Save as connection" Command="{Binding RequestSaveCommand}"
                                               Visibility="{Binding IsTransient, Converter={StaticResource BoolToVisibility}}" />
                                 </ContextMenu>
@@ -102,7 +102,7 @@
                                        ToolTip="Quick connect (not saved)"
                                        Visibility="{Binding IsTransient, Converter={StaticResource BoolToVisibility}}" />
                             <Button Margin="6,0,0,0" Padding="2" Width="20" Height="20" Background="Transparent" BorderThickness="0"
-                                    ToolTip="Close (Ctrl+W, middle-click)" Command="{Binding RequestCloseCommand}" Focusable="False">
+                                    ToolTip="Close (Ctrl+Shift+W, middle-click)" Command="{Binding RequestCloseCommand}" Focusable="False">
                                 <ui:SymbolIcon Symbol="{x:Static app:Icons.Dismiss}" FontSize="12" />
                             </Button>
                         </StackPanel>

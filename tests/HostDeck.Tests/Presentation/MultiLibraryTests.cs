@@ -200,3 +200,20 @@ public sealed class MultiLibraryTests : IDisposable
         Assert.Equal("Lab", MainViewModel.SuggestLibraryName(Path.Combine(_dir, "Lab.xml")));
     }
 }
+
+public sealed class TerminalFontSizeSettingTests
+{
+    [Fact]
+    public void Zoomed_font_size_is_kept_and_applied()
+    {
+        var settings = new AppSettings { TerminalFontSize = 17 };
+        var vm = new SettingsViewModel(settings);
+        Assert.Equal(17, vm.FontSize);
+        Assert.Contains(17, vm.FontSizes);
+        vm.Apply();
+        Assert.Equal(17, settings.TerminalFontSize); // nicht still auf 14 zurückgesetzt
+        vm.FontSize = 20;
+        vm.Apply();
+        Assert.Equal(20, settings.TerminalFontSize);
+    }
+}

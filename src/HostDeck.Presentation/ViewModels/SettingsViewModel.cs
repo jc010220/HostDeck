@@ -25,7 +25,10 @@ public sealed partial class SettingsViewModel : ObservableObject
         _sftpFollows = settings.SftpFollowsTerminal;
         _restoreWorkspace = settings.RestoreWorkspaceOnStart;
         _showReachability = settings.ShowReachability;
-        _fontSize = FontSizes.Contains(settings.TerminalFontSize) ? settings.TerminalFontSize : 14;
+        // Per Strg+Mausrad gewählte Größe (z. B. 17) ist evtl. nicht in der Liste ⇒ ergänzen statt still auf 14 zurückzusetzen
+        var size = Math.Clamp(settings.TerminalFontSize, 8, 32);
+        if (!FontSizes.Contains(size)) FontSizes = [.. FontSizes.Append(size).Order()];
+        _fontSize = size;
         _updateSource = settings.UpdateSource ?? "";
         _autoUpdate = settings.AutoUpdate;
         _autoBackup = settings.AutoBackup;

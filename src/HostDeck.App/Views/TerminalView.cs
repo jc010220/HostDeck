@@ -46,6 +46,17 @@ public sealed class TerminalView : Border
     private static event Action<string>? ThemeChanged;
     public static void BroadcastTheme(string theme) => ThemeChanged?.Invoke(theme);
 
+    private static event Action<int>? FontSizeBroadcast;
+
+    /// <summary>Neue Schriftgröße aus den Einstellungen: für neue und alle offenen Terminals.</summary>
+    public static void BroadcastFontSize(int size)
+    {
+        FontSize = size;
+        FontSizeBroadcast?.Invoke(size);
+    }
+
+    private void ApplyFontSize(int size) => Post(new { t = "font", size });
+
     private static Task<CoreWebView2Environment> Environment => _environment ??= CoreWebView2Environment.CreateAsync(
         null, Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData), "HostDeck", "WebView2"));
 
@@ -56,6 +67,7 @@ public sealed class TerminalView : Border
         _tab = tab;
         _tab.Closed += OnTabClosed;
         ThemeChanged += ApplyTheme;
+        FontSizeBroadcast += ApplyFontSize;
 
         _webView = new WebView2 { DefaultBackgroundColor = System.Drawing.Color.FromArgb(0x1e, 0x1e, 0x1e) };
         Child = _webView;
@@ -214,6 +226,7 @@ public sealed class TerminalView : Border
         _subscription = null;
         if (_tab is not null) _tab.Closed -= OnTabClosed;
         ThemeChanged -= ApplyTheme;
+        FontSizeBroadcast -= ApplyFontSize;
         _webView?.Dispose();
         _webView = null;
         Child = null;

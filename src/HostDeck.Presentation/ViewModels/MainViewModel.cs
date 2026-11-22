@@ -104,6 +104,12 @@ public sealed partial class MainViewModel : ObservableObject
             case TabAction.Save:
                 SaveTransientSessionCommand.Execute(tab);
                 break;
+            case TabAction.Duplicate:
+                // Gleiche Verbindung noch einmal im selben Fenster öffnen (wie PuTTY „Duplicate Session“)
+                var owner = AllWorkspaces.FirstOrDefault(w => w.AllTabs.Contains(tab)) ?? Workspace;
+                owner.Open(CreateTab(tab.Connection, SessionTree.Tree.Vault, tab.IsTransient));
+                StatusText = $"Opened again: {tab.Connection.Name}";
+                break;
         }
     }
 

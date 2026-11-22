@@ -1,7 +1,7 @@
 // HostDeck Terminal – xterm.js in WebView2. Bridge-Nachrichten:
 //   C# → JS: {t:'o', d} Ausgabe · {t:'paste', d} · {t:'theme', theme} · {t:'font', size} · {t:'focus'}
 //   JS → C#: {t:'ready', cols, rows} · {t:'i', d} Eingabe · {t:'r', cols, rows} · {t:'copy', d}
-//            {t:'paste-request'} · {t:'link', uri} · {t:'shortcut', key} · {t:'font', size}
+//            {t:'paste-request'} · {t:'menu', sel} · {t:'link', uri} · {t:'shortcut', key} · {t:'font', size}
 (function () {
   'use strict';
   const bridge = window.chrome && window.chrome.webview;
@@ -47,7 +47,8 @@
   // Einfügen läuft IMMER über C# (Rückfrage bei mehreren Zeilen) – auch Strg+V, Umschalt+Einfg und Browser-Paste
   let lastPasteRequest = 0;
   const requestPaste = (src) => { const now = Date.now(); if (now - lastPasteRequest < 400) return; lastPasteRequest = now; send({ t: 'paste-request', src: src || 'key' }); };
-  container.addEventListener('contextmenu', (e) => { e.preventDefault(); requestPaste('rightclick'); });
+  // Rechtsklick: Menü in HostDeck (Kopieren, Einfügen, Suchen …) – bzw. direkt einfügen, wenn so eingestellt
+  container.addEventListener('contextmenu', (e) => { e.preventDefault(); send({ t: 'menu', sel: term.getSelection() || '' }); });
   container.addEventListener('paste', (e) => { e.preventDefault(); e.stopPropagation(); requestPaste(); }, true);
   container.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); }, true); // kein Text per Drag & Drop
 
@@ -93,6 +94,17 @@
       case 'theme': term.options.theme = themes[m.theme] || themes.dark; document.body.style.background = term.options.theme.background; break;
       case 'font': term.options.fontSize = m.size; doFit(); break;
       case 'focus': term.focus(); break;
+      case 'search': openSearch(); break;
+      case 'clear': term.clear(); term.focus(); break;              // Verlauf leeren, aktuelle Zeile bleibt
+      case 'reset': term.reset(); term.focus(); break;
+      case 'select-all': term.selectAll(); break;
+      case 'copy-all': {
+        const b = term.buffer.active, lines = [];
+        for (let i = 0; i < b.length; i++) { const l = b.getLine(i); if (l) lines.push(l.translateToString(true)); }
+        while (lines.length && lines[lines.length - 1] === '') lines.pop();
+        send({ t: 'copy', d: lines.join('\n') });
+        break;
+      }
     }
   }
   if (bridge) bridge.addEventListener('message', (ev) => onMessage(ev.data));

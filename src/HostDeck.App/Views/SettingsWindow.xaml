@@ -70,8 +70,8 @@
             </Grid>
             <CheckBox Content="Restore open sessions on startup" IsChecked="{Binding RestoreWorkspace}" Margin="0,4,0,0" />
             <CheckBox Content="SFTP browser follows the terminal directory" IsChecked="{Binding SftpFollows}" Margin="0,4,0,0" />
-            <CheckBox Content="Ask before pasting with right-click in the terminal" IsChecked="{Binding ConfirmRightClickPaste}" Margin="0,4,0,0"
-                      ToolTip="Prevents accidental pastes. Multi-line text always asks; Ctrl+Shift+V pastes single lines directly." />
+            <CheckBox Content="Right-click in the terminal opens a menu (otherwise it pastes directly)" IsChecked="{Binding RightClickMenu}" Margin="0,4,0,0"
+                      ToolTip="Menu with copy, paste, find, copy all, clear scrollback, reset, reconnect and duplicate – prevents accidental pastes. Multi-line text always asks before pasting." />
             <Grid Margin="0,8,0,4">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="220" /><ColumnDefinition /></Grid.ColumnDefinitions>
                 <TextBlock Text="mRemoteNG import: credentials" VerticalAlignment="Center" TextWrapping="Wrap" />

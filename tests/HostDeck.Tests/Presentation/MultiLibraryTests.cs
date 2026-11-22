@@ -221,12 +221,26 @@ public sealed class TerminalFontSizeSettingTests
 public sealed class RightClickPasteSettingTests
 {
     [Fact]
-    public void Right_click_paste_asks_by_default_and_can_be_turned_off()
+    public void Right_click_menu_is_on_by_default_and_can_be_turned_off()
     {
         var settings = new AppSettings();
-        Assert.True(settings.ConfirmRightClickPaste);
-        var vm = new SettingsViewModel(settings) { ConfirmRightClickPaste = false };
+        Assert.True(settings.TerminalRightClickMenu);
+        var vm = new SettingsViewModel(settings) { RightClickMenu = false };
         vm.Apply();
-        Assert.False(settings.ConfirmRightClickPaste);
+        Assert.False(settings.TerminalRightClickMenu);
+    }
+
+    [Fact]
+    public void Duplicate_session_opens_the_same_connection_again()
+    {
+        var (vm, _, _, _) = MainViewModelTests.Create();
+        var conn = new HostDeck.Core.Model.ConnectionNode("web01") { Hostname = "10.0.0.5", Settings = { Protocol = HostDeck.Core.Model.ProtocolKind.Https } };
+        vm.SessionTree.Add(conn);
+        vm.OpenCommand.Execute(vm.SessionTree.FindByNode(conn));
+        var first = vm.Workspace.ActiveTab!;
+        first.RequestDuplicateCommand.Execute(null);
+        Assert.Equal(2, vm.Workspace.TabCount);
+        Assert.Same(conn, vm.Workspace.ActiveTab!.Connection);
+        Assert.NotSame(first, vm.Workspace.ActiveTab);
     }
 }

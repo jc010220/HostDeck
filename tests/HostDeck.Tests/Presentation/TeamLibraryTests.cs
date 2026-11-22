@@ -492,4 +492,32 @@ public sealed class TeamLibraryTests : IDisposable
         Assert.NotNull(restored.TeamContainer);
         Assert.Contains(restored.TeamContainer!.Descendants(), n => n.Name == "sw01");
     }
+
+    [Fact]
+    public async Task Team_password_can_be_removed_again()
+    {
+        WriteTeamFile(Sample());
+        var (alice, dialogs, _) = User("alice");
+        alice.Snippets.Add("Shared", "uptime", team: true);
+        await alice.SyncTeamSnippetsAsync();
+        dialogs.PromptAnswer = _ => "Team-Secret#2026";
+        await alice.SetTeamPasswordCommand.ExecuteAsync(null);
+        Assert.True(new ConfConsImporter(new ConfConsImportOptions { MasterPassword = "Team-Secret#2026" }).ImportFile(TeamFile).File.CustomMasterPassword);
+
+        dialogs.ConfirmAnswer = false;                       // Warnung abgelehnt ⇒ bleibt geschützt
+        await alice.RemoveTeamPasswordCommand.ExecuteAsync(null);
+        Assert.Throws<ConfConsAuthenticationException>(() => new ConfConsImporter().ImportFile(TeamFile));
+
+        dialogs.ConfirmAnswer = true;
+        await alice.RemoveTeamPasswordCommand.ExecuteAsync(null);
+        var plain = new ConfConsImporter().ImportFile(TeamFile);   // ohne Passwort lesbar
+        Assert.False(plain.File.CustomMasterPassword);
+        Assert.Equal("Geheim!1", plain.Tree.Connections.Single(c => c.Name == "dc01").Settings.Password);
+        Assert.Contains("uptime", File.ReadAllText(HostDeck.Presentation.Team.TeamSnippetFile.PathFor(TeamFile))); // Snippets unverschlüsselt
+
+        // Kollege ohne Passwort kann direkt lesen
+        var (bob, bobDialogs, _) = User("bob");
+        Assert.Empty(bobDialogs.PasswordPromptThreads);
+        Assert.NotNull(bob.TeamContainer);
+    }
 }

@@ -264,6 +264,38 @@ public sealed partial class MainViewModel
         }
     }
 
+    /// <summary>
+    /// Team-Passwort entfernen: Team-Datei und Team-Snippets ohne eigenes Passwort neu speichern (wie mRemoteNG
+    /// „Password protect = No“). Danach gilt wieder der öffentlich bekannte mRemoteNG-Standardschlüssel.
+    /// </summary>
+    [RelayCommand]
+    private async Task RemoveTeamPassword()
+    {
+        if (!HasTeamLibrary) return;
+        if (Settings.TeamReadOnly)
+        {
+            _dialogs.ShowInfo("Team library", "This copy is read-only (e.g. jump host). Please change the password on your workstation.");
+            return;
+        }
+        var oldPassword = _store.ReadDocument(TeamPasswordDocument);
+        if (string.IsNullOrEmpty(oldPassword))
+        {
+            _dialogs.ShowInfo("Team file password", "The team file is not protected with its own password.");
+            return;
+        }
+        if (!_dialogs.Confirm("Remove team file password",
+                "Without its own password, the stored passwords in the team file are only encrypted with mRemoteNG's publicly " +
+                "known default key – anyone who can read the file on the share can read them. Only the share permissions protect them then.\n\n" +
+                "Colleagues will no longer be asked for a password.\n\nRemove the team file password?"))
+            return;
+
+        if (await SyncTeamAsync(write: true, interactive: true, newPassword: ""))
+        {
+            await ReencryptTeamSnippetsAsync(oldPassword, "");
+            _dialogs.ShowInfo("Team file password", "The team file password has been removed.");
+        }
+    }
+
     /// <summary>mRemoteNG/BouncyCastle verarbeitet nur Latin-1-Zeichen (1 Byte pro Zeichen).</summary>
     internal static string? TeamPasswordProblem(string password) =>
         password.Length < 10 ? "The password must be at least 10 characters long."

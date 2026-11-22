@@ -135,6 +135,8 @@
                                       Visibility="{Binding HasTeamLibrary, Converter={StaticResource BoolToVisibility}}" />
                             <MenuItem Header="Set team file password …" Command="{Binding SetTeamPasswordCommand}"
                                       Visibility="{Binding HasTeamLibrary, Converter={StaticResource BoolToVisibility}}" />
+                            <MenuItem Header="Remove team file password …" Command="{Binding RemoveTeamPasswordCommand}"
+                                      Visibility="{Binding HasTeamLibrary, Converter={StaticResource BoolToVisibility}}" />
                             <MenuItem Header="Disconnect team library" Command="{Binding DisconnectTeamLibraryCommand}"
                                       Visibility="{Binding HasTeamLibrary, Converter={StaticResource BoolToVisibility}}" />
                             <Separator />

@@ -257,6 +257,7 @@ public sealed partial class MainViewModel : ObservableObject
             yield return ("Sync team library  (Ctrl+S)", "team sync synchronisieren speichern share laufwerk", () => SyncTeamCommand.Execute(null));
             yield return ("Disconnect team library", "team trennen disconnect", () => DisconnectTeamLibraryCommand.Execute(null));
             yield return ("Set team file password …", "team password passwort schützen protect master", () => SetTeamPasswordCommand.Execute(null));
+            yield return ("Remove team file password …", "team password passwort entfernen remove unprotect", () => RemoveTeamPasswordCommand.Execute(null));
         }
         yield return (HasTeamLibrary ? "Reconnect team library …" : "Connect team library (shared confCons.xml) …",
             "team bibliothek library share laufwerk gemeinsam confcons keepass", () => ConnectTeamLibraryCommand.Execute(null));

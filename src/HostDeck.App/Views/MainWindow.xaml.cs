@@ -257,6 +257,42 @@ public partial class MainWindow : FluentWindow
 
     // ---- Session-Tree --------------------------------------------------------------------------------
 
+    /// <summary>Rechtsklick wählt den Eintrag unter der Maus aus (sonst wirkte das Menü auf den vorher markierten).</summary>
+    private void OnTreeRightClick(object sender, MouseButtonEventArgs e)
+    {
+        if (e.OriginalSource is DependencyObject d && FindAncestor<System.Windows.Controls.TreeViewItem>(d) is { } container)
+        {
+            container.IsSelected = true;
+            container.Focus();
+        }
+        else
+        {
+            _vm.SessionTree.ClearSelection();
+        }
+    }
+
+    /// <summary>Nur sinnvolle Einträge zeigen: Verbindung, Ordner, Team-Ordner oder leere Fläche.</summary>
+    private void OnTreeContextMenuOpening(object sender, ContextMenuEventArgs e)
+    {
+        var item = _vm.SessionTree.SelectedItem;
+        var isConnection = item is { IsFolder: false };
+        var isTeamRoot = item is { IsTeam: true };
+        var isFolder = item is { IsFolder: true } && !isTeamRoot;
+        static Visibility Show(bool v) => v ? Visibility.Visible : Visibility.Collapsed;
+
+        MenuConnect.Visibility = Show(isConnection);
+        MenuOpenAll.Visibility = Show(isFolder || isTeamRoot);
+        MenuSepOpen.Visibility = Show(item is not null);
+        MenuNewPersonal.Visibility = Show(item is null || isTeamRoot || item.Node.Ancestors().Any(a => a.Extensions.ContainsKey(HostDeck.Core.Sync.TreeMerge.TeamContainerKey)));
+        MenuSepEdit.Visibility = Show(item is not null);
+        MenuProperties.Visibility = Show(isConnection || isFolder);
+        MenuRename.Visibility = Show(isConnection || isFolder);
+        MenuDuplicate.Visibility = Show(isConnection || isFolder);
+        MenuDelete.Visibility = Show(isConnection || isFolder);
+        MenuTeamSync.Visibility = Show(isTeamRoot);
+        MenuTeamDisconnect.Visibility = Show(isTeamRoot);
+    }
+
     /// <summary>Klick auf die leere Fläche im Baum hebt die Auswahl auf ⇒ „Neu …“ legt dann auf oberster Ebene an.</summary>
     private void OnTreeEmptyAreaClick(object sender, MouseButtonEventArgs e)
     {

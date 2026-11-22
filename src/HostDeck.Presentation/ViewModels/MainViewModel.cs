@@ -224,6 +224,9 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Installierte Version (von der App gesetzt), z. B. „1.0.18“.</summary>
     [ObservableProperty] private string _appVersion = typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "";
 
+    /// <summary>Automatische Sicherungen (von der App gesetzt).</summary>
+    public IBackupManager? BackupService { get; set; }
+
     /// <summary>Update-Prüfung (von der App gesetzt).</summary>
     public Action? CheckForUpdatesAction { get; set; }
 
@@ -759,6 +762,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             AppVersion = AppVersion,
             CheckForUpdates = CheckForUpdatesAction,
+            Backups = BackupService,
         };
         if (!_dialogs.EditSettings(editor)) return;
         var themeChanged = editor.ThemeChanged;
@@ -770,6 +774,7 @@ public sealed partial class MainViewModel : ObservableObject
         }
         SaveSettings();
         SettingsApplied?.Invoke();
+        if (editor.RetentionChanged) RunSafe(() => BackupService?.ApplyRetention(), "Apply backup retention");
         ApplyTeamSettings(editor.TeamLibraryPath.Trim(), editor.TeamReadOnly);
         if (themeChanged) { CurrentTheme = Settings.Theme; _theme.Apply(Settings.Theme); }
         Reachability?.Invalidate();
@@ -1031,6 +1036,12 @@ public sealed partial class MainViewModel : ObservableObject
         {
             _dialogs.ShowError("Export failed", ex.Message);
         }
+    }
+
+    private void RunSafe(Action action, string context)
+    {
+        try { action(); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { AppLog.Error(context, ex); }
     }
 
     public void SaveSettings()

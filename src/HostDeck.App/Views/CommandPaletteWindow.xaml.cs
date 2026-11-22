@@ -22,11 +22,25 @@ public partial class CommandPaletteWindow : Window
         main.Palette.Refresh();
         Loaded += (_, _) =>
         {
-            // oben mittig über dem Hauptfenster
-            Left = owner.Left + (owner.ActualWidth - ActualWidth) / 2;
-            Top = owner.Top + 70;
+            // oben mittig über dem Fenster. Achtung: Bei maximiertem Fenster liefern Left/Top die Werte des
+            // NICHT maximierten Fensters ⇒ dann den tatsächlich belegten Bildschirmbereich verwenden.
+            var bounds = VisibleBounds(owner);
+            Left = bounds.Left + (bounds.Width - ActualWidth) / 2;
+            Top = bounds.Top + 70;
             QueryBox.Focus();
         };
+    }
+
+    private static Rect VisibleBounds(Window owner)
+    {
+        if (owner.WindowState != WindowState.Maximized)
+            return new Rect(owner.Left, owner.Top, owner.ActualWidth, owner.ActualHeight);
+        var handle = new System.Windows.Interop.WindowInteropHelper(owner).Handle;
+        var area = System.Windows.Forms.Screen.FromHandle(handle).WorkingArea;       // physische Pixel
+        var toDip = PresentationSource.FromVisual(owner)?.CompositionTarget?.TransformFromDevice ?? System.Windows.Media.Matrix.Identity;
+        var topLeft = toDip.Transform(new Point(area.Left, area.Top));
+        var bottomRight = toDip.Transform(new Point(area.Right, area.Bottom));
+        return new Rect(topLeft, bottomRight);
     }
 
     private void OnPreviewKeyDown(object sender, KeyEventArgs e)

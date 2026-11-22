@@ -320,8 +320,11 @@ public sealed class EncryptedConnectionStore : IDisposable
     /// Konsistente Sicherung: WAL in die Datenbank zurückschreiben, dann Datenbank + Schlüsseldatei kopieren.
     /// Die Sicherung bleibt verschlüsselt und wird mit demselben Master-Passwort geöffnet.
     /// </summary>
-    /// <summary>Automatische Sicherungen heißen <c>HostDeck-Backup_yyyyMMdd-HHmmss.hdk</c>.</summary>
-    public const string BackupPrefix = "HostDeck-Backup_";
+    /// <summary>
+    /// Automatische Sicherungen heißen <c>HostDeck-AutoBackup_yyyyMMdd-HHmmss.hdk</c> – bewusst anders als manuelle
+    /// („HostDeck-Backup_yyyyMMdd.hdk“), damit die Aufbewahrungsregel nie eine manuelle Sicherung löscht.
+    /// </summary>
+    public const string BackupPrefix = "HostDeck-AutoBackup_";
 
     /// <summary>Sicherung in einen Ordner (Name mit Zeitstempel) – Datenbank + Schlüsseldatei.</summary>
     public string Backup(string targetDirectory)

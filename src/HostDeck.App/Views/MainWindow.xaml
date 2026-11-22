@@ -189,7 +189,9 @@
                     <TreeView x:Name="SessionTreeView" ItemsSource="{Binding SessionTree.Items}"
                               behaviors:TreeDragDrop.ViewModel="{Binding SessionTree}"
                               SelectedItemChanged="OnTreeSelectedItemChanged" MouseDoubleClick="OnTreeDoubleClick"
-                              KeyDown="OnTreeKeyDown" MouseLeftButtonDown="OnTreeEmptyAreaClick" Background="Transparent" BorderThickness="0"
+                              KeyDown="OnTreeKeyDown" MouseLeftButtonDown="OnTreeEmptyAreaClick"
+                              PreviewMouseRightButtonDown="OnTreeRightClick" ContextMenuOpening="OnTreeContextMenuOpening"
+                              Background="Transparent" BorderThickness="0"
                               VirtualizingPanel.IsVirtualizing="True" VirtualizingPanel.VirtualizationMode="Recycling">
                         <TreeView.ItemContainerStyle>
                             <Style TargetType="TreeViewItem" BasedOn="{StaticResource {x:Type TreeViewItem}}">
@@ -201,19 +203,20 @@
                         </TreeView.ItemContainerStyle>
                         <TreeView.ContextMenu>
                             <ContextMenu>
-                                <MenuItem Header="Connect" InputGestureText="Enter" Click="OnMenuOpen" FontWeight="SemiBold" />
-                                <MenuItem Header="Open all in split view" Click="OnMenuOpenTiled" />
-                                <Separator />
-                                <MenuItem Header="New connection" InputGestureText="Ctrl+N" Command="{Binding NewConnectionCommand}" />
-                                <MenuItem Header="New folder" InputGestureText="Ctrl+Shift+N" Command="{Binding NewFolderCommand}" />
-                                <MenuItem Header="New personal folder (top level, only for me)" Command="{Binding NewPersonalFolderCommand}" />
-                                <Separator />
-                                <MenuItem Header="Properties …" InputGestureText="F4" Click="OnMenuEdit" />
-                                <MenuItem Header="Rename" InputGestureText="F2" Click="OnMenuRename" />
-                                <MenuItem Header="Duplicate" InputGestureText="Ctrl+D" Click="OnMenuDuplicate" />
-                                <MenuItem Header="Delete" InputGestureText="Del" Click="OnMenuDelete" />
-                                <Separator />
-                                <MenuItem Header="Manage credentials (vault) …" Command="{Binding ManageVaultCommand}" />
+                                <!-- Sichtbarkeit je nach Ziel (Verbindung / Ordner / Team-Ordner / leere Fläche): OnTreeContextMenuOpening -->
+                                <MenuItem x:Name="MenuConnect" Header="Connect" InputGestureText="Enter" Click="OnMenuOpen" FontWeight="SemiBold" />
+                                <MenuItem x:Name="MenuOpenAll" Header="Open all in split view (up to 4)" Click="OnMenuOpenTiled" FontWeight="SemiBold" />
+                                <Separator x:Name="MenuSepOpen" />
+                                <MenuItem x:Name="MenuNewConnection" Header="New connection" InputGestureText="Ctrl+N" Command="{Binding NewConnectionCommand}" />
+                                <MenuItem x:Name="MenuNewFolder" Header="New folder" InputGestureText="Ctrl+Shift+N" Command="{Binding NewFolderCommand}" />
+                                <MenuItem x:Name="MenuNewPersonal" Header="New personal folder (top level, only for me)" Command="{Binding NewPersonalFolderCommand}" />
+                                <Separator x:Name="MenuSepEdit" />
+                                <MenuItem x:Name="MenuProperties" Header="Properties …" InputGestureText="F4" Click="OnMenuEdit" />
+                                <MenuItem x:Name="MenuRename" Header="Rename" InputGestureText="F2" Click="OnMenuRename" />
+                                <MenuItem x:Name="MenuDuplicate" Header="Duplicate" InputGestureText="Ctrl+D" Click="OnMenuDuplicate" />
+                                <MenuItem x:Name="MenuDelete" Header="Delete" InputGestureText="Del" Click="OnMenuDelete" />
+                                <MenuItem x:Name="MenuTeamSync" Header="Sync team library" InputGestureText="Ctrl+S" Command="{Binding SyncTeamCommand}" />
+                                <MenuItem x:Name="MenuTeamDisconnect" Header="Disconnect team library" Command="{Binding DisconnectTeamLibraryCommand}" />
                             </ContextMenu>
                         </TreeView.ContextMenu>
                         <TreeView.ItemTemplate>

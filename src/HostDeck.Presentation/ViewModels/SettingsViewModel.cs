@@ -29,6 +29,11 @@ public sealed partial class SettingsViewModel : ObservableObject
         _teamLibraryPath = settings.TeamLibraryPath ?? "";
         _teamReadOnly = settings.TeamReadOnly;
         _autoUpdate = settings.AutoUpdate;
+        _autoBackup = settings.AutoBackup;
+        _backupFolder = settings.BackupFolder ?? "";
+        _keepDaily = settings.BackupKeepDaily;
+        _keepWeekly = settings.BackupKeepWeekly;
+        _keepMonthly = settings.BackupKeepMonthly;
         LastUpdateCheckText = settings.LastUpdateCheckUtc is { } last
             ? $"Last checked: {last.ToLocalTime():g}" : "Not checked yet";
     }
@@ -51,6 +56,23 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private string _teamLibraryPath;
     [ObservableProperty] private bool _teamReadOnly;
     [ObservableProperty] private bool _autoUpdate;
+
+    // ---- Sicherungen ----
+    [ObservableProperty] private bool _autoBackup;
+    [ObservableProperty] private string _backupFolder;
+    [ObservableProperty] private int _keepDaily;
+    [ObservableProperty] private int _keepWeekly;
+    [ObservableProperty] private int _keepMonthly;
+    public IReadOnlyList<int> DailyOptions { get; } = [0, 3, 7, 14, 30];
+    public IReadOnlyList<int> WeeklyOptions { get; } = [0, 4, 8, 12, 26];
+    public IReadOnlyList<int> MonthlyOptions { get; } = [0, 3, 6, 12, 24, 36];
+
+    /// <summary>Automatische Sicherungen (von der App gesetzt) – für „Back up now“ und die Übersicht.</summary>
+    public Services.IBackupManager? Backups { get; init; }
+    public string BackupFolderHint => Backups?.Folder ?? "";
+    public string BackupSummary => Backups?.Summary() ?? "";
+
+    public bool RetentionChanged { get; private set; }
     public string LastUpdateCheckText { get; }
 
     /// <summary>„Jetzt nach Updates suchen“ (von der App gesetzt).</summary>
@@ -77,6 +99,13 @@ public sealed partial class SettingsViewModel : ObservableObject
         _settings.ShowReachability = ShowReachability;
         _settings.TerminalFontSize = Math.Clamp(FontSize, 8, 32);
         _settings.AutoUpdate = AutoUpdate;
+        RetentionChanged = (KeepDaily, KeepWeekly, KeepMonthly) != (_settings.BackupKeepDaily, _settings.BackupKeepWeekly, _settings.BackupKeepMonthly)
+                           || BackupFolder.Trim() != (_settings.BackupFolder ?? "");
+        _settings.AutoBackup = AutoBackup;
+        _settings.BackupFolder = string.IsNullOrWhiteSpace(BackupFolder) ? null : BackupFolder.Trim();
+        _settings.BackupKeepDaily = KeepDaily;
+        _settings.BackupKeepWeekly = KeepWeekly;
+        _settings.BackupKeepMonthly = KeepMonthly;
         var source = UpdateSource.Trim();
         if (source != (_settings.UpdateSource ?? ""))
         {

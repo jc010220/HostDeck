@@ -99,8 +99,17 @@ Like a shared KeePass database: everyone works on the same `confCons.xml` on the
 
 ## Data and backups
 
-`%APPDATA%\HostDeck\connections.hdk` + `connections.hdk.key` (back up both, or use *Create backup*),
-settings in `settings.json`, error log in `%LOCALAPPDATA%\HostDeck\logs`.
+`%APPDATA%\HostDeck\connections.hdk` + `connections.hdk.key` (always back up both), settings in `settings.json`,
+error log in `%LOCALAPPDATA%\HostDeck\logs`.
+
+- **Automatic backups** (*Settings → Backups*, on by default): once a day an encrypted copy of database + key file is written
+  to the backup folder (default `%APPDATA%\HostDeck\backups`; a network share, another drive or OneDrive is better).
+- **Retention (grandfather-father-son):** keeps the newest backup of each of the last 7 days, 4 weeks and 12 months
+  (adjustable) and deletes older automatic backups. The newest backup is always kept; only automatic backups (`HostDeck-AutoBackup_*`)
+  are ever deleted.
+- **Manual backup:** *Create backup …* suggests `HostDeck-Backup_yyyyMMdd.hdk`; these files are never touched by the retention.
+- Restore: close HostDeck and copy the two files as `connections.hdk` / `connections.hdk.key` to `%APPDATA%\HostDeck`. They open
+  with the master password that was valid at backup time.
 
 ## Updates in a company
 

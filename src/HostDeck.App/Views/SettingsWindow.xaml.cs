@@ -10,6 +10,7 @@ public partial class SettingsWindow : FluentWindow
     {
         DataContext = vm;
         InitializeComponent();
+        MaxHeight = SystemParameters.WorkArea.Height - 40;
     }
 
     private void OnBrowseTeamLibrary(object sender, RoutedEventArgs e)
@@ -30,6 +31,39 @@ public partial class SettingsWindow : FluentWindow
     }
 
     private void OnCheckForUpdates(object sender, RoutedEventArgs e) => ((SettingsViewModel)DataContext).CheckForUpdates?.Invoke();
+
+    private void OnBrowseBackupFolder(object sender, RoutedEventArgs e)
+    {
+        var vm = (SettingsViewModel)DataContext;
+        var dialog = new Microsoft.Win32.OpenFolderDialog { Title = "Folder for automatic backups" };
+        var current = vm.BackupFolder.Trim().Length > 0 ? vm.BackupFolder.Trim() : vm.BackupFolderHint;
+        if (System.IO.Directory.Exists(current)) dialog.InitialDirectory = current;
+        if (dialog.ShowDialog(this) == true) vm.BackupFolder = dialog.FolderName;
+    }
+
+    private void OnOpenBackupFolder(object sender, RoutedEventArgs e)
+    {
+        var vm = (SettingsViewModel)DataContext;
+        var folder = vm.Backups?.Folder;
+        if (folder is null) return;
+        System.IO.Directory.CreateDirectory(folder);
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", $"\"{folder}\"") { UseShellExecute = false });
+    }
+
+    private void OnBackupNow(object sender, RoutedEventArgs e)
+    {
+        var vm = (SettingsViewModel)DataContext;
+        if (vm.Backups is null) return;
+        try
+        {
+            var file = vm.Backups.BackupNow();
+            System.Windows.MessageBox.Show(this, $"Backup created:\n{file}\n\n{vm.Backups.Summary()}", "Backups");
+        }
+        catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
+        {
+            System.Windows.MessageBox.Show(this, $"Backup failed: {ex.Message}", "Backups", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        }
+    }
 
     private void OnOk(object sender, RoutedEventArgs e)
     {

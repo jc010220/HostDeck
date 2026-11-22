@@ -14,6 +14,7 @@ public partial class App : Application
     private static Mutex? _singleInstance;
     private StoreAdapter? _store;
     private UpdateService? _updates;
+    private BackupService? _backups;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -72,7 +73,9 @@ public partial class App : Application
     {
         try
         {
-            DailyBackup(store);
+            _backups = new BackupService(viewModel, _store!, Path.Combine(Path.GetDirectoryName(store.DatabasePath)!, "backups"));
+            viewModel.BackupService = _backups;
+            await Task.Run(_backups.Start); // Kopieren einer großen DB nicht im UI-Thread
             var mRemoteNgFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "mRemoteNG", "confCons.xml");
             await viewModel.InitializeAsync(mRemoteNgFile);
             Log.Info("Startup complete");
@@ -89,32 +92,6 @@ public partial class App : Application
     }
 
     /// <summary>Einmal täglich beim Start eine verschlüsselte Sicherung (die letzten 10 bleiben erhalten).</summary>
-    private static void DailyBackup(EncryptedConnectionStore store)
-    {
-        try
-        {
-            var dir = Path.Combine(Path.GetDirectoryName(store.DatabasePath)!, "backups");
-            Directory.CreateDirectory(dir);
-            var today = DateTime.Now.ToString("yyyyMMdd");
-            if (Directory.EnumerateFiles(dir, $"{EncryptedConnectionStore.BackupPrefix}{today}-*.hdk").Any()
-                || Directory.EnumerateFiles(dir, $"HostDeck-Sicherung-{today}-*.hdk").Any()) return;
-            if (store.CountConnections() == 0) return; // nichts Sicherungswürdiges (und keine leeren Sicherungen anhäufen)
-            Log.Info($"Daily backup: {store.Backup(dir)}");
-
-            // die 10 neuesten behalten (auch ältere Sicherungen mit dem früheren deutschen Namen zählen mit)
-            var all = Directory.EnumerateFiles(dir, $"{EncryptedConnectionStore.BackupPrefix}*.hdk")
-                .Concat(Directory.EnumerateFiles(dir, "HostDeck-Sicherung-*.hdk"));
-            foreach (var old in all.OrderByDescending(File.GetLastWriteTimeUtc).Skip(10))
-            {
-                File.Delete(old);
-                File.Delete(old + ".key");
-            }
-        }
-        catch (Exception ex)
-        {
-            Log.Error("Daily backup", ex);
-        }
-    }
 
     /// <summary>Gerätschlüssel → Passwortdialog (mit Wiederholung) → bzw. Ersteinrichtung.</summary>
     private static EncryptedConnectionStore? UnlockOrCreate(string path, IDeviceKeyProtector device)
@@ -178,6 +155,7 @@ public partial class App : Application
     protected override void OnExit(ExitEventArgs e)
     {
         _updates?.ApplyOnExit();
+        _backups?.Dispose();
         _store?.Dispose();
         _singleInstance?.Dispose();
         base.OnExit(e);

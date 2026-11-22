@@ -99,6 +99,14 @@ public sealed class AppSettings
     /// <summary>Standard-Update-Quelle wurde einmalig eingetragen (danach gilt die Wahl des Benutzers, auch „leer“).</summary>
     public bool UpdateSourceDefaulted { get; set; }
     public DateTime? LastUpdateCheckUtc { get; set; }
+    /// <summary>Tägliche automatische Sicherung (verschlüsselt).</summary>
+    public bool AutoBackup { get; set; } = true;
+    /// <summary>Zielordner; leer = %APPDATA%\HostDeck\backups. Z. B. OneDrive- oder Netzwerkordner.</summary>
+    public string? BackupFolder { get; set; }
+    /// <summary>Aufbewahrung (Großvater-Vater-Sohn): neueste Sicherung je Tag / Woche / Monat.</summary>
+    public int BackupKeepDaily { get; set; } = 7;
+    public int BackupKeepWeekly { get; set; } = 4;
+    public int BackupKeepMonthly { get; set; } = 12;
     /// <summary>Täglich im Hintergrund prüfen, laden und beim Beenden installieren.</summary>
     public bool AutoUpdate { get; set; } = true;
     /// <summary>Gemeinsame Team-Datei (confCons.xml auf dem Netzlaufwerk oder Ordner mit lokaler Kopie).</summary>

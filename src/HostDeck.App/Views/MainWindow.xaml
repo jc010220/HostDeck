@@ -125,7 +125,7 @@
                             <MenuItem Header="Settings …" Command="{Binding OpenSettingsCommand}" />
                             <MenuItem Header="Manage credentials (vault) …" Command="{Binding ManageVaultCommand}" />
                             <MenuItem Header="Change HostDeck master password …" Command="{Binding ChangeMasterPasswordCommand}" />
-                            <MenuItem Header="Create backup …" Command="{Binding BackupCommand}" />
+                            <MenuItem Header="Create personal backup …" Command="{Binding BackupCommand}" />
                             <MenuItem Header="Remember on this PC (unlock without password)" IsCheckable="True"
                                       IsChecked="{Binding IsDeviceUnlockEnabled}"
                                       Visibility="{Binding DeviceUnlockSupported, Converter={StaticResource BoolToVisibility}}" />

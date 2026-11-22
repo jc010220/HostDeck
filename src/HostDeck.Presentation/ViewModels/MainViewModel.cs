@@ -224,6 +224,9 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Installierte Version (von der App gesetzt), z. B. „1.0.18“.</summary>
     [ObservableProperty] private string _appVersion = typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "";
 
+    /// <summary>Sicherung wiederherstellen (von der App gesetzt: prüft, sichert den aktuellen Stand, ersetzt, startet neu).</summary>
+    public Action<string>? RestoreBackupAction { get; set; }
+
     /// <summary>Automatische Sicherungen (von der App gesetzt).</summary>
     public IBackupManager? BackupService { get; set; }
 
@@ -269,7 +272,7 @@ public sealed partial class MainViewModel : ObservableObject
             yield return ($"Cancel connecting: {connecting.Title}", "abbrechen cancel stop verbindung", connecting.CancelConnect);
         yield return ("Close all tabs", "close all tabs", CloseAllTabs);
         yield return ("Settings …", "settings optionen einstellungen preferences", () => OpenSettingsCommand.Execute(null));
-        yield return ("Create backup …", "backup sicherung export datenbank", () => BackupCommand.Execute(null));
+        yield return ("Create personal backup …", "backup sicherung export datenbank", () => BackupCommand.Execute(null));
         yield return (Settings.ShowReachability ? "Hide online status in tree" : "Show online status in tree", "online status erreichbar ping", () =>
         {
             Settings.ShowReachability = !Settings.ShowReachability;
@@ -437,8 +440,12 @@ public sealed partial class MainViewModel : ObservableObject
     }
 
     /// <summary>Beim Beenden: Stand (inkl. Auf-/Zuklapp-Zustand) speichern.</summary>
+    private bool _isShutDown;
+
     public void Shutdown()
     {
+        if (_isShutDown) return; // z. B. nach „Restore backup“ bereits erledigt
+        _isShutDown = true;
         OfferTeamSyncOnExit();
         Reachability?.Dispose();
         Settings.LastWorkspace = CaptureWorkspace();
@@ -763,6 +770,7 @@ public sealed partial class MainViewModel : ObservableObject
             AppVersion = AppVersion,
             CheckForUpdates = CheckForUpdatesAction,
             Backups = BackupService,
+            RestoreBackup = RestoreBackupAction,
         };
         if (!_dialogs.EditSettings(editor)) return;
         var themeChanged = editor.ThemeChanged;
@@ -786,14 +794,14 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private void Backup()
     {
-        // Namensvorschlag: Dateiname_Datum.Endung, z. B. HostDeck-Backup_20261122.hdk
-        var suggested = $"HostDeck-Backup_{DateTime.Now:yyyyMMdd}.hdk";
-        if (_dialogs.SaveFile("Create backup", "HostDeck backup (*.hdk)|*.hdk", suggested) is not { } target) return;
+        // Namensvorschlag: Dateiname_Datum.Endung, z. B. HostDeck-Personal-Backup_20261122.hdk
+        var suggested = $"HostDeck-Personal-Backup_{DateTime.Now:yyyyMMdd}.hdk";
+        if (_dialogs.SaveFile("Create personal backup", "HostDeck personal backup (*.hdk)|*.hdk", suggested) is not { } target) return;
         try
         {
             Persist();
             var file = _store.BackupTo(target);
-            _dialogs.ShowInfo("Backup created",
+            _dialogs.ShowInfo("Personal backup created",
                 $"{file}\n{file}.key\n\nBoth files belong together. To restore: close HostDeck and copy the files as " +
                 "connections.hdk / connections.hdk.key to %APPDATA%\\HostDeck. They open with the master password that was valid at the time of the backup.");
         }

@@ -73,6 +73,9 @@ public sealed partial class SettingsViewModel : ObservableObject
     public string BackupSummary => Backups?.Summary() ?? "";
 
     public bool RetentionChanged { get; private set; }
+
+    /// <summary>Sicherung wiederherstellen (von der App gesetzt).</summary>
+    public Action<string>? RestoreBackup { get; init; }
     public string LastUpdateCheckText { get; }
 
     /// <summary>„Jetzt nach Updates suchen“ (von der App gesetzt).</summary>

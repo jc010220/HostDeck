@@ -102,14 +102,17 @@ Like a shared KeePass database: everyone works on the same `confCons.xml` on the
 `%APPDATA%\HostDeck\connections.hdk` + `connections.hdk.key` (always back up both), settings in `settings.json`,
 error log in `%LOCALAPPDATA%\HostDeck\logs`.
 
-- **Automatic backups** (*Settings → Backups*, on by default): once a day an encrypted copy of database + key file is written
+- **Automatic personal backups** (*Settings → Personal backups*, on by default): once a day an encrypted copy of database + key file is written
   to the backup folder (default `%APPDATA%\HostDeck\backups`; a network share, another drive or OneDrive is better).
 - **Retention (grandfather-father-son):** keeps the newest backup of each of the last 7 days, 4 weeks and 12 months
-  (adjustable) and deletes older automatic backups. The newest backup is always kept; only automatic backups (`HostDeck-AutoBackup_*`)
+  (adjustable) and deletes older automatic backups. The newest backup is always kept; only automatic backups (`HostDeck-Personal-AutoBackup_*`)
   are ever deleted.
-- **Manual backup:** *Create backup …* suggests `HostDeck-Backup_yyyyMMdd.hdk`; these files are never touched by the retention.
-- Restore: close HostDeck and copy the two files as `connections.hdk` / `connections.hdk.key` to `%APPDATA%\HostDeck`. They open
-  with the master password that was valid at backup time.
+- **Manual backup:** *Create personal backup …* suggests `HostDeck-Personal-Backup_yyyyMMdd.hdk`; never touched by the retention.
+- **Restore:** *Settings → Personal backups → Restore …*: pick a backup from the list (or any file); HostDeck checks it,
+  shows its content, saves the current state as `HostDeck-Personal-BeforeRestore_…` and restarts with the restored data.
+  The team library is not affected and synchronizes again afterwards.
+- Personal backups contain your own database (personal folders, vault, snippets); the team library keeps its own last
+  10 versions. Backups open with the master password that was valid at backup time.
 
 ## Updates in a company
 

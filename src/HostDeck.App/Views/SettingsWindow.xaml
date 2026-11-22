@@ -48,13 +48,16 @@
             <TextBlock Margin="0,4,0,0" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                        Text="Shared confCons.xml (stays compatible with mRemoteNG). Changes by others appear automatically, save your own with Ctrl+S. Folder instead of file: the newest .xml in it is used." />
 
-            <TextBlock Text="Backups" FontWeight="SemiBold" Margin="0,16,0,6" />
+            <TextBlock Text="Personal backups" FontWeight="SemiBold" Margin="0,16,0,2" />
+            <TextBlock Margin="0,0,0,6" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                       Text="Your own HostDeck database: personal folders and connections, vault, personal snippets and settings for team entries. The team library keeps its own version history (last 10 versions before each save)." />
             <DockPanel>
                 <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <ui:Button Content="Restore …" Margin="0,0,6,0" Click="OnRestoreBackup" />
                     <ui:Button Content="Open folder" Margin="0,0,6,0" Click="OnOpenBackupFolder" />
                     <ui:Button Content="Back up now" Click="OnBackupNow" />
                 </StackPanel>
-                <ui:ToggleSwitch Content="Create backups automatically (daily)" IsChecked="{Binding AutoBackup}" VerticalAlignment="Center" />
+                <ui:ToggleSwitch Content="Create personal backups automatically (daily)" IsChecked="{Binding AutoBackup}" VerticalAlignment="Center" />
             </DockPanel>
             <DockPanel Margin="0,8,0,0">
                 <ui:Button DockPanel.Dock="Right" Content="Browse …" Margin="8,0,0,0" Click="OnBrowseBackupFolder" />

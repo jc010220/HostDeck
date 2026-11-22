@@ -15,6 +15,8 @@ public partial class App : Application
     private StoreAdapter? _store;
     private UpdateService? _updates;
     private BackupService? _backups;
+    private DpapiDeviceKeyProtector? _device;
+    private MainViewModel? _viewModel;
 
     protected override void OnStartup(StartupEventArgs e)
     {
@@ -42,7 +44,7 @@ public partial class App : Application
         var theme = new ThemeService();
         theme.Apply(settingsStore.Load().Theme); // Entsperr-Dialog bereits im richtigen Theme
 
-        var device = new DpapiDeviceKeyProtector();
+        var device = _device = new DpapiDeviceKeyProtector();
         var store = UnlockOrCreate(EncryptedConnectionStore.DefaultPath, device);
         Log.Info(store is null ? "Unlock cancelled" : $"Database opened: {store.DatabasePath} ({new FileInfo(store.DatabasePath).Length / 1024} KB)");
         if (store is null)
@@ -58,6 +60,8 @@ public partial class App : Application
         _updates.Register();
         viewModel.AppVersion = _updates.CurrentVersion;
         viewModel.CheckForUpdatesAction = () => _ = _updates.CheckAsync(interactive: true);
+        viewModel.RestoreBackupAction = RestoreBackup;
+        _viewModel = viewModel;
         var window = new MainWindow(viewModel);
         Views.MainWindow.RegisterGlobalShortcuts(window);
         MainWindow = window;
@@ -150,6 +154,116 @@ public partial class App : Application
         var stamp = DateTime.Now.ToString("yyyyMMdd-HHmmss");
         foreach (var file in new[] { path, path + ".key", path + "-wal", path + "-shm" })
             if (File.Exists(file)) File.Move(file, $"{file}.{stamp}.bak");
+    }
+
+    // ---- Persönliche Sicherung wiederherstellen ---------------------------------------------------
+
+    /// <summary>
+    /// 1) Sicherung prüfen (in einer Kopie öffnen, Inhalt anzeigen), 2) bestätigen lassen, 3) aktuellen Stand als
+    /// „HostDeck-Personal-BeforeRestore_…“ sichern, 4) Datenbank schließen und ersetzen, 5) HostDeck neu starten.
+    /// </summary>
+    private void RestoreBackup(string backupFile)
+    {
+        var owner = MainWindow;
+        if (_viewModel is null || _store is null) return;
+        if (!File.Exists(backupFile) || !File.Exists(backupFile + ".key"))
+        {
+            MessageBox.Show(owner, "The backup or its key file (.hdk.key) is missing.", "Restore personal backup", MessageBoxButton.OK, MessageBoxImage.Warning);
+            return;
+        }
+
+        // 1) Prüfen – in einem Temp-Ordner, damit die Sicherung selbst unverändert bleibt
+        string summary;
+        var temp = Directory.CreateTempSubdirectory("hostdeck-restore-").FullName;
+        try
+        {
+            var probe = Path.Combine(temp, "probe.hdk");
+            File.Copy(backupFile, probe);
+            File.Copy(backupFile + ".key", probe + ".key");
+            EncryptedConnectionStore? opened = null;
+            try { opened = EncryptedConnectionStore.TryOpenWithDevice(probe, _device!); }
+            catch (InvalidDataException) { }
+            for (var attempt = 1; opened is null && attempt <= 3; attempt++)
+            {
+                var dialog = new MasterPasswordDialog($"Backup {Path.GetFileName(backupFile)}", attempt > 1, attempt, 3) { Owner = owner };
+                if (dialog.ShowDialog() != true) return;
+                try { opened = EncryptedConnectionStore.Open(probe, dialog.Password); }
+                catch (WrongMasterPasswordException) { }
+            }
+            if (opened is null)
+            {
+                MessageBox.Show(owner, "The master password of this backup was entered incorrectly three times. Nothing was changed.", "Restore personal backup");
+                return;
+            }
+            using (opened)
+            {
+                var tree = opened.Load();
+                summary = $"{tree.Connections.Count()} connections in {tree.Folders.Count()} folders, {tree.Vault.Count} vault entries";
+            }
+        }
+        catch (Exception ex) when (ex is IOException or InvalidDataException or UnauthorizedAccessException or Microsoft.Data.Sqlite.SqliteException)
+        {
+            Log.Error("Check backup", ex);
+            MessageBox.Show(owner, $"This backup cannot be opened: {ex.Message}\n\nNothing was changed.", "Restore personal backup", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+        finally
+        {
+            try { Directory.Delete(temp, recursive: true); } catch (IOException) { } catch (UnauthorizedAccessException) { }
+        }
+
+        // 2) Bestätigen
+        if (MessageBox.Show(owner,
+                $"Restore this personal backup?\n\n{Path.GetFileName(backupFile)}  ({File.GetLastWriteTime(backupFile):g})\nContains {summary}.\n\n" +
+                "The current state is saved as a backup first. HostDeck then restarts – unlock it with the master password that was valid at backup time. " +
+                "The team library is not affected; it is synchronized again after the restart.",
+                "Restore personal backup", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) != MessageBoxResult.Yes)
+            return;
+
+        // 3) Aktuellen Stand sichern (nie von der Aufbewahrungsregel gelöscht)
+        string safety;
+        try
+        {
+            _viewModel.Shutdown();
+            var folder = _backups?.Folder ?? Path.Combine(Path.GetDirectoryName(EncryptedConnectionStore.DefaultPath)!, "backups");
+            safety = _store.BackupTo(Path.Combine(folder, $"HostDeck-Personal-BeforeRestore_{DateTime.Now:yyyyMMdd-HHmmss}.hdk"));
+            Log.Info($"Restore: current state saved as {safety}");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Log.Error("Backup before restore", ex);
+            MessageBox.Show(owner, $"The current state could not be backed up ({ex.Message}). Nothing was changed.", "Restore personal backup", MessageBoxButton.OK, MessageBoxImage.Error);
+            return;
+        }
+
+        // 4) Schließen und ersetzen
+        var target = EncryptedConnectionStore.DefaultPath;
+        try
+        {
+            _backups?.Dispose();
+            _store.Dispose();
+            _store = null;
+            foreach (var leftover in new[] { target + "-wal", target + "-shm" })
+                if (File.Exists(leftover)) File.Delete(leftover);
+            File.Copy(backupFile, target, overwrite: true);
+            File.Copy(backupFile + ".key", target + ".key", overwrite: true);
+            Log.Info($"Restore: {backupFile} restored");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            Log.Error("Restore backup", ex);
+            MessageBox.Show(owner, $"Restoring failed: {ex.Message}\n\nYour previous state is saved here:\n{safety}\n\nHostDeck will now close.",
+                "Restore personal backup", MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown();
+            return;
+        }
+
+        // 5) Neu starten (Einzelinstanz-Sperre vorher freigeben, sonst meldet die neue Instanz „läuft bereits“)
+        _singleInstance?.ReleaseMutex();
+        _singleInstance?.Dispose();
+        _singleInstance = null;
+        if (Environment.ProcessPath is { } exe) System.Diagnostics.Process.Start(exe);
+        Shutdown();
     }
 
     protected override void OnExit(ExitEventArgs e)

@@ -50,6 +50,16 @@ public partial class SettingsWindow : FluentWindow
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", $"\"{folder}\"") { UseShellExecute = false });
     }
 
+    private void OnRestoreBackup(object sender, RoutedEventArgs e)
+    {
+        var vm = (SettingsViewModel)DataContext;
+        if (vm.Backups is null || vm.RestoreBackup is null) return;
+        var picker = new RestoreBackupWindow(vm.Backups.AllBackups()) { Owner = this };
+        if (picker.ShowDialog() != true || picker.SelectedFile is not { } file) return;
+        DialogResult = false; // Einstellungen schließen, dann wiederherstellen (startet HostDeck neu)
+        Dispatcher.BeginInvoke(() => vm.RestoreBackup(file));
+    }
+
     private void OnBackupNow(object sender, RoutedEventArgs e)
     {
         var vm = (SettingsViewModel)DataContext;
@@ -57,7 +67,7 @@ public partial class SettingsWindow : FluentWindow
         try
         {
             var file = vm.Backups.BackupNow();
-            System.Windows.MessageBox.Show(this, $"Backup created:\n{file}\n\n{vm.Backups.Summary()}", "Backups");
+            System.Windows.MessageBox.Show(this, $"Backup created:\n{file}\n\n{vm.Backups.Summary()}", "Personal backups");
         }
         catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException)
         {

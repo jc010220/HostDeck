@@ -9,12 +9,21 @@ public sealed record BackupRetentionPolicy(int KeepDaily = 7, int KeepWeekly = 4
 }
 
 /// <summary>Automatische Sicherungen (in der App: BackupService).</summary>
+/// <summary>Eine Sicherung im Sicherungsordner (Datenbank; die Schlüsseldatei liegt daneben).</summary>
+public sealed record BackupInfo(string Path, DateTime Time, long Size, bool Automatic)
+{
+    public string Name => System.IO.Path.GetFileName(Path);
+    public string Display => $"{Time:g}  ·  {Size / 1024.0:0} KB  ·  {(Automatic ? "automatic" : "manual")}";
+}
+
 public interface IBackupManager
 {
     string Folder { get; }
     string BackupNow();
     void ApplyRetention();
     string Summary();
+    /// <summary>Alle wiederherstellbaren Sicherungen im Ordner (mit Schlüsseldatei), neueste zuerst.</summary>
+    IReadOnlyList<BackupInfo> AllBackups();
 }
 
 public static class BackupRetention

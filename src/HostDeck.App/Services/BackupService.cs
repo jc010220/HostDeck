@@ -17,7 +17,8 @@ public sealed class BackupService(MainViewModel vm, IConnectionStore store, stri
     private static readonly string[] Patterns =
     [
         $"{EncryptedConnectionStore.BackupPrefix}*.hdk",
-        "HostDeck-Backup_????????-??????.hdk",
+        "HostDeck-AutoBackup_*.hdk",                 // 1.0.24
+        "HostDeck-Backup_????????-??????.hdk",       // 1.0.23
         "HostDeck-Sicherung-*.hdk",
     ];
     private Timer? _timer;
@@ -86,8 +87,18 @@ public sealed class BackupService(MainViewModel vm, IConnectionStore store, stri
     public string Summary()
     {
         var list = List();
-        return list.Count == 0 ? "No automatic backups yet."
+        return list.Count == 0 ? "No automatic personal backups yet."
             : $"{list.Count} backup(s), newest {list.Max(b => b.Time):g}, oldest {list.Min(b => b.Time):d}.";
+    }
+
+    public IReadOnlyList<BackupInfo> AllBackups()
+    {
+        if (!Directory.Exists(Folder)) return [];
+        var automatic = List().Select(b => b.Path).ToHashSet(StringComparer.OrdinalIgnoreCase);
+        return Directory.EnumerateFiles(Folder, "*.hdk")
+            .Where(p => File.Exists(p + ".key"))
+            .Select(p => new BackupInfo(p, File.GetLastWriteTime(p), new FileInfo(p).Length, automatic.Contains(p)))
+            .OrderByDescending(b => b.Time).ToList();
     }
 
     public void Dispose() => _timer?.Dispose();

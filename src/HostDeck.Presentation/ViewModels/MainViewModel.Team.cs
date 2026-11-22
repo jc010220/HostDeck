@@ -188,7 +188,8 @@ public sealed partial class MainViewModel
     [RelayCommand]
     private void DisconnectTeamLibrary()
     {
-        if (!HasTeamLibrary) return;
+        // Auch ohne Verbindungseinstellung: ein verwaister Team-Ordner (z. B. aus einer Sicherung) muss entfernbar sein
+        if (!HasTeamLibrary && TeamContainer is null) return;
         RefreshTeamPending();
         var pending = TeamPendingChanges > 0
             ? $"\n\nWarning: {TeamPendingChanges} change(s) have not been saved to the team file yet and will be lost. Press Ctrl+S first to keep them."
@@ -268,6 +269,20 @@ public sealed partial class MainViewModel
         password.Length < 10 ? "The password must be at least 10 characters long."
         : password.Any(c => c > '\u00FF') ? "The password may only contain Latin-1 characters (mRemoteNG limitation) – no emoji or special Unicode characters."
         : null;
+
+    /// <summary>
+    /// Team-Ordner ohne verbundene Team-Datei (z. B. nach dem Wiederherstellen einer älteren Sicherung): Er wäre
+    /// verwaist – nicht mehr synchronisiert und nicht mehr trennbar. Der Inhalt liegt in der Team-Datei, daher entfernen.
+    /// </summary>
+    private void RemoveOrphanedTeamFolder()
+    {
+        if (HasTeamLibrary || TeamContainer is not { } orphan) return;
+        SessionTree.Tree.Root.Remove(orphan);
+        SessionTree.Load(SessionTree.Tree);
+        Persist();
+        AppLog.Info("Removed orphaned Team folder (no team library connected).");
+        StatusText = "Team folder removed – no team library is connected. Connect it again via the lock menu if needed.";
+    }
 
     // ---- Synchronisieren --------------------------------------------------------------------------
 
@@ -663,7 +678,15 @@ public sealed partial class MainViewModel
     /// <summary>Beim Start: Stand der Datei übernehmen (eigene, noch nicht gespeicherte Änderungen bleiben).</summary>
     private async Task StartTeamLibraryAsync()
     {
+        RemoveOrphanedTeamFolder();
         if (!HasTeamLibrary) return;
+        if (TeamContainer is null)
+        {
+            // Verbunden, aber kein Team-Ordner (z. B. ältere Sicherung wiederhergestellt) ⇒ neu einlesen statt trennen
+            _teamUi = SynchronizationContext.Current;
+            await ConnectTeamLibraryAsync(Settings.TeamLibraryPath!, Settings.TeamReadOnly);
+            return;
+        }
         _teamUi = SynchronizationContext.Current;
         RefreshTeamPending();
         await SyncTeamAsync(write: false, interactive: false);

@@ -456,4 +456,40 @@ public sealed class TeamLibraryTests : IDisposable
         var s = Assert.Single(jump.Snippets.Items, x => x.Name == "Shared");
         Assert.False(jump.Snippets.CanEdit(s));
     }
+
+    [Fact]
+    public void Orphaned_team_folder_from_a_restored_backup_is_removed_and_disconnect_always_works()
+    {
+        WriteTeamFile(Sample());
+        var (alice, dialogs, store) = User("alice");
+        var snapshotWithTeam = store.Saved;                 // „Sicherung“ mit Team-Ordner
+
+        // Team getrennt (Einstellung leer), danach wird die alte Sicherung wiederhergestellt
+        alice.Settings.TeamLibraryPath = null;
+        var restored = new MainViewModel(new FakeDialogs(), new MemorySettings { Stored = alice.Settings }, new NoTheme(), new MemoryStore { Saved = snapshotWithTeam });
+        restored.Initialize();
+        Assert.Null(restored.TeamContainer);
+        Assert.DoesNotContain(restored.SessionTree.Tree.Root.Descendants(), n => n.Name == "sw01");
+
+        // auch direkt: Trennen wirkt, selbst wenn die Einstellung schon leer ist
+        var (bob, bobDialogs, _) = User("bob");
+        bob.Settings.TeamLibraryPath = null;
+        Assert.NotNull(bob.TeamContainer);
+        bobDialogs.ConfirmAnswer = true;
+        bob.DisconnectTeamLibraryCommand.Execute(null);
+        Assert.Null(bob.TeamContainer);
+    }
+
+    [Fact]
+    public void Restoring_a_backup_without_team_folder_reconnects_instead_of_disconnecting()
+    {
+        WriteTeamFile(Sample());
+        var (alice, _, _) = User("alice");
+        var settings = new MemorySettings { Stored = alice.Settings };   // Team ist verbunden
+        var restored = new MainViewModel(new FakeDialogs(), settings, new NoTheme(), new MemoryStore { Saved = new ConnectionTree() });
+        restored.Initialize();
+        Assert.True(restored.HasTeamLibrary);
+        Assert.NotNull(restored.TeamContainer);
+        Assert.Contains(restored.TeamContainer!.Descendants(), n => n.Name == "sw01");
+    }
 }

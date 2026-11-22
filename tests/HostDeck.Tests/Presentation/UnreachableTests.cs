@@ -30,8 +30,8 @@ public class UnreachableTests
         conn.Settings.Password = "pw";
         vm.SessionTree.Add(conn);
 
-        var errors = new List<(string, Exception)>();
-        HostDeck.Presentation.Services.AppLog.Sink = (c, e) => errors.Add((c, e));
+        var errors = new System.Collections.Concurrent.ConcurrentQueue<(string, Exception)>(); // Sink ist global, andere Tests schreiben parallel
+        HostDeck.Presentation.Services.AppLog.Sink = (c, e) => errors.Enqueue((c, e));
         try
         {
             vm.OpenCommand.Execute(vm.SessionTree.FindByNode(conn));
@@ -44,7 +44,7 @@ public class UnreachableTests
 
             Assert.Equal(SessionState.Failed, tab.State);
             // nur erwartete Netzwerkfehler – nichts Unerwartetes (andere, parallel laufende Tests ignorieren)
-            Assert.DoesNotContain(errors, e => e.Item1.Contains($"{host}:{port}", StringComparison.Ordinal));
+            Assert.DoesNotContain(errors.ToArray(), e => e.Item1.Contains($"{host}:{port}", StringComparison.Ordinal));
             vm.Workspace.Close(tab);                       // Schließen nach Fehler darf nicht werfen
             Assert.Equal(0, vm.Workspace.TabCount);
         }

@@ -24,9 +24,22 @@ public partial class SettingsWindow : FluentWindow
             section.Visibility = section.Name == target ? Visibility.Visible : Visibility.Collapsed;
     }
 
-    /// <summary>Hamburger: Menü auf Symbole zusammenklappen bzw. wieder aufklappen.</summary>
-    private void OnToggleNav(object sender, RoutedEventArgs e) =>
-        NavColumn.Width = new GridLength(NavColumn.Width.Value > 100 ? 56 : 210);
+    private bool _navCollapsed;
+
+    /// <summary>Hamburger: Menü auf Symbole zusammenklappen (Beschriftung dann als Tooltip) bzw. wieder aufklappen.</summary>
+    private void OnToggleNav(object sender, RoutedEventArgs e)
+    {
+        _navCollapsed = !_navCollapsed;
+        NavColumn.Width = new GridLength(_navCollapsed ? 64 : 210);
+        foreach (var item in Nav.Items.OfType<System.Windows.Controls.ListBoxItem>())
+        {
+            if (item.Content is not System.Windows.Controls.StackPanel { Children: [FrameworkElement icon, System.Windows.Controls.TextBlock label] }) continue;
+            label.Visibility = _navCollapsed ? Visibility.Collapsed : Visibility.Visible;
+            icon.Margin = _navCollapsed ? new Thickness(0) : new Thickness(0, 0, 12, 0);
+            item.HorizontalContentAlignment = _navCollapsed ? HorizontalAlignment.Center : HorizontalAlignment.Left;
+            item.ToolTip = _navCollapsed ? label.Text : null;
+        }
+    }
 
     /// <summary>Direkt einen Bereich öffnen (z. B. aus dem Menü „Team backups“).</summary>
     public void ShowSection(string name)

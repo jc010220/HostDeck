@@ -4,6 +4,7 @@ Images used in the main README. Please use **demo data only** (no real host name
 
 | File | Content | Tip |
 |---|---|---|
+| `hostdeck-launch.gif` / `.mp4` | 20 s overview at the top of the README (GIF autoplays, MP4 with sound) | demo data, dark theme |
 | `quick-search.gif` | Ctrl+K, type a few letters, Enter connects | 5–8 s, ~900 px wide |
 | `split-view.png` | 2×2 grid with SSH, RDP and a web tab | dark theme |
 | `sftp-follow.gif` | `cd /var/log` in the terminal, SFTP sidebar follows | 5 s |

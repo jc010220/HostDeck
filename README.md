@@ -7,9 +7,9 @@
 Connection manager for Windows 11: mRemoteNG-compatible, with MobaXterm-style usability.
 RDP · SSH (+ SFTP) · Telnet · raw TCP · VNC · HTTP/HTTPS · encrypted database · quick search · shared team library.
 
-<!-- Screenshots/GIFs: docs/media/ (see docs/media/README.md) – e.g.
-![Quick search (Ctrl+K)](docs/media/quick-search.gif)
--->
+[![HostDeck in 20 seconds: split view, multi-exec, Ctrl+K quick search and team library sync](docs/media/hostdeck-launch.gif)](docs/media/hostdeck-launch.mp4)
+
+<sub>Click the animation for the full-quality video with sound.</sub>
 
 ## Why you can trust it with server passwords
 

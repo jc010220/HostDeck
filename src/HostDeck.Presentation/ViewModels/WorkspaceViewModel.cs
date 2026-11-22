@@ -146,6 +146,9 @@ public sealed partial class PaneViewModel(int index) : ObservableObject
 /// <summary>Arbeitsbereich: Bereiche (1/2/4), Tabs, aktiver Bereich, Tab-Verschiebung.</summary>
 public sealed partial class WorkspaceViewModel : ObservableObject
 {
+    /// <summary>Fensterposition (nur bei abgelösten Fenstern; vom Fenster gepflegt, beim Beenden gemerkt).</summary>
+    public Services.WindowPlacement? Placement { get; set; }
+
     public WorkspaceViewModel()
     {
         Panes.Add(new PaneViewModel(0) { IsActive = true });

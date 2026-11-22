@@ -45,6 +45,7 @@ public partial class MainWindow : FluentWindow
         Closing += (_, _) =>
         {
             SavePlacement();
+            _vm.CaptureWorkspaceForShutdown(); // vor dem Schließen der Zusatzfenster (deren Tabs wandern sonst hierher)
             foreach (var w in Application.Current.Windows.OfType<SessionWindow>().ToList()) w.Close();
         };
 

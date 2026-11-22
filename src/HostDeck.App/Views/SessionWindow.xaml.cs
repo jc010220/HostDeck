@@ -26,6 +26,8 @@ public partial class SessionWindow : FluentWindow
             if (e.PropertyName is nameof(WorkspaceViewModel.ActiveTab) or nameof(WorkspaceViewModel.TabCount)) UpdateTitle();
             if (e.PropertyName == nameof(WorkspaceViewModel.TabCount) && workspace.TabCount == 0) Close(); // letzter Tab weg
         };
+        RestorePlacement(workspace.Placement);
+        Closing += (_, _) => workspace.Placement = CurrentPlacement();
         Closed += (_, _) => main.CloseDetachedWorkspace(workspace);
         UpdateTitle();
 
@@ -34,6 +36,27 @@ public partial class SessionWindow : FluentWindow
         Bind(Key.Tab, ModifierKeys.Control, () => workspace.SelectNextTab());
         Bind(Key.Tab, ModifierKeys.Control | ModifierKeys.Shift, () => workspace.SelectNextTab(backwards: true));
         Bind(Key.K, ModifierKeys.Control, () => (Application.Current.MainWindow as MainWindow)?.ShowPalette(this));
+    }
+
+    private void RestorePlacement(HostDeck.Presentation.Services.WindowPlacement? p)
+    {
+        if (p is null || p.Width < MinWidth || p.Height < MinHeight) return;
+        // nur auf einem noch vorhandenen Bildschirm (Zweitmonitor evtl. abgesteckt)
+        var screen = new Rect(SystemParameters.VirtualScreenLeft, SystemParameters.VirtualScreenTop,
+                              SystemParameters.VirtualScreenWidth, SystemParameters.VirtualScreenHeight);
+        if (Rect.Intersect(screen, new Rect(p.Left, p.Top, p.Width, 40)).Width < 100) return;
+        WindowStartupLocation = WindowStartupLocation.Manual;
+        Left = p.Left;
+        Top = p.Top;
+        Width = p.Width;
+        Height = p.Height;
+        if (p.Maximized) Loaded += (_, _) => WindowState = WindowState.Maximized;
+    }
+
+    private HostDeck.Presentation.Services.WindowPlacement CurrentPlacement()
+    {
+        var b = WindowState == WindowState.Normal ? new Rect(Left, Top, Width, Height) : RestoreBounds;
+        return new() { Left = b.Left, Top = b.Top, Width = b.Width, Height = b.Height, Maximized = WindowState == WindowState.Maximized };
     }
 
     private void UpdateTitle()

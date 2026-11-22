@@ -176,7 +176,15 @@ public sealed class WorkspaceSnapshot
 {
     public HostDeck.Presentation.ViewModels.WorkspaceLayout Layout { get; set; }
     public List<List<Guid>> Panes { get; set; } = [];
-    public int ConnectionCount => Panes.Sum(p => p.Count);
+    /// <summary>Abgelöste Fenster (z. B. auf dem zweiten Monitor) mit Position und eigenen Tabs.</summary>
+    public List<DetachedWindowSnapshot> Windows { get; set; } = [];
+    public int ConnectionCount => Panes.Sum(p => p.Count) + Windows.Sum(w => w.Workspace.ConnectionCount);
+}
+
+public sealed class DetachedWindowSnapshot
+{
+    public WindowPlacement? Placement { get; set; }
+    public WorkspaceSnapshot Workspace { get; set; } = new();
 }
 
 /// <summary>Brücke zum Fehlerprotokoll der App (Presentation kennt die Dateiablage nicht).</summary>

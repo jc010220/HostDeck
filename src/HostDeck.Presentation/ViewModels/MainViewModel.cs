@@ -285,29 +285,62 @@ public sealed partial class MainViewModel : ObservableObject
 
     // ---- Arbeitsbereiche --------------------------------------------------------------------------
 
-    public WorkspaceSnapshot CaptureWorkspace() => new()
+    public WorkspaceSnapshot CaptureWorkspace()
     {
-        Layout = Workspace.Layout,
-        Panes = Workspace.Panes.Select(p => p.Tabs.Where(t => !t.IsTransient).Select(t => t.Connection.Id).ToList()).ToList(),
+        var snapshot = Capture(Workspace);
+        foreach (var detached in DetachedWorkspaces)
+        {
+            var inner = Capture(detached);
+            if (inner.ConnectionCount > 0) snapshot.Windows.Add(new DetachedWindowSnapshot { Placement = detached.Placement, Workspace = inner });
+        }
+        return snapshot;
+    }
+
+    private static WorkspaceSnapshot Capture(WorkspaceViewModel workspace) => new()
+    {
+        Layout = workspace.Layout,
+        Panes = workspace.Panes.Select(p => p.Tabs.Where(t => !t.IsTransient).Select(t => t.Connection.Id).ToList()).ToList(),
     };
+
+    private WorkspaceSnapshot? _shutdownSnapshot;
+
+    /// <summary>
+    /// Beim Schließen des Hauptfensters zuerst aufrufen: Danach werden die Zusatzfenster geschlossen und ihre Tabs
+    /// wandern ins Hauptfenster – der Arbeitsbereich mit allen Fenstern muss vorher festgehalten werden.
+    /// </summary>
+    public void CaptureWorkspaceForShutdown() => _shutdownSnapshot = CaptureWorkspace();
 
     /// <summary>Öffnet die Sessions eines Arbeitsbereichs (zusätzlich zu bereits offenen Tabs).</summary>
     public int RestoreWorkspace(WorkspaceSnapshot snapshot)
     {
-        if (WorkspaceViewModel.PaneCount(snapshot.Layout) > Workspace.Panes.Count) Workspace.SetLayout(snapshot.Layout);
+        var opened = OpenInto(Workspace, snapshot);
+        foreach (var window in snapshot.Windows)
+        {
+            var target = new WorkspaceViewModel { Placement = window.Placement };
+            if (OpenInto(target, window.Workspace) == 0) continue; // alle Verbindungen inzwischen gelöscht
+            opened += target.TabCount;
+            DetachedWorkspaces.Add(target);
+            DetachedWindowRequested?.Invoke(target);
+        }
+        StatusText = $"Workspace restored: {opened} session(s)" + (snapshot.Windows.Count > 0 ? $" in {1 + snapshot.Windows.Count} windows" : "");
+        return opened;
+    }
+
+    private int OpenInto(WorkspaceViewModel workspace, WorkspaceSnapshot snapshot)
+    {
+        if (WorkspaceViewModel.PaneCount(snapshot.Layout) > workspace.Panes.Count) workspace.SetLayout(snapshot.Layout);
         var opened = 0;
         for (var i = 0; i < snapshot.Panes.Count; i++)
         {
-            var pane = Workspace.Panes[Math.Min(i, Workspace.Panes.Count - 1)];
+            var pane = workspace.Panes[Math.Min(i, workspace.Panes.Count - 1)];
             foreach (var id in snapshot.Panes[i])
             {
                 if (SessionTree.Tree.Find(id) is not ConnectionNode node) continue; // inzwischen gelöscht
-                Workspace.Open(CreateTab(node, SessionTree.Tree.Vault, transient: false), pane);
+                workspace.Open(CreateTab(node, SessionTree.Tree.Vault, transient: false), pane);
                 opened++;
             }
         }
-        if (Workspace.Panes.Count > 0) Workspace.ActivePane = Workspace.Panes[0];
-        StatusText = $"Workspace restored: {opened} session(s)";
+        if (workspace.Panes.Count > 0) workspace.ActivePane = workspace.Panes[0];
         return opened;
     }
 
@@ -449,7 +482,7 @@ public sealed partial class MainViewModel : ObservableObject
         _isShutDown = true;
         OfferTeamSyncOnExit();
         Reachability?.Dispose();
-        Settings.LastWorkspace = CaptureWorkspace();
+        Settings.LastWorkspace = _shutdownSnapshot ?? CaptureWorkspace();
         SaveSettings();
         Persist();
     }

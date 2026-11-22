@@ -118,8 +118,8 @@
                         </Border>
                     </StackPanel>
                 </ui:Button>
-                <ui:Button DockPanel.Dock="Right" ToolTip="Settings &amp; security" Click="OnSecurityMenu">
-                    <ui:SymbolIcon Symbol="{x:Static app:Icons.Lock}" />
+                <ui:Button DockPanel.Dock="Right" ToolTip="Settings, backups, team library  (Ctrl+,)" Click="OnSecurityMenu">
+                    <ui:SymbolIcon Symbol="{x:Static app:Icons.Settings}" />
                     <ui:Button.ContextMenu>
                         <ContextMenu>
                             <MenuItem Header="Settings …" Command="{Binding OpenSettingsCommand}" />

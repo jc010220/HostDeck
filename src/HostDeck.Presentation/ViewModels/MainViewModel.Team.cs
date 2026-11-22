@@ -281,7 +281,7 @@ public sealed partial class MainViewModel
         SessionTree.Load(SessionTree.Tree);
         Persist();
         AppLog.Info("Removed orphaned Team folder (no team library connected).");
-        StatusText = "Team folder removed – no team library is connected. Connect it again via the lock menu if needed.";
+        StatusText = "Team folder removed – no team library is connected. Connect it again via the settings menu (gear icon) if needed.";
     }
 
     // ---- Synchronisieren --------------------------------------------------------------------------

@@ -28,8 +28,23 @@ public sealed class RdpView : Grid
     private RdpSessionViewModel? _vm;
     private bool _connected;
 
+    private static readonly List<WeakReference<RdpView>> Instances = [];
+
+    /// <summary>Alle RDP-Sitzungen aus dem Vollbild holen (z. B. vor dem Sperren – das Vollbild ist ein eigenes natives Fenster).</summary>
+    public static void LeaveFullScreenAll()
+    {
+        lock (Instances)
+        {
+            Instances.RemoveAll(w => !w.TryGetTarget(out _));
+            foreach (var weak in Instances)
+                if (weak.TryGetTarget(out var view) && view._host is not null && view._connected)
+                    Dispatch.TrySet(view._host.Ocx, "FullScreen", false);
+        }
+    }
+
     public RdpView()
     {
+        lock (Instances) Instances.Add(new WeakReference<RdpView>(this));
         _formsHost.Child = _panel;
         var connectButton = new Wpf.Ui.Controls.Button { Content = "Connect", Appearance = Wpf.Ui.Controls.ControlAppearance.Primary, HorizontalAlignment = HorizontalAlignment.Center };
         connectButton.Click += (_, _) => Connect();

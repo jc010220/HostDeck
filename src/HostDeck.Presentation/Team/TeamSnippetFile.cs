@@ -63,7 +63,14 @@ public static class TeamSnippetFile
         if (!File.Exists(path)) return [];
         var bytes = TeamLibraryFile.ReadShared(path);
         var envelope = JsonSerializer.Deserialize<Envelope>(bytes) ?? new Envelope();
-        if (envelope.Data is null) return envelope.Items ?? [];
+        if (envelope.Data is null)
+        {
+            // Mit Passwort geschützt, Datei aber unverschlüsselt ⇒ von jemandem ohne Passwort ersetzt. Nie übernehmen
+            // (sonst würde der nächste Schreibvorgang den fremden Inhalt verschlüsselt „beglaubigen“).
+            if (!string.IsNullOrEmpty(password) && envelope.Items is { Count: > 0 })
+                throw new TeamSnippetPasswordException("The shared snippets file is not encrypted although the library has a password – it may have been replaced. It is ignored.");
+            return Clamp(envelope.Items ?? []);
+        }
         if (string.IsNullOrEmpty(password))
             throw new TeamSnippetPasswordException("The team snippets are protected with the team password.");
         try
@@ -80,12 +87,24 @@ public static class TeamSnippetFile
                 aes.Decrypt(nonce, cipher, tag, plain, "HostDeck.TeamSnippets.v1"u8);
             }
             finally { CryptographicOperations.ZeroMemory(key); }
-            return JsonSerializer.Deserialize<List<TeamSnippetEntry>>(plain) ?? [];
+            return Clamp(JsonSerializer.Deserialize<List<TeamSnippetEntry>>(plain) ?? []);
         }
         catch (Exception ex) when (ex is AuthenticationTagMismatchException or FormatException or ArgumentNullException)
         {
             throw new TeamSnippetPasswordException("The team snippets could not be decrypted (team password changed?).");
         }
+    }
+
+    /// <summary>Zeitstempel aus der Datei höchstens wenig in der Zukunft – sonst könnte ein Eintrag mit „2099“ nie mehr geändert werden.</summary>
+    private static List<TeamSnippetEntry> Clamp(List<TeamSnippetEntry> items)
+    {
+        var limit = DateTime.UtcNow.AddMinutes(10);
+        foreach (var e in items)
+        {
+            if (e.ModifiedUtc > limit) e.ModifiedUtc = limit;
+            if (e.DeletedUtc > limit) e.DeletedUtc = limit;
+        }
+        return items;
     }
 
     /// <summary>Änderung einbringen: neu einlesen, zusammenführen, atomar schreiben. Liefert den neuen Gesamtstand.</summary>

@@ -766,6 +766,7 @@ public sealed partial class MainViewModel : ObservableObject
         var readOnlyTeam = IsReadOnlyTeamNode(item.Node);
         var before = readOnlyTeam ? Core.Sync.TreeMerge.Fingerprint(item.Node) : null;
         var original = readOnlyTeam ? (Name: item.Node.Name, Host: (item.Node as ConnectionNode)?.Hostname, Settings: item.Node.Settings.Clone()) : default;
+        var targetsBefore = TeamTargetsOf(item.Node);
         var editor = new ConnectionEditorViewModel(item.Node, SessionTree.Tree.Vault);
         if (!_dialogs.EditConnection(editor)) return false;
         if (readOnlyTeam && Core.Sync.TreeMerge.Fingerprint(item.Node) != before)
@@ -786,7 +787,7 @@ public sealed partial class MainViewModel : ObservableObject
         item.NotifyNameChanged();
         item.RefreshDisplay(); // Ordner: Kinder erben ggf. neue Werte
         SessionTree.ApplyFilter();
-        TrustCurrentTeamTargets(item.Node); // eigene Änderung ⇒ neues Ziel ist bestätigt
+        TrustEditedTeamTargets(item.Node, targetsBefore); // nur selbst geänderte Ziele gelten als bestätigt
         Persist();
         StatusText = $"Saved: {item.Node.Path}";
         return true;

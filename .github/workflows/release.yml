@@ -18,14 +18,15 @@ on:
         description: 'Version (z. B. 1.0.1) – der Tag v<Version> wird beim Veröffentlichen angelegt'
         required: true
 
-permissions:
-  contents: write
-  id-token: write      # für die Herkunftsbescheinigung (Build Provenance)
-  attestations: write
+permissions: {}       # Standard: keine Rechte; der Job bekommt nur, was er braucht
 
 jobs:
   release:
     runs-on: windows-latest
+    permissions:
+      contents: write
+      id-token: write      # für die Herkunftsbescheinigung (Build Provenance)
+      attestations: write
     env:
       SIGN_PFX_BASE64: ${{ secrets.SIGN_PFX_BASE64 }}
       SIGN_PFX_PASSWORD: ${{ secrets.SIGN_PFX_PASSWORD }}
@@ -34,16 +35,20 @@ jobs:
       AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
       AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           global-json-file: global.json
 
       - name: Version bestimmen
         shell: pwsh
+        env:
+          # Eingaben nie direkt ins Skript einsetzen (Script-Injection) – nur über Umgebungsvariablen
+          INPUT_VERSION: ${{ github.event.inputs.version }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          $v = '${{ github.event.inputs.version }}'
-          if (-not $v) { $v = '${{ github.ref_name }}'.TrimStart('v') }
+          $v = $env:INPUT_VERSION
+          if (-not $v) { $v = $env:REF_NAME.TrimStart('v') }
           if ($v -notmatch '^\d+\.\d+\.\d+$') { throw "Ungültige Version '$v' (erwartet z. B. 1.0.1)" }
           echo "VERSION=$v" >> $env:GITHUB_ENV
 
@@ -89,12 +94,15 @@ jobs:
           Get-Content releases/SHA256SUMS.txt
 
       - name: Herkunftsbescheinigung (Build Provenance)
-        uses: actions/attest-build-provenance@v2
+        uses: actions/attest-build-provenance@e8998f949152b193b063cb0ec769d69d929409be # v2
         with:
           subject-path: |
             releases/*Setup.exe
             releases/*Portable.zip
             releases/*-${{ env.VERSION }}-full.nupkg
+            releases/*-${{ env.VERSION }}-delta.nupkg
+            releases/RELEASES
+            releases/releases.win.json
 
       - name: GitHub-Release veröffentlichen
         run: vpk upload github --repoUrl ${{ github.server_url }}/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }} -o releases --publish --releaseName "HostDeck ${{ env.VERSION }}" --tag v${{ env.VERSION }} --targetCommitish ${{ github.sha }}

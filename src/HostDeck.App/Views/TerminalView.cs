@@ -152,7 +152,11 @@ public sealed class TerminalView : Border
     /// </summary>
     private string? ConfirmPaste(string text)
     {
-        var lines = text.Replace("\r\n", "\n").TrimEnd('\n').Split('\n');
+        // Bracketed-Paste-Ende im Text würde den Schutz der Shell aushebeln ⇒ entfernen
+        text = text.Replace("\u001b[201~", "").Replace("\u001b[200~", "");
+        // Jede Art Zeilenumbruch zählt (auch einzelnes CR, U+2028/2029, U+0085) – sonst „ok\rrm -rf …“ als eine Zeile
+        var normalized = text.Replace("\r\n", "\n").Replace('\r', '\n').Replace('\u2028', '\n').Replace('\u2029', '\n').Replace('\u0085', '\n');
+        var lines = normalized.TrimEnd('\n').Split('\n');
         if (lines.Length < 2) return text;
         var preview = string.Join("\n", lines.Take(8).Select(l => l.Length > 100 ? l[..100] + "…" : l)) + (lines.Length > 8 ? $"\n… ({lines.Length - 8} more lines)" : "");
         var owner = Window.GetWindow(this);

@@ -24,6 +24,8 @@ public interface IKnownHosts
 {
     string? Find(string host, int port, string keyType);
     void Remember(string host, int port, string keyType, string fingerprint);
+    /// <summary>Alle bekannten Keys des Hosts (Key-Typ ⇒ Fingerabdruck).</summary>
+    IReadOnlyDictionary<string, string> FindAll(string host, int port) => new Dictionary<string, string>();
 }
 
 public sealed class HostKeyRejectedException(HostKeyInfo info)
@@ -102,6 +104,10 @@ internal static class SshConnectionFactory
                 return;
             }
 
+            // Für diesen Key-Typ nichts bekannt, aber für einen anderen ⇒ wie OpenSSH als geänderten Key behandeln.
+            // Sonst könnte ein Angreifer nur ssh-rsa anbieten und bekäme den harmlosen „erste Verbindung“-Dialog.
+            if (known is null && knownHosts.FindAll(endpoint.Host, endpoint.Port).FirstOrDefault() is { Key: { } otherType, Value: { } otherFingerprint })
+                known = $"{otherFingerprint} ({otherType})";
             var info = new HostKeyInfo(endpoint.Host, endpoint.Port, e.HostKeyName, fingerprint, known);
             var decision = decide(info);
             e.CanTrust = decision != HostKeyDecision.Reject;

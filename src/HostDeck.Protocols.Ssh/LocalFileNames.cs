@@ -12,6 +12,7 @@ public static class LocalFileNames
         "CON", "PRN", "AUX", "NUL", "CONIN$", "CONOUT$",
         "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9",
         "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9",
+        "COM\u00B9", "COM\u00B2", "COM\u00B3", "LPT\u00B9", "LPT\u00B2", "LPT\u00B3", // hochgestellte Ziffern gelten unter Windows auch
     };
 
     // Windows-Regeln unabhängig vom Betriebssystem, auf dem HostDeck läuft
@@ -22,7 +23,10 @@ public static class LocalFileNames
     {
         var name = remoteName.Replace('\\', '/');
         name = name[(name.LastIndexOf('/') + 1)..];
-        var chars = name.Select(c => c < 32 || Invalid.Contains(c) ? '_' : c).ToArray();
+        // Steuerzeichen, verbotene Zeichen und unsichtbare Formatzeichen (z. B. U+202E Rechts-nach-links ⇒ „rechnung‮fdp.exe“
+        // sähe aus wie .pdf) ersetzen
+        var chars = name.Select(c => c < 32 || c == 127 || Invalid.Contains(c)
+                                     || char.GetUnicodeCategory(c) == System.Globalization.UnicodeCategory.Format ? '_' : c).ToArray();
         name = new string(chars).Trim().TrimEnd('.', ' ');
         if (name.Length == 0 || name is "." or "..") name = "download";
         var stem = name.Split('.')[0];

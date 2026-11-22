@@ -93,15 +93,21 @@ public sealed class EncryptedConnectionStore : IDisposable
 
     private static EncryptedConnectionStore OpenWithDek(string path, KeyFile keyFile, byte[] dek)
     {
+        EncryptedConnectionStore? store = null;
         try
         {
-            var store = new EncryptedConnectionStore(path, keyFile, dek);
+            store = new EncryptedConnectionStore(path, keyFile, dek);
             store.Migrate();
             return store;
         }
-        catch (SqliteException ex) when (ex.SqliteErrorCode == 26) // SQLITE_NOTADB
+        catch (Exception ex)
         {
-            throw new InvalidDataException("Database and key file do not match or the database is damaged.", ex);
+            // Fehlgeschlagen ⇒ Verbindung schließen und Schlüssel nicht im Speicher liegen lassen
+            if (store is not null) store.Dispose();
+            else CryptographicOperations.ZeroMemory(dek);
+            if (ex is SqliteException { SqliteErrorCode: 26 }) // SQLITE_NOTADB
+                throw new InvalidDataException("Database and key file do not match or the database is damaged.", ex);
+            throw;
         }
     }
 
@@ -123,11 +129,11 @@ public sealed class EncryptedConnectionStore : IDisposable
     public void ChangeMasterPassword(string currentPassword, string newPassword)
     {
         KeyFile.ValidatePassword(newPassword);
-        _keyFile.UnlockWithPassword(currentPassword); // prüft das alte Passwort
+        CryptographicOperations.ZeroMemory(_keyFile.UnlockWithPassword(currentPassword)); // prüft das alte Passwort
         // Nie schwächer als der aktuelle Standard – auch wenn die Schlüsseldatei manipuliert/alt ist
         var current = _keyFile.KdfParams;
         var floor = KdfParameters.Default;
-        var kdf = current.MemoryKiB < floor.MemoryKiB || current.Iterations < floor.Iterations ? floor : current;
+        var kdf = current.MemoryKiB < floor.MemoryKiB || current.Iterations < floor.Iterations || current.Parallelism < floor.Parallelism ? floor : current;
         var replacement = KeyFile.CreateForDek(_dek, newPassword, kdf);
         _keyFile.Kdf = replacement.Kdf;
         _keyFile.PasswordSlot = replacement.PasswordSlot;
@@ -352,7 +358,13 @@ public sealed class EncryptedConnectionStore : IDisposable
         Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(targetFile))!);
         Execute(Connection, null, "PRAGMA wal_checkpoint(TRUNCATE);");
         File.Copy(_path, targetFile, overwrite);
-        File.Copy(KeyFilePath, targetFile + KeyFileSuffix, overwrite);
+        // Schlüsseldatei ohne Geräte-Slot (DPAPI): Eine Sicherung lässt sich nur mit dem Master-Passwort öffnen –
+        // auch für jemanden, der an die DPAPI-Schlüssel des Windows-Kontos kommt.
+        var keyTarget = targetFile + KeyFileSuffix;
+        if (!overwrite && File.Exists(keyTarget)) throw new IOException($"The file '{keyTarget}' already exists.");
+        var copy = KeyFile.Load(KeyFilePath);
+        copy.Device = null;
+        copy.Save(keyTarget);
         return targetFile;
     }
 
@@ -378,6 +390,18 @@ public sealed class EncryptedConnectionStore : IDisposable
         cmd.Parameters.AddWithValue("$p", port);
         cmd.Parameters.AddWithValue("$k", keyType);
         return cmd.ExecuteScalar() as string;
+    }
+
+    public IReadOnlyDictionary<string, string> FindAllHostKeys(string host, int port)
+    {
+        using var cmd = Connection.CreateCommand();
+        cmd.CommandText = "SELECT key_type, fingerprint FROM known_hosts WHERE host = $h AND port = $p ORDER BY added_utc DESC";
+        cmd.Parameters.AddWithValue("$h", host.ToLowerInvariant());
+        cmd.Parameters.AddWithValue("$p", port);
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        using var reader = cmd.ExecuteReader();
+        while (reader.Read()) result.TryAdd(reader.GetString(0), reader.GetString(1));
+        return result;
     }
 
     public void RememberHostKey(string host, int port, string keyType, string fingerprint)

@@ -410,6 +410,7 @@ public sealed partial class MainViewModel
             }
             SaveSettings();
             if (snapshot.Password is { } pw) _store.WriteDocument(target.Doc(TeamPasswordDocument), pw);
+            _store.WriteDocument(target.Doc(ResolvedFileDocument), resolved);
             SaveTeamBase(target, TreeMerge.Snapshot(container.Children), snapshot.Hash);
             target.Probe = TeamLibraryFile.Probe(resolved);
 
@@ -672,6 +673,7 @@ public sealed partial class MainViewModel
                 var path = TeamLibraryFile.Resolve(lib.Path);
                 var container = ContainerOf(lib);
                 if (path is null || container is null) return false;
+                if (!ConfirmResolvedFile(lib, path, interactive)) return false;
                 var version = _treeVersion;
                 var mine = container.Children.Select(c => TreeMerge.CopyWithIds(c, includePersonal: true)).ToList();
                 var (baseline, _) = LoadTeamBase(lib);
@@ -704,6 +706,23 @@ public sealed partial class MainViewModel
                     return false;
                 }
                 if (remote.PasswordWasEntered && remote.Password is { } entered) _store.WriteDocument(lib.Doc(TeamPasswordDocument), entered);
+
+                // Passwortschutz verschwunden (jemand ohne Passwort hat die Datei ersetzt oder es wurde entfernt)? Nie still
+                // übernehmen – sonst würden alle Passwörter beim nächsten Speichern mit dem öffentlichen Standardschlüssel geschrieben.
+                if (!remote.Info.CustomMasterPassword && newPassword is null && PasswordOf(lib) is not null)
+                {
+                    var accept = interactive && _dialogs.Confirm($"Password protection removed – {name}",
+                        "The library file is no longer protected with its own password. Someone removed the password – or replaced " +
+                        "the file with an unprotected version.\n\nPasswords stored in it are then readable by anyone with access to the file.\n\n" +
+                        "“Yes”: accept the unprotected file (only if you know about this change)\n“No”: do not sync until this is clarified");
+                    if (!accept)
+                    {
+                        UpdateTeamStatus(lib, "password protection removed – not synced");
+                        AppLog.Info($"Library '{name}': file no longer password-protected – sync refused.");
+                        return false;
+                    }
+                    _store.WriteDocument(lib.Doc(TeamPasswordDocument), "");
+                }
 
                 var merge = TreeMerge.Merge(baseline, mine, remote.Children);
                 if (write && merge.Conflicts.Count > 0 && interactive)
@@ -796,6 +815,32 @@ public sealed partial class MainViewModel
         }
     }
 
+    private const string ResolvedFileDocument = "team-resolved-file";
+
+    /// <summary>
+    /// Ordner statt Datei (Jumphost): Wechselt die „neueste .xml“ darin auf eine andere Datei, nicht still umschalten –
+    /// jeder mit Schreibrecht auf den Ordner könnte sonst eine eigene Datei unterschieben.
+    /// </summary>
+    private bool ConfirmResolvedFile(LibraryState lib, string resolved, bool interactive)
+    {
+        if (lib.Path is not { } configured || !Directory.Exists(configured)) return true;
+        var known = _store.ReadDocument(lib.Doc(ResolvedFileDocument));
+        if (string.IsNullOrEmpty(known) || SamePath(known, resolved))
+        {
+            if (string.IsNullOrEmpty(known)) _store.WriteDocument(lib.Doc(ResolvedFileDocument), resolved);
+            return true;
+        }
+        if (!interactive || !_dialogs.Confirm($"Other file – {NameOf(lib)}",
+                $"The library folder now contains a newer file:\n\n{System.IO.Path.GetFileName(resolved)}\n(before: {System.IO.Path.GetFileName(known)})\n\n" +
+                "Use the new file for this library? Only continue if you copied it there yourself."))
+        {
+            UpdateTeamStatus(lib, "newer file in the folder – press Ctrl+S to review");
+            return false;
+        }
+        _store.WriteDocument(lib.Doc(ResolvedFileDocument), resolved);
+        return true;
+    }
+
     /// <summary>Nur für Tests/Aufrufer ohne UI-SynchronizationContext.</summary>
     public bool SyncTeam(bool write) => SyncTeamAsync(write, interactive: true).GetAwaiter().GetResult();
 
@@ -833,19 +878,36 @@ public sealed partial class MainViewModel
         if (protocol == ProtocolKind.Rdp && (s.Rdp.Gateway.Usage ?? RdGatewayUsage.Never) != RdGatewayUsage.Never
             && !string.IsNullOrWhiteSpace(s.Rdp.Gateway.Hostname))
             gateway = s.Rdp.Gateway.Hostname.Trim().ToLowerInvariant();
-        return $"{protocol}|{connection.Hostname.Trim().ToLowerInvariant()}|{s.Port ?? ProtocolDefaults.DefaultPort(protocol)}|{gateway}";
+        var key = $"{protocol}|{connection.Hostname.Trim().ToLowerInvariant()}|{s.Port ?? ProtocolDefaults.DefaultPort(protocol)}|{gateway}";
+        // Abgeschwächter Schutz gehört zum Ziel: Ohne Server-Authentifizierung bzw. ohne NLA/CredSSP kann ein Angreifer im
+        // Netz das Login abgreifen. Nur dann wird der Schlüssel länger – sichere Einträge behalten ihren bisherigen Schlüssel.
+        if (protocol == ProtocolKind.Rdp)
+        {
+            var weak = new List<string>();
+            if ((s.Rdp.AuthenticationLevel ?? RdpAuthenticationLevel.WarnOnFailedAuth) == RdpAuthenticationLevel.NoAuth) weak.Add("noauth");
+            if (s.Rdp.UseCredSsp == false) weak.Add("nocredssp");
+            if (weak.Count > 0) key += "|" + string.Join(',', weak);
+        }
+        return key;
     }
 
     /// <summary>Einträge aus 1.0.16 (ohne Gateway-Teil) gelten weiter, solange kein Gateway im Spiel ist.</summary>
     private static bool SameTarget(string known, string current) =>
         known == current || (known.Count(c => c == '|') == 2 && current == known + "|-");
 
-    private static string ShowTarget(string key) => key.Split('|') switch
+    private static string ShowTarget(string key)
     {
-        [var p, var h, var port, var gw] when gw != "-" => $"{h}:{port} ({p}) via gateway {gw}",
-        [var p, var h, var port, ..] => $"{h}:{port} ({p})",
-        _ => key,
-    };
+        var parts = key.Split('|');
+        if (parts.Length < 3) return key;
+        var text = $"{parts[1]}:{parts[2]} ({parts[0]})";
+        if (parts.Length > 3 && parts[3] != "-") text += $" via gateway {parts[3]}";
+        if (parts.Length > 4)
+        {
+            if (parts[4].Contains("noauth")) text += " – SERVER AUTHENTICATION OFF";
+            if (parts[4].Contains("nocredssp")) text += " – NLA/CredSSP OFF";
+        }
+        return text;
+    }
 
     private Dictionary<Guid, string> LoadTrustedTargets()
     {
@@ -895,14 +957,36 @@ public sealed partial class MainViewModel
         return true;
     }
 
-    /// <summary>Eigene Änderungen gelten als bestätigt (Eintrag bzw. alle Verbindungen eines Ordners).</summary>
-    private void TrustCurrentTeamTargets(TreeNode node)
+    /// <summary>Ziele aller Verbindungen des Knotens (vor dem Bearbeiten), nur für Bibliothekseinträge.</summary>
+    private Dictionary<Guid, string> TeamTargetsOf(TreeNode node) =>
+        !InTeam(node) ? [] : (node is FolderNode f ? f.Descendants() : [node]).OfType<ConnectionNode>().ToDictionary(c => c.Id, TargetKey);
+
+    /// <summary>
+    /// Nach dem Bearbeiten: Nur Ziele, die der Benutzer selbst geändert hat, gelten als bestätigt – und bei einem Ordner nur
+    /// für Einträge, deren bisheriges Ziel schon bestätigt war. Unveränderte (evtl. von Kollegen geänderte) Ziele werden nie
+    /// stillschweigend bestätigt: Wer z. B. einem Ordner sein RADIUS-Login zuweist, wird beim Verbinden weiterhin gefragt.
+    /// </summary>
+    private void TrustEditedTeamTargets(TreeNode node, Dictionary<Guid, string> before)
     {
-        if (!InTeam(node)) return;
+        if (before.Count == 0 || !InTeam(node)) return;
         var trusted = LoadTrustedTargets();
+        var changed = false;
         foreach (var c in (node is FolderNode f ? f.Descendants() : [node]).OfType<ConnectionNode>())
-            trusted[c.Id] = TargetKey(c);
-        SaveTrustedTargets(trusted);
+        {
+            if (!before.TryGetValue(c.Id, out var old)) continue;
+            var now = TargetKey(c);
+            if (now == old) continue;                                   // nicht durch diese Bearbeitung geändert
+            var wasTrusted = trusted.TryGetValue(c.Id, out var known) && SameTarget(known, old);
+            // Der bearbeitete Eintrag selbst: neuer Host wurde vom Benutzer eingetippt ⇒ bestätigt. Nur Port o. Ä. geändert
+            // an einem (evtl. fremd geänderten) unbestätigten Ziel ⇒ weiter nachfragen.
+            var hostTyped = c == node && old.Split('|').ElementAtOrDefault(1) != now.Split('|').ElementAtOrDefault(1);
+            if (wasTrusted || hostTyped)
+            {
+                trusted[c.Id] = now;
+                changed = true;
+            }
+        }
+        if (changed) SaveTrustedTargets(trusted);
     }
 
     // ---- Sicherungen neben der Datei (Regel liegt neben der Datei, gilt für alle, die sie nutzen) ----
@@ -958,7 +1042,44 @@ public sealed partial class MainViewModel
             }
         }
         vm.IsReadOnlyTeamSnippet = s => libs.FirstOrDefault(l => l.Id == s.LibraryId) is { ReadOnly: true };
+        vm.ConfirmTeamSnippet = ConfirmTeamSnippet;
         vm.SetTeamSnippets(all, available: libs.Count > 0, readOnly: libs.Count > 0 && libs.All(l => l.ReadOnly));
+    }
+
+    internal const string ConfirmedSnippetsDocument = "team-snippets-confirmed";
+
+    /// <summary>
+    /// Geteiltes Snippet ausführen? Beim ersten Mal und nach jeder Änderung des Befehls (durch wen auch immer) wird der
+    /// Befehl gezeigt – ein Kollege mit Schreibzugriff könnte sonst „Disk usage“ durch etwas Schädliches ersetzen.
+    /// </summary>
+    private bool ConfirmTeamSnippet(Snippet snippet)
+    {
+        Dictionary<Guid, string> confirmed;
+        try { confirmed = JsonSerializer.Deserialize<Dictionary<Guid, string>>(_store.ReadDocument(ConfirmedSnippetsDocument) ?? "{}") ?? []; }
+        catch (JsonException) { confirmed = []; }
+        var hash = SnippetHash(snippet.Command, snippet.Execute);
+        if (confirmed.TryGetValue(snippet.Id, out var known) && known == hash) return true;
+        if (snippet.LibraryId is null) return true; // gerade selbst angelegt, noch nicht abgeglichen
+        var command = snippet.Command.Length > 600 ? snippet.Command[..600] + " …" : snippet.Command;
+        if (!_dialogs.Confirm("Run shared snippet?",
+                $"“{snippet.Name}” is shared through a library and is new or was changed since you last ran it.\n\n{command}\n\n" +
+                (snippet.Execute ? "It is executed right away (Enter is sent). " : "") + "Run it?"))
+            return false;
+        confirmed[snippet.Id] = hash;
+        _store.WriteDocument(ConfirmedSnippetsDocument, JsonSerializer.Serialize(confirmed));
+        return true;
+    }
+
+    private static string SnippetHash(string command, bool execute) =>
+        Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(command + "\0" + execute)));
+
+    private void MarkSnippetConfirmed(Guid id, string command, bool execute)
+    {
+        Dictionary<Guid, string> confirmed;
+        try { confirmed = JsonSerializer.Deserialize<Dictionary<Guid, string>>(_store.ReadDocument(ConfirmedSnippetsDocument) ?? "{}") ?? []; }
+        catch (JsonException) { confirmed = []; }
+        confirmed[id] = SnippetHash(command, execute);
+        _store.WriteDocument(ConfirmedSnippetsDocument, JsonSerializer.Serialize(confirmed));
     }
 
     private static string? SnippetPathOf(LibraryState lib) => TeamLibraryFile.Resolve(lib.Path) is { } file ? TeamSnippetFile.PathFor(file) : null;
@@ -1016,6 +1137,7 @@ public sealed partial class MainViewModel
         var libs = Libraries;
         var lib = libs.FirstOrDefault(l => l.Id == libraryId) ?? libs.FirstOrDefault(l => !l.ReadOnly);
         if (lib is null || lib.ReadOnly) return;
+        if (entry.DeletedUtc is null) MarkSnippetConfirmed(entry.Id, entry.Command, entry.Execute); // eigener Befehl ⇒ keine Rückfrage
         var pending = TeamSnippetFile.Merge(LoadSnippetDoc(lib.Doc(TeamSnippetsPendingDocument)), [entry]);
         _store.WriteDocument(lib.Doc(TeamSnippetsPendingDocument), JsonSerializer.Serialize(pending));
         await SyncTeamSnippetsAsync(lib);

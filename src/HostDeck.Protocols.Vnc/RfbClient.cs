@@ -226,6 +226,7 @@ public sealed class RfbClient : IAsyncDisposable
         }
         catch (OperationCanceledException) { return; }
         catch (Exception ex) when (ex is IOException or SocketException or ObjectDisposedException or InvalidDataException) { reason = ex.Message; }
+        catch (Exception ex) { reason = $"Protocol error: {ex.Message}"; } // nie still hängen bleiben
         Closed?.Invoke(reason);
     }
 
@@ -299,6 +300,9 @@ public sealed class RfbClient : IAsyncDisposable
 
     private void CopyRect(int sx, int sy, int x, int y, int w, int h)
     {
+        // Quellrechteck kommt vom Server ⇒ prüfen (sonst Ausnahme im Empfangs-Task und hängende Sitzung)
+        if (sx < 0 || sy < 0 || w < 0 || h < 0 || (long)sx + w > Width || (long)sy + h > Height)
+            throw new InvalidDataException("Invalid CopyRect source rectangle from the server.");
         lock (_fbLock)
         {
             var stride = Width * 4;

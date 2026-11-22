@@ -181,12 +181,19 @@ public static class TeamLibraryFile
                     continue;
                 }
                 string holder;
-                try { holder = File.ReadAllText(lockPath).Split(' ')[0]; }
+                try { holder = SanitizeHolder(File.ReadAllText(lockPath).Split(' ')[0]); }
                 catch (IOException) { holder = "a colleague"; }
                 throw new TeamFileLockedException(string.IsNullOrWhiteSpace(holder) ? "a colleague" : holder);
             }
         }
         throw new TeamFileLockedException("a colleague");
+    }
+
+    /// <summary>Inhalt der Sperrdatei stammt vom Share ⇒ nur kurze, druckbare „benutzer@rechner“-Angabe anzeigen.</summary>
+    internal static string SanitizeHolder(string raw)
+    {
+        var clean = new string(raw.Where(c => char.IsLetterOrDigit(c) || c is '@' or '.' or '-' or '_' or '\\' or '$').Take(64).ToArray());
+        return clean.Length == 0 ? "a colleague" : clean;
     }
 
     private static void TryDelete(string path)

@@ -25,6 +25,7 @@ public sealed class StoreAdapter(EncryptedConnectionStore store, IDeviceKeyProte
 
     public string? Find(string host, int port, string keyType) { lock (_lock) return store.FindHostKey(host, port, keyType); }
     public void Remember(string host, int port, string keyType, string fingerprint) { lock (_lock) store.RememberHostKey(host, port, keyType, fingerprint); }
+    public IReadOnlyDictionary<string, string> FindAll(string host, int port) { lock (_lock) return store.FindAllHostKeys(host, port); }
 
     public bool HasDeviceUnlock => store.HasDeviceUnlock;
     public bool DeviceUnlockSupported => OperatingSystem.IsWindows();

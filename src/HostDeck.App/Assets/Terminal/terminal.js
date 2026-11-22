@@ -44,7 +44,12 @@
 
   // MobaXterm-Verhalten: Markieren kopiert, Rechtsklick fügt ein
   term.onSelectionChange(() => { const s = term.getSelection(); if (s) send({ t: 'copy', d: s }); });
-  container.addEventListener('contextmenu', (e) => { e.preventDefault(); send({ t: 'paste-request' }); });
+  // Einfügen läuft IMMER über C# (Rückfrage bei mehreren Zeilen) – auch Strg+V, Umschalt+Einfg und Browser-Paste
+  let lastPasteRequest = 0;
+  const requestPaste = () => { const now = Date.now(); if (now - lastPasteRequest < 400) return; lastPasteRequest = now; send({ t: 'paste-request' }); };
+  container.addEventListener('contextmenu', (e) => { e.preventDefault(); requestPaste(); });
+  container.addEventListener('paste', (e) => { e.preventDefault(); e.stopPropagation(); requestPaste(); }, true);
+  container.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); }, true); // kein Text per Drag & Drop
 
   // Strg+Mausrad: Schriftgröße
   container.addEventListener('wheel', (e) => {
@@ -61,7 +66,7 @@
     if (e.type !== 'keydown') return true;
     const key = [e.ctrlKey && 'ctrl', e.altKey && 'alt', e.shiftKey && 'shift', e.key.toLowerCase()].filter(Boolean).join('+');
     if (key === 'ctrl+shift+c') { const s = term.getSelection(); if (s) send({ t: 'copy', d: s }); return false; }
-    if (key === 'ctrl+shift+v') { send({ t: 'paste-request' }); return false; }
+    if (key === 'ctrl+shift+v') { e.preventDefault(); requestPaste(); return false; }
     if (key === 'ctrl+shift+f') { openSearch(); return false; }
     if (appShortcuts.has(key)) { e.preventDefault(); send({ t: 'shortcut', key }); return false; }
     return true;

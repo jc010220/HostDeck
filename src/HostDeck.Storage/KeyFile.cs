@@ -152,6 +152,9 @@ internal sealed class KeyFile
         if (file.Format != FormatName) throw new InvalidDataException("Not a HostDeck key file.");
         if (file.Version > CurrentVersion) throw new InvalidDataException($"Key file version {file.Version} is not supported (please update HostDeck).");
         if (file.Kdf.Algorithm != "argon2id") throw new InvalidDataException($"Unknown KDF '{file.Kdf.Algorithm}'.");
+        // Manipulierte/defekte Datei darf weder Speicher erschöpfen noch abstürzen lassen (max. 4 GiB, sinnvolle Bereiche)
+        if (file.Kdf.MemoryKiB is < 1024 or > 4 * 1024 * 1024 || file.Kdf.Iterations is < 1 or > 64 || file.Kdf.Parallelism is < 1 or > 64)
+            throw new InvalidDataException("The key file contains invalid key derivation parameters.");
         return file;
     }
 

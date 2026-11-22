@@ -108,6 +108,9 @@ public sealed partial class SnippetsViewModel : ObservableObject
     /// <summary>Snippet stammt aus einer schreibgeschützten Bibliothek (von MainViewModel gesetzt).</summary>
     public Func<Snippet, bool>? IsReadOnlyTeamSnippet { get; set; }
 
+    /// <summary>Vor dem Ausführen eines geteilten Snippets: false = nicht senden (von MainViewModel gesetzt).</summary>
+    public Func<Snippet, bool>? ConfirmTeamSnippet { get; set; }
+
     /// <summary>Team-Snippets durch den aktuellen Stand ersetzen (nach dem Lesen der Team-Datei).</summary>
     public void SetTeamSnippets(IEnumerable<Snippet> team, bool available, bool readOnly)
     {
@@ -163,6 +166,8 @@ public sealed partial class SnippetsViewModel : ObservableObject
     public void Run(Snippet? snippet)
     {
         if (snippet is null) return;
+        // Geteilte Snippets können von anderen geändert werden ⇒ neuen bzw. geänderten Befehl vor dem ersten Ausführen zeigen
+        if (snippet.IsTeam && ConfirmTeamSnippet is { } confirm && !confirm(snippet)) return;
         var text = ResolvePlaceholders(snippet.Command);
         if (text is null) return; // abgebrochen
         text = text.Replace("\r\n", "\r").Replace('\n', '\r');

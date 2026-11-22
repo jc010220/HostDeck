@@ -50,12 +50,17 @@ public sealed class LockService : IDisposable
         _locked = true;
         try
         {
+            // RDP-Vollbild verlassen, dann WPF-Fenster und alle übrigen sichtbaren Fenster dieses Threads (offene Meldungen,
+            // natives Vollbildfenster) ausblenden – nichts darf während der Sperre sichtbar oder bedienbar bleiben
+            Rdp.RdpView.LeaveFullScreenAll();
             var hidden = app.Windows.OfType<Window>().Where(w => w.IsVisible && w is not LockWindow).ToList();
             foreach (var w in hidden) w.Hide();
+            var native = HideNativeWindows();
             var dialog = new LockWindow(_verify, reason ?? "Enter your master password to continue. Open sessions keep running.");
             if (dialog.ShowDialog() == true)
             {
                 foreach (var w in hidden) w.Show();
+                foreach (var h in native) ShowWindow(h, SwShowNoActivate);
                 (app.MainWindow)?.Activate();
                 Log.Info("Unlocked");
             }
@@ -69,6 +74,31 @@ public sealed class LockService : IDisposable
         {
             _locked = false;
         }
+    }
+
+    private const int SwHide = 0;
+    private const int SwShowNoActivate = 4;
+
+    private delegate bool EnumWindowsProc(IntPtr hwnd, IntPtr lParam);
+
+    [DllImport("user32.dll")]
+    private static extern bool EnumThreadWindows(uint threadId, EnumWindowsProc callback, IntPtr lParam);
+
+    [DllImport("kernel32.dll")]
+    private static extern uint GetCurrentThreadId();
+
+    [DllImport("user32.dll")]
+    private static extern bool IsWindowVisible(IntPtr hwnd);
+
+    [DllImport("user32.dll")]
+    private static extern bool ShowWindow(IntPtr hwnd, int command);
+
+    private static List<IntPtr> HideNativeWindows()
+    {
+        var found = new List<IntPtr>();
+        EnumThreadWindows(GetCurrentThreadId(), (h, _) => { if (IsWindowVisible(h)) found.Add(h); return true; }, IntPtr.Zero);
+        foreach (var h in found) ShowWindow(h, SwHide);
+        return found;
     }
 
     [StructLayout(LayoutKind.Sequential)]

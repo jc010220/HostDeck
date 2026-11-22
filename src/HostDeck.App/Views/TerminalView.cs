@@ -80,6 +80,7 @@ public sealed class TerminalView : Border
         core.Settings.IsStatusBarEnabled = false;
         core.Settings.IsZoomControlEnabled = false;
         core.Settings.AreDevToolsEnabled = System.Diagnostics.Debugger.IsAttached;
+        core.Settings.AreHostObjectsAllowed = false; // nur der WebMessage-Kanal (mit Herkunftsprüfung), keine Host-Objekte
         core.AddWebResourceRequestedFilter(Origin + "*", CoreWebView2WebResourceContext.All);
         core.WebResourceRequested += OnResourceRequested;
         core.NewWindowRequested += (_, e) => e.Handled = true;

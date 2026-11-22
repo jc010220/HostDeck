@@ -386,7 +386,35 @@ public sealed class EncryptedConnectionStore : IDisposable
 
     private SqliteConnection Connection => _connection ?? throw new ObjectDisposedException(nameof(EncryptedConnectionStore));
 
-    private static SqliteConnection OpenConnection(string path, byte[] dek)
+    /// <summary>
+    /// Schlüssel direkt als Bytes an SQLite übergeben (<c>x'…'</c>-Raw-Key) – ohne ihn als .NET-String in einen
+    /// SQL-Befehl einzubauen. Strings sind unveränderlich und blieben bis zur Speicherbereinigung (oder in einem
+    /// Crash-Dump) im Arbeitsspeicher; das Byte-Array wird sofort danach überschrieben.
+    /// </summary>
+    private static void ApplyRawKey(SqliteConnection connection, byte[] dek)
+    {
+        const string HexDigits = "0123456789ABCDEF";
+        var key = new byte[dek.Length * 2 + 3];
+        try
+        {
+            key[0] = (byte)'x';
+            key[1] = (byte)'\'';
+            for (var i = 0; i < dek.Length; i++)
+            {
+                key[2 + i * 2] = (byte)HexDigits[dek[i] >> 4];
+                key[3 + i * 2] = (byte)HexDigits[dek[i] & 0xF];
+            }
+            key[^1] = (byte)'\'';
+            var rc = SQLitePCL.raw.sqlite3_key(connection.Handle, key);
+            if (rc != SQLitePCL.raw.SQLITE_OK) throw new InvalidDataException($"Setting the database key failed (SQLite error {rc}).");
+        }
+        finally
+        {
+            CryptographicOperations.ZeroMemory(key);
+        }
+    }
+
+    internal static SqliteConnection OpenConnection(string path, byte[] dek)
     {
         var connection = new SqliteConnection(new SqliteConnectionStringBuilder
         {
@@ -397,9 +425,9 @@ public sealed class EncryptedConnectionStore : IDisposable
         connection.Open();
         try
         {
-            var hex = Convert.ToHexString(dek);
             // SQLCipher-v4-Format; Raw-Key ⇒ keine zusätzliche interne PBKDF2 (Argon2id ist bereits erfolgt)
-            Execute(connection, null, $"PRAGMA cipher = 'sqlcipher'; PRAGMA legacy = 4; PRAGMA key = \"x'{hex}'\";");
+            Execute(connection, null, "PRAGMA cipher = 'sqlcipher'; PRAGMA legacy = 4;");
+            ApplyRawKey(connection, dek);
             // Schlüsselprüfung: wirft SQLITE_NOTADB bei falschem Schlüssel
             Execute(connection, null, "SELECT count(*) FROM sqlite_master; PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
             return connection;

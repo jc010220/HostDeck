@@ -20,6 +20,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write      # für die Herkunftsbescheinigung (Build Provenance)
+  attestations: write
 
 jobs:
   release:
@@ -49,7 +51,7 @@ jobs:
         run: dotnet test --solution HostDeck.slnx -c Release
 
       - name: Publish
-        run: dotnet publish src/HostDeck.App -c Release -r win-x64 --self-contained -p:Version=${{ env.VERSION }} -o publish
+        run: dotnet publish src/HostDeck.App -c Release -r win-x64 --self-contained -p:Version=${{ env.VERSION }} -p:ContinuousIntegrationBuild=true -p:Deterministic=true -o publish
 
       - name: Velopack installieren
         run: dotnet tool install -g vpk --version 1.2.161
@@ -78,5 +80,45 @@ jobs:
           }
           vpk @pack
 
+      - name: Prüfsummen (SHA-256)
+        shell: pwsh
+        run: |
+          $files = Get-ChildItem releases -File | Where-Object { $_.Name -match 'Setup\.exe$|Portable\.zip$' -or $_.Name -like "*$env:VERSION*" }
+          $lines = $files | ForEach-Object { "{0}  {1}" -f (Get-FileHash $_.FullName -Algorithm SHA256).Hash.ToLower(), $_.Name }
+          $lines | Set-Content -Path releases/SHA256SUMS.txt -Encoding ascii
+          Get-Content releases/SHA256SUMS.txt
+
+      - name: Herkunftsbescheinigung (Build Provenance)
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            releases/*Setup.exe
+            releases/*Portable.zip
+            releases/*-${{ env.VERSION }}-full.nupkg
+
       - name: GitHub-Release veröffentlichen
         run: vpk upload github --repoUrl ${{ github.server_url }}/${{ github.repository }} --token ${{ secrets.GITHUB_TOKEN }} -o releases --publish --releaseName "HostDeck ${{ env.VERSION }}" --tag v${{ env.VERSION }} --targetCommitish ${{ github.sha }}
+
+      - name: Prüfsummen und Hinweise an das Release anhängen
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $tag = "v$env:VERSION"
+          gh release upload $tag releases/SHA256SUMS.txt --clobber
+          $sums = Get-Content releases/SHA256SUMS.txt -Raw
+          $run = "${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          $notes = @"
+          Built entirely by the public GitHub Actions workflow from commit ${{ github.sha }}: $run
+
+          **Verify the download**
+          - SHA-256 (also in ``SHA256SUMS.txt``):
+          ``````
+          $sums
+          ``````
+          - Build provenance (proves the file was built by this repository's workflow):
+            ``gh attestation verify HostDeck-win-Setup.exe --repo ${{ github.repository }}``
+          "@
+          $notes = ($notes -split "`n" | ForEach-Object { $_ -replace '^          ', '' }) -join "`n"
+          Set-Content -Path release-notes.md -Value $notes -Encoding utf8
+          gh release edit $tag --notes-file release-notes.md

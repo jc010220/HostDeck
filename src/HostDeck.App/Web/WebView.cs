@@ -76,6 +76,11 @@ public sealed class WebView : DockPanel
         }
 
         var core = _web.CoreWebView2;
+        // Abschottung: Eine Webseite im Tab darf nicht mit HostDeck sprechen – kein WebMessage-Kanal, keine Host-Objekte,
+        // keine Entwicklerwerkzeuge. (Eigene WebView2-Umgebung/Profil „WebView2-Web“, getrennt vom Terminal.)
+        core.Settings.IsWebMessageEnabled = false;
+        core.Settings.AreHostObjectsAllowed = false;
+        core.Settings.AreDevToolsEnabled = false;
         core.Settings.IsPasswordAutosaveEnabled = false;      // Passwörter gehören in den HostDeck-Vault
         core.Settings.IsGeneralAutofillEnabled = false;
         core.NewWindowRequested += (_, e) =>

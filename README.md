@@ -1,7 +1,30 @@
 # HostDeck
 
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
+[![Latest release](https://img.shields.io/github/v/release/jc010220/HostDeck)](https://github.com/jc010220/HostDeck/releases/latest)
+[![CI](https://github.com/jc010220/HostDeck/actions/workflows/ci.yml/badge.svg)](https://github.com/jc010220/HostDeck/actions/workflows/ci.yml)
+
 Connection manager for Windows 11: mRemoteNG-compatible, with MobaXterm-style usability.
-RDP · SSH (+ SFTP) · Telnet · raw TCP · VNC · HTTP/HTTPS · encrypted database · quick search.
+RDP · SSH (+ SFTP) · Telnet · raw TCP · VNC · HTTP/HTTPS · encrypted database · quick search · shared team library.
+
+<!-- Screenshots/GIFs: docs/media/ (see docs/media/README.md) – e.g.
+![Quick search (Ctrl+K)](docs/media/quick-search.gif)
+-->
+
+## Why you can trust it with server passwords
+
+- **Open source** under the [Apache License 2.0](LICENSE) – every line can be reviewed.
+- **Encrypted at rest:** SQLCipher v4 (AES-256) with a random key, wrapped by Argon2id from your master password. A copied
+  `.hdk` file is useless without the master password. Details and limits: **[SECURITY.md](SECURITY.md)** (threat model,
+  what is *not* protected, how keys are handled in memory).
+- **Built in public:** every release is built by the GitHub Actions workflow from a public commit – never on a developer
+  machine. Each release lists the run, has `SHA256SUMS.txt` and a build provenance attestation:
+  ```bash
+  gh attestation verify HostDeck-win-Setup.exe --repo jc010220/HostDeck
+  ```
+- **Reviewed:** two independent security reviews were addressed (target-bound personal logins, consent before plain-text
+  passwords, hardened WebView2 tabs, sanitized SFTP downloads, resource limits, …). Report issues privately via
+  *Security → Report a vulnerability*.
 
 ## Installation
 

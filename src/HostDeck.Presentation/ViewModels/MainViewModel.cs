@@ -771,6 +771,7 @@ public sealed partial class MainViewModel : ObservableObject
             CheckForUpdates = CheckForUpdatesAction,
             Backups = BackupService,
             RestoreBackup = RestoreBackupAction,
+            TeamFile = HasTeamLibrary ? Team.TeamLibraryFile.Resolve(Settings.TeamLibraryPath) : null,
         };
         if (!_dialogs.EditSettings(editor)) return;
         var themeChanged = editor.ThemeChanged;
@@ -783,6 +784,7 @@ public sealed partial class MainViewModel : ObservableObject
         SaveSettings();
         SettingsApplied?.Invoke();
         if (editor.RetentionChanged) RunSafe(() => BackupService?.ApplyRetention(), "Apply backup retention");
+        RunSafe(() => { if (editor.ApplyTeamBackupPolicy()) _ = RunTeamBackupAsync(); }, "Save team backup policy");
         ApplyTeamSettings(editor.TeamLibraryPath.Trim(), editor.TeamReadOnly);
         if (themeChanged) { CurrentTheme = Settings.Theme; _theme.Apply(Settings.Theme); }
         Reachability?.Invalidate();

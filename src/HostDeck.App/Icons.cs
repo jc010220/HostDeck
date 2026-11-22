@@ -32,6 +32,11 @@ public static class Icons
     public static SymbolRegular Sidebar => SymbolRegular.PanelLeft24;
     public static SymbolRegular Team => SymbolRegular.PeopleTeam24;
     public static SymbolRegular Sync => SymbolRegular.ArrowSync24;
+    public static SymbolRegular Appearance => SymbolRegular.Color24;
+    public static SymbolRegular Behavior => SymbolRegular.Options24;
+    public static SymbolRegular History => SymbolRegular.History24;
+    public static SymbolRegular Download => SymbolRegular.ArrowDownload24;
+    public static SymbolRegular Menu => SymbolRegular.Navigation24;
 
 
     public static SymbolRegular Desktop => SymbolRegular.Desktop24;

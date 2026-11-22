@@ -66,6 +66,10 @@ Like a shared KeePass database: everyone works on the same `confCons.xml` on the
 - **Team snippets:** tick "Share with the team" in the snippet dialog. They are stored next to the team file
   (`<name>.hostdeck-snippets.json`, encrypted with the team password if one is set) and saved immediately – no Ctrl+S
   needed. Personal snippets stay in your own database. On a jump host, copy this file together with the XML.
+- **Team backups** (*Settings → Team library*): daily copies of the team file and team snippets in `HostDeck-Backups` next
+  to the team file, with subfolders `daily`, `weekly` and `monthly` (newest N per folder are kept). The rule is stored there
+  (`policy.json`) and applies to the whole team; the first team member who opens HostDeck each day creates the backup.
+  Read-only copies (jump hosts) never create backups. Files are 1:1 copies, encrypted with the team password if set.
 - **Personal folders:** right-click the tree → "New personal folder (top level, only for me)", or click the empty area of
   the tree first (removes the selection) and then "New folder". Everything outside the Team folder is personal.
 - **mRemoteNG-compatible:** the file's format, encryption and master password are preserved. Note: mRemoteNG itself does

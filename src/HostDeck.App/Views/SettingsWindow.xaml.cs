@@ -13,6 +13,53 @@ public partial class SettingsWindow : FluentWindow
         MaxHeight = SystemParameters.WorkArea.Height - 40;
     }
 
+    // ---- Navigation ----
+
+    private void OnNavChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+    {
+        if (Nav.SelectedItem is not System.Windows.Controls.ListBoxItem { Tag: string target }) return;
+        foreach (var section in new[] { SecAppearance, SecBehavior, SecTeam, SecBackups, SecUpdates })
+            section.Visibility = section.Name == target ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    /// <summary>Hamburger: Menü auf Symbole zusammenklappen bzw. wieder aufklappen.</summary>
+    private void OnToggleNav(object sender, RoutedEventArgs e) =>
+        NavColumn.Width = new GridLength(NavColumn.Width.Value > 100 ? 56 : 210);
+
+    /// <summary>Direkt einen Bereich öffnen (z. B. aus dem Menü „Team backups“).</summary>
+    public void ShowSection(string name)
+    {
+        foreach (var item in Nav.Items.OfType<System.Windows.Controls.ListBoxItem>())
+            if (item.Tag as string == name) { Nav.SelectedItem = item; break; }
+    }
+
+    // ---- Team-Sicherungen ----
+
+    private void OnTeamBackupNow(object sender, RoutedEventArgs e)
+    {
+        var vm = (SettingsViewModel)DataContext;
+        if (vm.TeamFile is not { } file) return;
+        try
+        {
+            HostDeck.Presentation.Team.TeamBackup.RunIfDue(file, DateTime.Now, force: true);
+            vm.RefreshTeamBackupSummary();
+            System.Windows.MessageBox.Show(this, $"Team library backed up.\n\n{vm.TeamBackupSummary}", "Team backups");
+        }
+        catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException or HostDeck.Presentation.Team.TeamFileLockedException)
+        {
+            System.Windows.MessageBox.Show(this, $"Team backup failed: {ex.Message}", "Team backups", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+        }
+    }
+
+    private void OnOpenTeamBackupFolder(object sender, RoutedEventArgs e)
+    {
+        var vm = (SettingsViewModel)DataContext;
+        if (vm.TeamFile is not { } file) return;
+        var folder = HostDeck.Presentation.Team.TeamBackup.FolderFor(file);
+        System.IO.Directory.CreateDirectory(folder);
+        System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", $"\"{folder}\"") { UseShellExecute = false });
+    }
+
     private void OnBrowseTeamLibrary(object sender, RoutedEventArgs e)
     {
         var vm = (SettingsViewModel)DataContext;

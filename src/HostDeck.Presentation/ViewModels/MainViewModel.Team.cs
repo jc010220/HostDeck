@@ -419,6 +419,7 @@ public sealed partial class MainViewModel
                 SaveTeamBase(newBase, newHash);
                 _teamProbe = TeamLibraryFile.Probe(path);
                 await SyncTeamSnippetsAsync();
+                _ = RunTeamBackupAsync();
 
                 var info = new List<string>();
                 if (merge.RemoteChanges > 0) info.Add($"{merge.RemoteChanges} change(s) pulled");
@@ -551,6 +552,23 @@ public sealed partial class MainViewModel
         foreach (var c in (node is FolderNode f ? f.Descendants() : [node]).OfType<ConnectionNode>())
             trusted[c.Id] = TargetKey(c);
         SaveTrustedTargets(trusted);
+    }
+
+    // ---- Team-Sicherungen (Regel liegt neben der Team-Datei, gilt für das ganze Team) ----
+
+    /// <summary>Tagessicherung der Team-Datei, falls die Team-Regel es vorsieht und heute noch keiner gesichert hat.</summary>
+    public async Task RunTeamBackupAsync()
+    {
+        if (!HasTeamLibrary || Settings.TeamReadOnly || TeamLibraryFile.Resolve(Settings.TeamLibraryPath) is not { } file) return;
+        try
+        {
+            if (await Io(() => HostDeck.Presentation.Team.TeamBackup.RunIfDue(file, DateTime.Now)))
+                AppLog.Info($"Team backup created in {HostDeck.Presentation.Team.TeamBackup.FolderFor(file)}");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or TeamFileLockedException or ConfConsFormatException)
+        {
+            AppLog.Info($"Team backup skipped: {ex.Message}");
+        }
     }
 
     // ---- Team-Snippets ----------------------------------------------------------------------------

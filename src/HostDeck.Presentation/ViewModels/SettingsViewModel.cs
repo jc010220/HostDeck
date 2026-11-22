@@ -1,3 +1,4 @@
+using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using HostDeck.Core.Model;
 using HostDeck.Import.MRemoteNG;
@@ -73,6 +74,58 @@ public sealed partial class SettingsViewModel : ObservableObject
     public string BackupSummary => Backups?.Summary() ?? "";
 
     public bool RetentionChanged { get; private set; }
+
+    // ---- Team-Sicherungen (Regel gilt für das ganze Team, liegt neben der Team-Datei) ----
+
+    private Team.TeamBackupPolicy? _teamPolicy;
+    private string? _teamFile;
+
+    /// <summary>Aufgelöste Team-Datei (vom MainViewModel gesetzt); lädt dabei die Team-Sicherungsregel.</summary>
+    public string? TeamFile
+    {
+        get => _teamFile;
+        init
+        {
+            _teamFile = value;
+            if (value is null) return;
+            _teamPolicy = Team.TeamBackup.ReadPolicy(value);
+            TeamBackupEnabled = _teamPolicy.Enabled;
+            TeamKeepDaily = _teamPolicy.KeepDaily;
+            TeamKeepWeekly = _teamPolicy.KeepWeekly;
+            TeamKeepMonthly = _teamPolicy.KeepMonthly;
+            RefreshTeamBackupSummary();
+        }
+    }
+
+    /// <summary>Team verbunden und schreibbar (Jumphost/Read-only darf die Team-Regel nicht ändern).</summary>
+    public bool TeamBackupAvailable => TeamFile is not null && !_settings.TeamReadOnly;
+
+    [ObservableProperty] private bool _teamBackupEnabled;
+    [ObservableProperty] private int _teamKeepDaily = 14;
+    [ObservableProperty] private int _teamKeepWeekly = 8;
+    [ObservableProperty] private int _teamKeepMonthly = 12;
+    [ObservableProperty] private string _teamBackupSummary = "Connect a team library to use team backups.";
+
+    public void RefreshTeamBackupSummary()
+    {
+        if (TeamFile is null) return;
+        try { TeamBackupSummary = Team.TeamBackup.Summary(TeamFile); }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { TeamBackupSummary = $"Team backup folder not reachable: {ex.Message}"; }
+    }
+
+    /// <summary>Geänderte Team-Regel in den Sicherungsordner neben der Team-Datei schreiben.</summary>
+    public bool ApplyTeamBackupPolicy()
+    {
+        if (!TeamBackupAvailable || _teamPolicy is null) return false;
+        if ((_teamPolicy.Enabled, _teamPolicy.KeepDaily, _teamPolicy.KeepWeekly, _teamPolicy.KeepMonthly)
+            == (TeamBackupEnabled, TeamKeepDaily, TeamKeepWeekly, TeamKeepMonthly)) return false;
+        _teamPolicy.Enabled = TeamBackupEnabled;
+        _teamPolicy.KeepDaily = TeamKeepDaily;
+        _teamPolicy.KeepWeekly = TeamKeepWeekly;
+        _teamPolicy.KeepMonthly = TeamKeepMonthly;
+        Team.TeamBackup.WritePolicy(TeamFile!, _teamPolicy);
+        return true;
+    }
 
     /// <summary>Sicherung wiederherstellen (von der App gesetzt).</summary>
     public Action<string>? RestoreBackup { get; init; }

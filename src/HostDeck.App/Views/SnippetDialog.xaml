@@ -17,7 +17,7 @@
             <CheckBox x:Name="ShareBox" Margin="0,6,0,0" Visibility="Collapsed">
                 <TextBlock TextWrapping="Wrap">
                     <Run Text="Share with the team" /><LineBreak />
-                    <Run Text="Saved in the team library right away – visible to everyone using it" FontSize="11"
+                    <Run Text="Saved in the library right away – visible to everyone using it" FontSize="11"
                          Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
                 </TextBlock>
             </CheckBox>

@@ -18,6 +18,9 @@ public sealed class Snippet
     /// <summary>Gehört zur Team-Bibliothek (wird nicht in der persönlichen Liste gespeichert).</summary>
     [System.Text.Json.Serialization.JsonIgnore]
     public bool IsTeam { get; set; }
+    /// <summary>Bibliothek, aus der das geteilte Snippet stammt (null = neu, geht an die erste beschreibbare).</summary>
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string? LibraryId { get; set; }
 }
 
 /// <summary>Speicherort für Snippets (in der App: verschlüsselte Datenbank).</summary>
@@ -88,7 +91,7 @@ public sealed partial class SnippetsViewModel : ObservableObject
     public void Save(Snippet? changed = null)
     {
         _store.Save(JsonSerializer.Serialize(Items.Where(s => !s.IsTeam).ToList()));
-        if (changed is { IsTeam: true }) TeamChanged?.Invoke(Team.TeamSnippetEntry.From(changed));
+        if (changed is { IsTeam: true }) TeamChanged?.Invoke(Team.TeamSnippetEntry.From(changed), changed.LibraryId);
         Sort();
     }
 
@@ -100,7 +103,10 @@ public sealed partial class SnippetsViewModel : ObservableObject
     [ObservableProperty] private bool _teamReadOnly;
 
     /// <summary>Änderung/Löschung eines Team-Snippets (MainViewModel schreibt sie in die Team-Datei).</summary>
-    public event Action<Team.TeamSnippetEntry>? TeamChanged;
+    public event Action<Team.TeamSnippetEntry, string?>? TeamChanged;
+
+    /// <summary>Snippet stammt aus einer schreibgeschützten Bibliothek (von MainViewModel gesetzt).</summary>
+    public Func<Snippet, bool>? IsReadOnlyTeamSnippet { get; set; }
 
     /// <summary>Team-Snippets durch den aktuellen Stand ersetzen (nach dem Lesen der Team-Datei).</summary>
     public void SetTeamSnippets(IEnumerable<Snippet> team, bool available, bool readOnly)
@@ -114,7 +120,7 @@ public sealed partial class SnippetsViewModel : ObservableObject
         Selected = Items.FirstOrDefault(s => s.Id == selected);
     }
 
-    public bool CanEdit(Snippet snippet) => !(snippet.IsTeam && TeamReadOnly);
+    public bool CanEdit(Snippet snippet) => !(snippet.IsTeam && (IsReadOnlyTeamSnippet?.Invoke(snippet) ?? TeamReadOnly));
 
     /// <summary>Zwischen „nur für mich“ und „Team“ verschieben.</summary>
     public void SetShared(Snippet snippet, bool team)
@@ -127,7 +133,7 @@ public sealed partial class SnippetsViewModel : ObservableObject
         }
         else
         {
-            TeamChanged?.Invoke(Tombstone(snippet));               // aus dem Team entfernen …
+            TeamChanged?.Invoke(Tombstone(snippet), snippet.LibraryId); // aus dem Team entfernen …
             snippet.IsTeam = false;
             snippet.Id = Guid.NewGuid();                           // … und als eigenes, neues Snippet behalten
             Save();
@@ -188,7 +194,7 @@ public sealed partial class SnippetsViewModel : ObservableObject
     public void Remove(Snippet snippet)
     {
         Items.Remove(snippet);
-        if (snippet.IsTeam) TeamChanged?.Invoke(Tombstone(snippet));
+        if (snippet.IsTeam) TeamChanged?.Invoke(Tombstone(snippet), snippet.LibraryId);
         Save();
     }
 

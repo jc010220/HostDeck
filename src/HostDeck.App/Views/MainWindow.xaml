@@ -91,7 +91,7 @@
                 </ToggleButton>
                 <Separator />
                 <ui:Button Command="{Binding SyncTeamCommand}" Visibility="{Binding HasTeamLibrary, Converter={StaticResource BoolToVisibility}}"
-                           ToolTip="Sync team library: pull others' changes, save your own  (Ctrl+S)">
+                           ToolTip="Sync libraries: pull others' changes, save your own  (Ctrl+S)">
                     <StackPanel Orientation="Horizontal">
                         <ui:SymbolIcon Symbol="{x:Static app:Icons.Sync}" Margin="0,0,6,0" />
                         <TextBlock Text="Team" />
@@ -118,7 +118,7 @@
                         </Border>
                     </StackPanel>
                 </ui:Button>
-                <ui:Button DockPanel.Dock="Right" ToolTip="Settings, backups, team library  (Ctrl+,)" Click="OnSecurityMenu">
+                <ui:Button DockPanel.Dock="Right" ToolTip="Settings, backups, libraries  (Ctrl+,)" Click="OnSecurityMenu">
                     <ui:SymbolIcon Symbol="{x:Static app:Icons.Settings}" />
                     <ui:Button.ContextMenu>
                         <ContextMenu>
@@ -131,14 +131,15 @@
                                       IsChecked="{Binding IsDeviceUnlockEnabled}"
                                       Visibility="{Binding DeviceUnlockSupported, Converter={StaticResource BoolToVisibility}}" />
                             <Separator />
-                            <MenuItem Header="Connect team library …" Command="{Binding ConnectTeamLibraryCommand}" />
-                            <MenuItem Header="Sync team library" InputGestureText="Ctrl+S" Command="{Binding SyncTeamCommand}"
+                            <MenuItem Header="Connect library (confCons.xml) …" Command="{Binding ConnectTeamLibraryCommand}" />
+                            <MenuItem Header="Create new library file (e.g. on OneDrive) …" Command="{Binding CreateLibraryCommand}" />
+                            <MenuItem Header="Sync libraries" InputGestureText="Ctrl+S" Command="{Binding SyncTeamCommand}"
                                       Visibility="{Binding HasTeamLibrary, Converter={StaticResource BoolToVisibility}}" />
-                            <MenuItem Header="Set team file password …" Command="{Binding SetTeamPasswordCommand}"
+                            <MenuItem Header="Set library password …" Command="{Binding SetTeamPasswordCommand}"
                                       Visibility="{Binding HasTeamLibrary, Converter={StaticResource BoolToVisibility}}" />
-                            <MenuItem Header="Remove team file password …" Command="{Binding RemoveTeamPasswordCommand}"
+                            <MenuItem Header="Remove library password …" Command="{Binding RemoveTeamPasswordCommand}"
                                       Visibility="{Binding HasTeamLibrary, Converter={StaticResource BoolToVisibility}}" />
-                            <MenuItem Header="Disconnect team library" Command="{Binding DisconnectTeamLibraryCommand}"
+                            <MenuItem Header="Disconnect library …" Command="{Binding DisconnectTeamLibraryCommand}"
                                       Visibility="{Binding HasTeamLibrary, Converter={StaticResource BoolToVisibility}}" />
                             <Separator />
                             <MenuItem Header="{Binding StoreLocation}" HeaderStringFormat="Database: {0}" IsEnabled="False" />
@@ -218,8 +219,10 @@
                                 <MenuItem x:Name="MenuRename" Header="Rename" InputGestureText="F2" Click="OnMenuRename" />
                                 <MenuItem x:Name="MenuDuplicate" Header="Duplicate" InputGestureText="Ctrl+D" Click="OnMenuDuplicate" />
                                 <MenuItem x:Name="MenuDelete" Header="Delete" InputGestureText="Del" Click="OnMenuDelete" />
-                                <MenuItem x:Name="MenuTeamSync" Header="Sync team library" InputGestureText="Ctrl+S" Command="{Binding SyncTeamCommand}" />
-                                <MenuItem x:Name="MenuTeamDisconnect" Header="Disconnect team library" Command="{Binding DisconnectTeamLibraryCommand}" />
+                                <MenuItem x:Name="MenuTeamSync" Header="Sync libraries" InputGestureText="Ctrl+S" Command="{Binding SyncTeamCommand}" />
+                                <MenuItem x:Name="MenuTeamPassword" Header="Set library password …" Command="{Binding SetTeamPasswordCommand}" />
+                                <MenuItem x:Name="MenuTeamRemovePassword" Header="Remove library password …" Command="{Binding RemoveTeamPasswordCommand}" />
+                                <MenuItem x:Name="MenuTeamDisconnect" Header="Disconnect library" Command="{Binding DisconnectTeamLibraryCommand}" />
                             </ContextMenu>
                         </TreeView.ContextMenu>
                         <TreeView.ItemTemplate>

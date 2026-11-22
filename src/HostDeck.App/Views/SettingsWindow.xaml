@@ -31,7 +31,7 @@
                 <ListBox x:Name="Nav" Background="Transparent" BorderThickness="0" SelectionChanged="OnNavChanged">
                     <ListBoxItem Tag="SecAppearance"><StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="{x:Static app:Icons.Appearance}" Margin="0,0,12,0" /><TextBlock Text="Appearance" /></StackPanel></ListBoxItem>
                     <ListBoxItem Tag="SecBehavior"><StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="{x:Static app:Icons.Behavior}" Margin="0,0,12,0" /><TextBlock Text="Behavior" /></StackPanel></ListBoxItem>
-                    <ListBoxItem Tag="SecTeam"><StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="{x:Static app:Icons.Team}" Margin="0,0,12,0" /><TextBlock Text="Team library" /></StackPanel></ListBoxItem>
+                    <ListBoxItem Tag="SecTeam"><StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="{x:Static app:Icons.Team}" Margin="0,0,12,0" /><TextBlock Text="Libraries" /></StackPanel></ListBoxItem>
                     <ListBoxItem Tag="SecBackups"><StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="{x:Static app:Icons.History}" Margin="0,0,12,0" /><TextBlock Text="Personal backups" /></StackPanel></ListBoxItem>
                     <ListBoxItem Tag="SecUpdates"><StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="{x:Static app:Icons.Download}" Margin="0,0,12,0" /><TextBlock Text="Updates" /></StackPanel></ListBoxItem>
                 </ListBox>
@@ -79,27 +79,50 @@
 
             </StackPanel>
             <StackPanel x:Name="SecTeam" Visibility="Collapsed">
-                <TextBlock Text="Team library" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,12" />
-            <DockPanel>
-                <ui:Button DockPanel.Dock="Right" Content="Browse …" Margin="8,0,0,0" Click="OnBrowseTeamLibrary" />
-                <ui:TextBox Text="{Binding TeamLibraryPath, UpdateSourceTrigger=PropertyChanged}"
-                        PlaceholderText="\\server\team\confCons.xml  ·  Jumphost: C:\HostDeck\Team" />
-            </DockPanel>
-            <CheckBox Content="Read-only (e.g. jump host with a local copy)" IsChecked="{Binding TeamReadOnly}" Margin="0,6,0,0" />
-            <TextBlock Margin="0,4,0,0" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                       Text="Shared confCons.xml (stays compatible with mRemoteNG). Changes by others appear automatically, save your own with Ctrl+S. Folder instead of file: the newest .xml in it is used." />
+                <TextBlock Text="Libraries" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,4" />
+            <TextBlock Margin="0,0,0,8" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                       Text="Each library is a confCons.xml (stays compatible with mRemoteNG) and appears as its own folder in the tree – e.g. one per team, or your own file on OneDrive. Changes by others appear automatically, save your own with Ctrl+S. Folder instead of file: the newest .xml in it is used. A file that does not exist yet is created when you click OK." />
+            <ItemsControl ItemsSource="{Binding Libraries}">
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="0,0,0,8">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="130" /><ColumnDefinition Width="8" /><ColumnDefinition />
+                                <ColumnDefinition Width="Auto" /><ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
+                            <ui:TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Folder name" ToolTip="Name of the folder in your tree" />
+                            <ui:TextBox Grid.Column="2" Text="{Binding Path, UpdateSourceTrigger=PropertyChanged}"
+                                        PlaceholderText="\\server\team\confCons.xml  ·  OneDrive\HostDeck\confCons.xml" />
+                            <ui:Button Grid.Column="3" Content="Browse …" Margin="8,0,0,0" CommandParameter="{Binding}"
+                                       Command="{Binding DataContext.BrowseLibraryCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
+                            <ui:Button Grid.Column="4" Margin="6,0,0,0" ToolTip="Disconnect this library (the file itself is not changed)" CommandParameter="{Binding}"
+                                       Command="{Binding DataContext.RemoveLibraryCommand, RelativeSource={RelativeSource AncestorType=Window}}">
+                                <ui:SymbolIcon Symbol="Delete24" />
+                            </ui:Button>
+                            <CheckBox Grid.Row="1" Grid.Column="2" Content="Read-only (e.g. jump host with a local copy)" IsChecked="{Binding ReadOnly}" Margin="0,4,0,0" />
+                        </Grid>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <ui:Button Content="Add library …" Command="{Binding AddLibraryCommand}" HorizontalAlignment="Left" Margin="0,2,0,0" />
 
 
-            <TextBlock Text="Team backups" FontWeight="SemiBold" Margin="0,20,0,2" />
+            <TextBlock Text="Library backups" FontWeight="SemiBold" Margin="0,20,0,2" />
             <TextBlock Margin="0,0,0,6" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                       Text="Daily copies of the team file (and team snippets) in the folder “HostDeck-Backups” next to it, with subfolders daily / weekly / monthly. The rule applies to the whole team and is stored in that folder; the first team member who opens HostDeck each day creates the backup." />
+                       Text="Daily copies of the library file (and its snippets) in the folder “HostDeck-Backups” next to it, with subfolders daily / weekly / monthly. The rule applies to everyone using that file and is stored in that folder; the first person who opens HostDeck each day creates the backup." />
             <StackPanel IsEnabled="{Binding TeamBackupAvailable}">
+                <Grid Margin="0,0,0,8" Visibility="{Binding HasSeveralTeamFiles, Converter={StaticResource BoolToVisibility}}">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                    <TextBlock Text="Library" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding TeamFiles}" SelectedItem="{Binding SelectedTeamFile}" DisplayMemberPath="Name" />
+                </Grid>
                 <DockPanel>
                     <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
                         <ui:Button Content="Open folder" Margin="0,0,6,0" Click="OnOpenTeamBackupFolder" />
                         <ui:Button Content="Back up now" Click="OnTeamBackupNow" />
                     </StackPanel>
-                    <ui:ToggleSwitch Content="Back up the team library automatically (daily)" IsChecked="{Binding TeamBackupEnabled}" VerticalAlignment="Center" />
+                    <ui:ToggleSwitch Content="Back up this library automatically (daily)" IsChecked="{Binding TeamBackupEnabled}" VerticalAlignment="Center" />
                 </DockPanel>
                 <Grid Margin="0,8,0,0">
                     <Grid.ColumnDefinitions>

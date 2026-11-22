@@ -117,6 +117,8 @@ public sealed class AppSettings
     public string? TeamLibraryPath { get; set; }
     /// <summary>Nur lesen (z. B. Jumphost): Änderungen anderer übernehmen, nie zurückschreiben.</summary>
     public bool TeamReadOnly { get; set; }
+    /// <summary>Weitere Bibliotheken (weitere Teams oder eine eigene Datei, z. B. auf OneDrive).</summary>
+    public List<LibraryConfig> Libraries { get; set; } = [];
     /// <summary>Offene Sessions beim letzten Beenden (wird beim Start wiederhergestellt).</summary>
     public WorkspaceSnapshot? LastWorkspace { get; set; }
     public bool RestoreWorkspaceOnStart { get; set; } = true;
@@ -124,6 +126,15 @@ public sealed class AppSettings
     public Dictionary<string, WorkspaceSnapshot> SavedWorkspaces { get; set; } = [];
     /// <summary>Zuletzt geöffnete Verbindungen (neueste zuerst) für Schnellsuche und Start.</summary>
     public List<Guid> RecentConnections { get; set; } = [];
+}
+
+/// <summary>Eine weitere Bibliothek: eigene confCons.xml, eigener Ordner im Baum, eigenes Passwort.</summary>
+public sealed class LibraryConfig
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString("N")[..12];
+    public string Name { get; set; } = "Library";
+    public string Path { get; set; } = "";
+    public bool ReadOnly { get; set; }
 }
 
 public interface ISettingsStore

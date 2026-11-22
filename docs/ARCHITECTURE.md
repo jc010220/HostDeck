@@ -153,7 +153,7 @@ MainWindow (FluentWindow, Mica, PerMonitorV2 DPI)
 | Ctrl+K | Quick search |
 | Ctrl+L | Quick connect |
 | Ctrl+O | Import mRemoteNG |
-| Ctrl+S | Sync team library |
+| Ctrl+S | Sync all libraries |
 | Ctrl+N / Ctrl+Shift+N | New connection / new folder |
 | Ctrl+D | Duplicate (in the tree) |
 | Enter / double-click / Del | Connect / connect / delete (in the tree) |
@@ -272,6 +272,11 @@ local encrypted DB: team subtree (offline copy) + base (fingerprints of last syn
 ```
 
 * **Representation:** a top-level folder marked with `Extensions["hostdeck:team"]` holds the team content; ids are those of the file.
+* **Several libraries:** the first library keeps the original settings (`TeamLibraryPath`, `TeamReadOnly`), marker value `1`
+  and document names; further ones are `AppSettings.Libraries` entries (id, name, path, read-only) whose marker is their id and
+  whose documents are suffixed `@<id>` (`team-base@<id>`, `team-password@<id>`, …). Runtime state per library is a
+  `LibraryState` (busy flag, change probes, status). A file whose entries already exist in another connected library
+  (a copy) is refused to keep node ids unique in the tree.
 * **Three-way merge (`HostDeck.Core.Sync.TreeMerge`):** base = fingerprints (SHA-256 over all synced fields) of the last sync,
   *mine* = local subtree, *theirs* = current file. Per id: only one side changed ⇒ that side wins; both identical ⇒ fine; both
   different ⇒ conflict (asked on save, "keep mine" on automatic pull). Deleted on one side but changed on the other ⇒ kept.

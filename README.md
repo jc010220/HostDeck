@@ -47,7 +47,7 @@ If mRemoteNG is installed, HostDeck offers to import `%APPDATA%\mRemoteNG\confCo
 | **Windows** | Tabs, split view 1/2/2/4 with movable splitters, drag tabs into their own windows (second monitor), save workspaces and restore them on startup, collapsible sidebar |
 | **Terminal** | xterm.js: colors, Unicode, search, zoom, select = copy, right-click = paste, syntax highlighting (errors/warnings/IPs), multi-execution, snippets with placeholders |
 | **SFTP** | Sidebar automatically follows `cd` in the terminal, upload via drag & drop, download, rename, delete |
-| **Team** | Shared team library (`confCons.xml` on a network share) with KeePass-style sync (**Ctrl+S**), read-only mode for jump hosts |
+| **Team** | Shared libraries (`confCons.xml` on a network share) with KeePass-style sync (**Ctrl+S**), several at once (one per team, or your own file on OneDrive), read-only mode for jump hosts |
 | **Security** | AES-256 encrypted database (SQLCipher v4) with Argon2id, credential vault with search, secure RDP defaults, import security check, no plain-text passwords on disk |
 | **mRemoteNG** | Import including password decryption (all formats 2.5–2.9, master password, full-file encryption), export back |
 | **Operations** | Online status in the tree, backups, automatic updates (network share/HTTP/GitHub), error log, theme System/Dark/Light |
@@ -60,7 +60,7 @@ If mRemoteNG is installed, HostDeck offers to import `%APPDATA%\mRemoteNG\confCo
 | Ctrl+, | Settings |
 | Ctrl+L / Ctrl+F | Quick connect / filter the tree |
 | F2 / F4 / Del | Rename / properties / delete |
-| Ctrl+S | Sync team library |
+| Ctrl+S | Sync all libraries |
 | Ctrl+D (in the tree) | Duplicate connection: properties open right away so you only adjust name and host |
 | Ctrl+N / Ctrl+Shift+N | New connection / new folder |
 | Ctrl+Tab, Ctrl+Shift+W | Switch / close tab (Ctrl+W stays "delete word" in the shell) |
@@ -75,7 +75,11 @@ If mRemoteNG is installed, HostDeck offers to import `%APPDATA%\mRemoteNG\confCo
 
 Like a shared KeePass database: everyone works on the same `confCons.xml` on the network share.
 
-- **Setup:** Ctrl+K → "Connect team library …" (or *Settings → Team library*). A **Team** folder appears in the tree.
+- **Setup:** Ctrl+K → "Connect library …" (or *Settings → Libraries*). A **Team** folder appears in the tree.
+- **Several libraries:** connect more files the same way (e.g. a second team, or your own `confCons.xml` on OneDrive –
+  "Create new library file …" creates an empty, optionally password-protected one). Each gets its own folder, password,
+  read-only setting, snippets and backups; Ctrl+S syncs all of them. Password and disconnect commands act on the library
+  of the folder selected in the tree. Dragging an entry from one library folder to another moves it between the files.
 - **Changes by others** are pulled in automatically (checked every 15 s); your own unsaved changes are kept.
 - **Your changes** are saved with **Ctrl+S** (or the "Team" toolbar button; the badge shows pending changes).
   HostDeck merges per entry, so nobody's work is overwritten. If two people changed the *same* entry differently,

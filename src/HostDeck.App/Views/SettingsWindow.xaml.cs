@@ -9,6 +9,7 @@ public partial class SettingsWindow : FluentWindow
     public SettingsWindow(SettingsViewModel vm)
     {
         DataContext = vm;
+        vm.PickLibraryFile = PickLibraryFile;
         InitializeComponent();
         MaxHeight = SystemParameters.WorkArea.Height - 40;
         Nav.SelectedIndex = 0; // erst jetzt – alle Bereiche sind geladen
@@ -58,7 +59,7 @@ public partial class SettingsWindow : FluentWindow
         {
             HostDeck.Presentation.Team.TeamBackup.RunIfDue(file, DateTime.Now, force: true);
             vm.RefreshTeamBackupSummary();
-            System.Windows.MessageBox.Show(this, $"Team library backed up.\n\n{vm.TeamBackupSummary}", "Team backups");
+            System.Windows.MessageBox.Show(this, $"Library backed up.\n\n{vm.TeamBackupSummary}", "Library backups");
         }
         catch (Exception ex) when (ex is System.IO.IOException or UnauthorizedAccessException or HostDeck.Presentation.Team.TeamFileLockedException)
         {
@@ -75,21 +76,22 @@ public partial class SettingsWindow : FluentWindow
         System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", $"\"{folder}\"") { UseShellExecute = false });
     }
 
-    private void OnBrowseTeamLibrary(object sender, RoutedEventArgs e)
+    private string? PickLibraryFile(string current)
     {
-        var vm = (SettingsViewModel)DataContext;
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
-            Title = "Choose team library (shared confCons.xml)",
+            Title = "Choose library file (confCons.xml) – or type the name of a new file",
             Filter = "mRemoteNG (confCons.xml)|*.xml|All files|*.*",
+            CheckFileExists = false,
+            FileName = "confCons.xml",
         };
         try
         {
-            var current = vm.TeamLibraryPath.Trim();
+            current = current.Trim();
             if (current.Length > 0) dialog.InitialDirectory = System.IO.Directory.Exists(current) ? current : System.IO.Path.GetDirectoryName(current);
         }
         catch (ArgumentException) { }
-        if (dialog.ShowDialog(this) == true) vm.TeamLibraryPath = dialog.FileName;
+        return dialog.ShowDialog(this) == true ? dialog.FileName : null;
     }
 
     private void OnCheckForUpdates(object sender, RoutedEventArgs e) => ((SettingsViewModel)DataContext).CheckForUpdates?.Invoke();

@@ -143,7 +143,7 @@ public partial class MainWindow : FluentWindow
         var snippets = _vm.Snippets;
         if (!snippets.CanEdit(s))
         {
-            System.Windows.MessageBox.Show(this, "This team snippet is read-only here (the team library is set to read-only).", "Snippets");
+            System.Windows.MessageBox.Show(this, "This team snippet is read-only here (its library is set to read-only).", "Snippets");
             return;
         }
         var dialog = new SnippetDialog(s, snippets.TeamAvailable && !snippets.TeamReadOnly) { Owner = this };
@@ -155,7 +155,7 @@ public partial class MainWindow : FluentWindow
         if (SnippetList.SelectedItem is not HostDeck.Presentation.Snippets.Snippet s) return;
         if (!_vm.Snippets.CanEdit(s))
         {
-            System.Windows.MessageBox.Show(this, "This team snippet is read-only here (the team library is set to read-only).", "Snippets");
+            System.Windows.MessageBox.Show(this, "This team snippet is read-only here (its library is set to read-only).", "Snippets");
             return;
         }
         var question = s.IsTeam ? $"Delete team snippet “{s.Name}” for everyone?" : $"Delete snippet “{s.Name}”?";
@@ -297,6 +297,8 @@ public partial class MainWindow : FluentWindow
         MenuDuplicate.Visibility = Show(isConnection || isFolder);
         MenuDelete.Visibility = Show(isConnection || isFolder);
         MenuTeamSync.Visibility = Show(isTeamRoot);
+        MenuTeamPassword.Visibility = Show(isTeamRoot);
+        MenuTeamRemovePassword.Visibility = Show(isTeamRoot);
         MenuTeamDisconnect.Visibility = Show(isTeamRoot);
     }
 

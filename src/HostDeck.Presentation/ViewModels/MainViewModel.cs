@@ -35,7 +35,7 @@ public sealed partial class MainViewModel : ObservableObject
         _isDeviceUnlockEnabled = store.HasDeviceUnlock;
         SessionTree.Changed += (_, _) => Persist();
         SessionTree.IsLocked = IsReadOnlyTeamNode;
-        SessionTree.IsLockedDestination = f => IsReadOnlyTeamNode(f) || (Settings.TeamReadOnly && f == TeamContainer);
+        SessionTree.IsLockedDestination = IsReadOnlyTeamDestination;
         FocusedWorkspace = Workspace;
         Workspace.PropertyChanged += (_, e) =>
         {
@@ -185,7 +185,7 @@ public sealed partial class MainViewModel : ObservableObject
     private SnippetsViewModel CreateSnippets()
     {
         var vm = new SnippetsViewModel(new DocumentSnippetStore(_store), (title, message) => _dialogs.Prompt(title, message), SendToTerminals);
-        vm.TeamChanged += entry => _ = SaveTeamSnippetAsync(entry);
+        vm.TeamChanged += (entry, library) => _ = SaveTeamSnippetAsync(entry, library);
         ShowCachedTeamSnippets(vm);
         return vm;
     }
@@ -260,13 +260,14 @@ public sealed partial class MainViewModel : ObservableObject
         yield return ("Toggle multi-execution", "multiexec broadcast", () => IsMultiExecutionEnabled = !IsMultiExecutionEnabled);
         if (HasTeamLibrary)
         {
-            yield return ("Sync team library  (Ctrl+S)", "team sync synchronisieren speichern share laufwerk", () => SyncTeamCommand.Execute(null));
-            yield return ("Disconnect team library", "team trennen disconnect", () => DisconnectTeamLibraryCommand.Execute(null));
-            yield return ("Set team file password …", "team password passwort schützen protect master", () => SetTeamPasswordCommand.Execute(null));
-            yield return ("Remove team file password …", "team password passwort entfernen remove unprotect", () => RemoveTeamPasswordCommand.Execute(null));
+            yield return ("Sync libraries  (Ctrl+S)", "team library sync synchronisieren speichern share laufwerk", () => SyncTeamCommand.Execute(null));
+            yield return ("Disconnect library …", "team library bibliothek trennen disconnect", () => DisconnectTeamLibraryCommand.Execute(null));
+            yield return ("Set library password …", "team library password passwort schützen protect master", () => SetTeamPasswordCommand.Execute(null));
+            yield return ("Remove library password …", "team library password passwort entfernen remove unprotect", () => RemoveTeamPasswordCommand.Execute(null));
         }
-        yield return (HasTeamLibrary ? "Reconnect team library …" : "Connect team library (shared confCons.xml) …",
-            "team bibliothek library share laufwerk gemeinsam confcons keepass", () => ConnectTeamLibraryCommand.Execute(null));
+        yield return (HasTeamLibrary ? "Connect another library (confCons.xml) …" : "Connect library (shared confCons.xml) …",
+            "team bibliothek library share laufwerk gemeinsam confcons keepass onedrive", () => ConnectTeamLibraryCommand.Execute(null));
+        yield return ("Create new library file (e.g. on OneDrive) …", "team bibliothek library neu new create onedrive personal persönlich", () => CreateLibraryCommand.Execute(null));
         yield return ("Import mRemoteNG file", "import confcons", () => ImportMRemoteNGCommand.Execute(null));
         yield return ("Export as mRemoteNG file", "export confcons", () => ExportMRemoteNGCommand.Execute(null));
         yield return ("Switch theme (system / dark / light)", "theme dark light dunkel hell", () => ToggleThemeCommand.Execute(null));
@@ -812,7 +813,9 @@ public sealed partial class MainViewModel : ObservableObject
             CheckForUpdates = CheckForUpdatesAction,
             Backups = BackupService,
             RestoreBackup = RestoreBackupAction,
-            TeamFile = HasTeamLibrary ? Team.TeamLibraryFile.Resolve(Settings.TeamLibraryPath) : null,
+            LibraryRows = LibraryRows(),
+            TeamFiles = Libraries.Where(l => !l.ReadOnly && Team.TeamLibraryFile.Resolve(l.Path) is not null)
+                .Select(l => new SettingsViewModel.TeamFileOption(NameOf(l), Team.TeamLibraryFile.Resolve(l.Path)!)).ToList(),
         };
         if (!_dialogs.EditSettings(editor)) return;
         var themeChanged = editor.ThemeChanged;
@@ -825,8 +828,8 @@ public sealed partial class MainViewModel : ObservableObject
         SaveSettings();
         SettingsApplied?.Invoke();
         if (editor.RetentionChanged) RunSafe(() => BackupService?.ApplyRetention(), "Apply backup retention");
-        RunSafe(() => { if (editor.ApplyTeamBackupPolicy()) _ = RunTeamBackupAsync(); }, "Save team backup policy");
-        ApplyTeamSettings(editor.TeamLibraryPath.Trim(), editor.TeamReadOnly);
+        RunSafe(() => { if (editor.ApplyTeamBackupPolicy()) _ = RunTeamBackupAsync(); }, "Save library backup policy");
+        _ = ApplyLibrarySettingsAsync(editor.Libraries.ToList());
         if (themeChanged) { CurrentTheme = Settings.Theme; _theme.Apply(Settings.Theme); }
         Reachability?.Invalidate();
         if (!Settings.ShowReachability) foreach (var i in SessionTree.AllItems) i.Reachability = Services.Reachability.Unknown;

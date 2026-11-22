@@ -27,8 +27,6 @@ public sealed partial class SettingsViewModel : ObservableObject
         _showReachability = settings.ShowReachability;
         _fontSize = FontSizes.Contains(settings.TerminalFontSize) ? settings.TerminalFontSize : 14;
         _updateSource = settings.UpdateSource ?? "";
-        _teamLibraryPath = settings.TeamLibraryPath ?? "";
-        _teamReadOnly = settings.TeamReadOnly;
         _autoUpdate = settings.AutoUpdate;
         _autoBackup = settings.AutoBackup;
         _autoLock = AutoLockOptions.FirstOrDefault(o => o.Minutes == settings.AutoLockMinutes) ?? AutoLockOptions[0];
@@ -55,9 +53,50 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool _showReachability;
     [ObservableProperty] private int _fontSize;
     [ObservableProperty] private string _updateSource;
-    /// <summary>Wird nicht in <see cref="Apply"/> übernommen – das Verbinden erledigt das MainViewModel.</summary>
-    [ObservableProperty] private string _teamLibraryPath;
-    [ObservableProperty] private bool _teamReadOnly;
+
+    // ---- Bibliotheken (werden nicht in Apply übernommen – Verbinden/Trennen erledigt das MainViewModel) ----
+
+    public sealed partial class LibraryRow : ObservableObject
+    {
+        /// <summary>null = neu hinzugefügt.</summary>
+        public string? Id { get; init; }
+        [ObservableProperty] private string _name = "";
+        [ObservableProperty] private string _path = "";
+        [ObservableProperty] private bool _readOnly;
+    }
+
+    public System.Collections.ObjectModel.ObservableCollection<LibraryRow> Libraries { get; } = [];
+
+    /// <summary>Verbundene Bibliotheken (vom MainViewModel gesetzt).</summary>
+    public IEnumerable<LibraryRow> LibraryRows
+    {
+        init { foreach (var row in value) Libraries.Add(row); }
+    }
+
+    /// <summary>Dateiauswahl (vom Fenster gesetzt): aktueller Pfad ⇒ gewählter Pfad oder null.</summary>
+    public Func<string, string?>? PickLibraryFile { get; set; }
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void AddLibrary()
+    {
+        var path = PickLibraryFile?.Invoke("");
+        if (path is null) return;
+        Libraries.Add(new LibraryRow { Name = MainViewModel.SuggestLibraryName(path), Path = path });
+    }
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void BrowseLibrary(LibraryRow? row)
+    {
+        if (row is null || PickLibraryFile?.Invoke(row.Path) is not { } path) return;
+        row.Path = path;
+        if (row.Id is null && row.Name.Trim().Length == 0) row.Name = MainViewModel.SuggestLibraryName(path);
+    }
+
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void RemoveLibrary(LibraryRow? row)
+    {
+        if (row is not null) Libraries.Remove(row);
+    }
     [ObservableProperty] private bool _autoUpdate;
 
     // ---- Sperre ----
@@ -91,28 +130,61 @@ public sealed partial class SettingsViewModel : ObservableObject
 
     // ---- Team-Sicherungen (Regel gilt für das ganze Team, liegt neben der Team-Datei) ----
 
-    private Team.TeamBackupPolicy? _teamPolicy;
-    private string? _teamFile;
-
-    /// <summary>Aufgelöste Team-Datei (vom MainViewModel gesetzt); lädt dabei die Team-Sicherungsregel.</summary>
-    public string? TeamFile
+    public sealed record TeamFileOption(string Name, string File)
     {
-        get => _teamFile;
+        public override string ToString() => Name;
+    }
+
+    private readonly Dictionary<string, Team.TeamBackupPolicy> _loadedPolicies = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, Team.TeamBackupPolicy> _editedPolicies = new(StringComparer.OrdinalIgnoreCase);
+    private IReadOnlyList<TeamFileOption> _teamFiles = [];
+
+    /// <summary>Beschreibbare Bibliotheksdateien (vom MainViewModel gesetzt); die erste ist ausgewählt.</summary>
+    public IReadOnlyList<TeamFileOption> TeamFiles
+    {
+        get => _teamFiles;
         init
         {
-            _teamFile = value;
-            if (value is null) return;
-            _teamPolicy = Team.TeamBackup.ReadPolicy(value);
-            TeamBackupEnabled = _teamPolicy.Enabled;
-            TeamKeepDaily = _teamPolicy.KeepDaily;
-            TeamKeepWeekly = _teamPolicy.KeepWeekly;
-            TeamKeepMonthly = _teamPolicy.KeepMonthly;
-            RefreshTeamBackupSummary();
+            _teamFiles = value;
+            SelectedTeamFile = value.FirstOrDefault();
         }
     }
 
-    /// <summary>Team verbunden und schreibbar (Jumphost/Read-only darf die Team-Regel nicht ändern).</summary>
-    public bool TeamBackupAvailable => TeamFile is not null && !_settings.TeamReadOnly;
+    /// <summary>Einzelne Datei (Kompatibilität).</summary>
+    public string? TeamFile
+    {
+        get => SelectedTeamFile?.File;
+        init => TeamFiles = value is null ? [] : [new TeamFileOption("Team", value)];
+    }
+
+    public bool HasSeveralTeamFiles => TeamFiles.Count > 1;
+
+    [ObservableProperty] private TeamFileOption? _selectedTeamFile;
+
+    partial void OnSelectedTeamFileChanging(TeamFileOption? value)
+    {
+        // Eingaben der bisher gewählten Datei merken (geschrieben wird erst mit OK)
+        if (SelectedTeamFile is { } old)
+            _editedPolicies[old.File] = new Team.TeamBackupPolicy { Enabled = TeamBackupEnabled, KeepDaily = TeamKeepDaily, KeepWeekly = TeamKeepWeekly, KeepMonthly = TeamKeepMonthly };
+    }
+
+    partial void OnSelectedTeamFileChanged(TeamFileOption? value)
+    {
+        OnPropertyChanged(nameof(TeamFile));
+        OnPropertyChanged(nameof(TeamBackupAvailable));
+        if (value is null) return;
+        if (!_loadedPolicies.TryGetValue(value.File, out var loaded))
+            _loadedPolicies[value.File] = loaded = Team.TeamBackup.ReadPolicy(value.File);
+        var shown = _editedPolicies.TryGetValue(value.File, out var edited) ? edited : loaded;
+        TeamBackupEnabled = shown.Enabled;
+        TeamKeepDaily = shown.KeepDaily;
+        TeamKeepWeekly = shown.KeepWeekly;
+        TeamKeepMonthly = shown.KeepMonthly;
+        RefreshTeamBackupSummary();
+    }
+
+    /// <summary>Bibliothek verbunden und hier beschreibbar (Jumphost/Read-only darf die Regel nicht ändern).</summary>
+    public bool TeamBackupAvailable => TeamFile is not null;
 
     [ObservableProperty] private bool _teamBackupEnabled;
     [ObservableProperty] private int _teamKeepDaily = 14;
@@ -127,18 +199,25 @@ public sealed partial class SettingsViewModel : ObservableObject
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { TeamBackupSummary = $"Team backup folder not reachable: {ex.Message}"; }
     }
 
-    /// <summary>Geänderte Team-Regel in den Sicherungsordner neben der Team-Datei schreiben.</summary>
+    /// <summary>Geänderte Regeln in die Sicherungsordner neben den Dateien schreiben.</summary>
     public bool ApplyTeamBackupPolicy()
     {
-        if (!TeamBackupAvailable || _teamPolicy is null) return false;
-        if ((_teamPolicy.Enabled, _teamPolicy.KeepDaily, _teamPolicy.KeepWeekly, _teamPolicy.KeepMonthly)
-            == (TeamBackupEnabled, TeamKeepDaily, TeamKeepWeekly, TeamKeepMonthly)) return false;
-        _teamPolicy.Enabled = TeamBackupEnabled;
-        _teamPolicy.KeepDaily = TeamKeepDaily;
-        _teamPolicy.KeepWeekly = TeamKeepWeekly;
-        _teamPolicy.KeepMonthly = TeamKeepMonthly;
-        Team.TeamBackup.WritePolicy(TeamFile!, _teamPolicy);
-        return true;
+        if (SelectedTeamFile is { } current)
+            _editedPolicies[current.File] = new Team.TeamBackupPolicy { Enabled = TeamBackupEnabled, KeepDaily = TeamKeepDaily, KeepWeekly = TeamKeepWeekly, KeepMonthly = TeamKeepMonthly };
+        var changed = false;
+        foreach (var (file, edited) in _editedPolicies)
+        {
+            if (!_loadedPolicies.TryGetValue(file, out var loaded)) continue;
+            if ((loaded.Enabled, loaded.KeepDaily, loaded.KeepWeekly, loaded.KeepMonthly)
+                == (edited.Enabled, edited.KeepDaily, edited.KeepWeekly, edited.KeepMonthly)) continue;
+            loaded.Enabled = edited.Enabled;
+            loaded.KeepDaily = edited.KeepDaily;
+            loaded.KeepWeekly = edited.KeepWeekly;
+            loaded.KeepMonthly = edited.KeepMonthly;
+            Team.TeamBackup.WritePolicy(file, loaded);
+            changed = true;
+        }
+        return changed;
     }
 
     /// <summary>Sicherung wiederherstellen (von der App gesetzt).</summary>

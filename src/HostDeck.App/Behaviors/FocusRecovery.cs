@@ -23,6 +23,9 @@ internal static class FocusRecovery
         Reclaim(window);
     }
 
+    /// <summary>Tastatur aus einer eingebetteten Sitzung (RDP …) zurück an HostDeck – die Sitzung bleibt offen.</summary>
+    public static void Release(Window window) => Reclaim(window);
+
     private static void Reclaim(Window window)
     {
         var hwnd = new WindowInteropHelper(window).Handle;

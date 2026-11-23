@@ -64,6 +64,7 @@ If mRemoteNG is installed, HostDeck offers to import `%APPDATA%\mRemoteNG\confCo
 | Ctrl+D (in the tree) | Duplicate connection: properties open right away so you only adjust name and host |
 | Ctrl+N / Ctrl+Shift+N | New connection / new folder |
 | Ctrl+Tab, Ctrl+Shift+W | Switch / close tab (Ctrl+W stays "delete word" in the shell) |
+| **Ctrl+Alt+Esc** | In an RDP session: release the keyboard to HostDeck (session stays open) – then all shortcuts work. Ctrl+Shift+K, Ctrl+Alt+L and Ctrl+Alt+→ also work directly from a session |
 | Ctrl+Shift+D | Duplicate the current session in split view (side by side) |
 | Ctrl+Alt+1…4 | Layout |
 | Ctrl+Shift+M | Multi-execution |

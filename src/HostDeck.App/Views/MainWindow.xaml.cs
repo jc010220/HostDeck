@@ -37,6 +37,26 @@ public partial class MainWindow : FluentWindow
             Dispatcher.BeginInvoke(() => TerminalView.BroadcastTheme(theme == Wpf.Ui.Appearance.ApplicationTheme.Light ? "light" : "dark"));
         TerminalView.CurrentTheme = () => Wpf.Ui.Appearance.ApplicationThemeManager.GetAppTheme() == Wpf.Ui.Appearance.ApplicationTheme.Light ? "light" : "dark";
         TerminalView.ShortcutHandler = OnTerminalShortcut;
+        // Kürzel auch aus einer RDP-Sitzung heraus (dort gehen sonst alle Tasten an den entfernten Rechner)
+        SourceInitialized += (_, _) =>
+        {
+            var hotkeys = new Services.SessionHotkeys(this, key =>
+            {
+                if (key == "release")
+                {
+                    var active = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive) ?? this;
+                    Behaviors.FocusRecovery.Release(active);
+                    _vm.StatusText = "Keyboard released from the session – HostDeck shortcuts work now. Click into the session to continue there.";
+                }
+                else
+                {
+                    // Bereich wechseln: Tastatur vorher aus der RDP-Sitzung lösen, sonst bliebe sie im alten Bereich
+                    if (key == "ctrl+alt+arrowright") Behaviors.FocusRecovery.Release(Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive) ?? this);
+                    OnTerminalShortcut(key);
+                }
+            });
+            Closed += (_, _) => hotkeys.Dispose();
+        };
 
         viewModel.DetachedWindowRequested += workspace =>
         {

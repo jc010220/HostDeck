@@ -1097,7 +1097,10 @@ public sealed partial class MainViewModel
             try { await SyncTeamSnippetsCoreAsync(l, path); }
             finally { _snippetGate.Release(); }
         }
-        ShowCachedTeamSnippets(Snippets);
+        // Anzeige ebenfalls nacheinander aktualisieren (zwei gleichzeitige Abgleiche dürfen die Liste nicht doppelt füllen)
+        await _snippetGate.WaitAsync();
+        try { ShowCachedTeamSnippets(Snippets); }
+        finally { _snippetGate.Release(); }
     }
 
     private readonly SemaphoreSlim _snippetGate = new(1, 1);

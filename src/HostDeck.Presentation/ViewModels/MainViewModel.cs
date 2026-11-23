@@ -831,6 +831,9 @@ public sealed partial class MainViewModel : ObservableObject
     /// <summary>Nach „Einstellungen speichern“ (z. B. Update-Quelle neu prüfen).</summary>
     public event Action? SettingsApplied;
 
+    /// <summary>Übernahme der Bibliotheksliste aus dem letzten Einstellungsdialog (läuft asynchron; für Tests).</summary>
+    internal Task LibrarySettingsTask { get; private set; } = Task.CompletedTask;
+
     [RelayCommand]
     private void OpenSettings()
     {
@@ -856,7 +859,7 @@ public sealed partial class MainViewModel : ObservableObject
         SettingsApplied?.Invoke();
         if (editor.RetentionChanged) RunSafe(() => BackupService?.ApplyRetention(), "Apply backup retention");
         RunSafe(() => { if (editor.ApplyTeamBackupPolicy()) _ = RunTeamBackupAsync(); }, "Save library backup policy");
-        _ = ApplyLibrarySettingsAsync(editor.Libraries.ToList());
+        LibrarySettingsTask = ApplyLibrarySettingsAsync(editor.Libraries.ToList());
         if (themeChanged) { CurrentTheme = Settings.Theme; _theme.Apply(Settings.Theme); }
         Reachability?.Invalidate();
         if (!Settings.ShowReachability) foreach (var i in SessionTree.AllItems) i.Reachability = Services.Reachability.Unknown;

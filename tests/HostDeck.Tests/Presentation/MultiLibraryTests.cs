@@ -174,7 +174,7 @@ public sealed class MultiLibraryTests : IDisposable
     }
 
     [Fact]
-    public void Settings_rows_rename_and_add_libraries()
+    public async Task Settings_rows_rename_and_add_libraries()
     {
         var (vm, dialogs, _, _) = TwoLibraries();
         var third = Path.Combine(_dir, "team2", "confCons.xml");
@@ -186,7 +186,7 @@ public sealed class MultiLibraryTests : IDisposable
             return true;
         };
         vm.OpenSettingsCommand.Execute(null);
-        SpinWait.SpinUntil(() => vm.Libraries.Count == 3, TimeSpan.FromSeconds(10));
+        await vm.LibrarySettingsTask;
         Assert.Equal(3, vm.Libraries.Count);
         Assert.Contains(Folder(vm, "Lab").Children, n => n.Name == "lab01");
         Assert.Contains(Folder(vm, "Network team").Children, n => n.Name == "fw01");

@@ -263,3 +263,16 @@ public sealed class RightClickPasteSettingTests
         Assert.Equal(2, vm.Workspace.Panes[0].Tabs.Count);
     }
 }
+
+public sealed class TerminalAutoFocusTests
+{
+    [Fact]
+    public void Opening_a_tab_requests_keyboard_focus()
+    {
+        var (vm, _, _, _) = MainViewModelTests.Create();
+        var conn = new HostDeck.Core.Model.ConnectionNode("web01") { Hostname = "10.0.0.5", Settings = { Protocol = HostDeck.Core.Model.ProtocolKind.Https } };
+        vm.SessionTree.Add(conn);
+        vm.OpenCommand.Execute(vm.SessionTree.FindByNode(conn));
+        Assert.True(vm.Workspace.ActiveTab!.FocusPending);
+    }
+}

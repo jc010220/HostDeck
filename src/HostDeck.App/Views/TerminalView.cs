@@ -34,7 +34,7 @@ public sealed class TerminalView : Border
         // Tab in anderes Fenster/anderen Bereich verschoben ⇒ diese Ansicht wird nicht mehr gebraucht.
         // (Die Session läuft weiter; die neue Ansicht bekommt den Verlauf per Subscribe nachgeliefert.)
         Unloaded += (_, _) => Dispatcher.BeginInvoke(DispatcherPriority.Background, () => { if (!IsLoaded) ReleaseView(); });
-        IsVisibleChanged += (_, _) => { if (IsVisible) Post(new { t = "focus" }); };
+        IsVisibleChanged += (_, _) => { if (IsVisible && _tab?.FocusPending == true) FocusTerminal(); };
     }
 
     /// <summary>Wird von der App gesetzt: Tastenkürzel aus dem Terminal (Fokus liegt im WebView2-HWND).</summary>
@@ -97,6 +97,20 @@ public sealed class TerminalView : Border
 
     private void ApplyFontSize(int size) => Post(new { t = "font", size });
 
+    private bool _ready;
+
+    private void OnFocusRequested(object? sender, EventArgs e) => Dispatcher.BeginInvoke(DispatcherPriority.Input, FocusTerminal);
+
+    /// <summary>Tastatur ins Terminal (WebView2-Fenster und xterm.js) – nur wenn bereit, sichtbar und das Fenster aktiv ist.</summary>
+    private void FocusTerminal()
+    {
+        if (_webView is null || !_ready || !IsVisible || _tab is null) return;
+        if (Window.GetWindow(this) is not { IsActive: true }) return; // anderes Programm im Vordergrund ⇒ nicht stören
+        _tab.FocusPending = false;
+        _webView.Focus();
+        Post(new { t = "focus" });
+    }
+
     private static Task<CoreWebView2Environment> Environment => _environment ??= CoreWebView2Environment.CreateAsync(
         null, Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData), "HostDeck", "WebView2"));
 
@@ -108,6 +122,7 @@ public sealed class TerminalView : Border
         _tab.Closed += OnTabClosed;
         ThemeChanged += ApplyTheme;
         FontSizeBroadcast += ApplyFontSize;
+        _tab.FocusRequested += OnFocusRequested;
 
         _webView = new WebView2 { DefaultBackgroundColor = System.Drawing.Color.FromArgb(0x1e, 0x1e, 0x1e) };
         Child = _webView;
@@ -170,6 +185,8 @@ public sealed class TerminalView : Border
                 Post(new { t = "font", size = FontSize });
                 _terminal!.Resize((uint)m.GetProperty("cols").GetInt32(), (uint)m.GetProperty("rows").GetInt32());
                 _subscription ??= _terminal.Subscribe(Enqueue); // liefert den bisherigen Verlauf nach
+                _ready = true;
+                if (_tab?.FocusPending == true) FocusTerminal();
                 break;
             case "i":
                 _terminal?.OnUserInput(m.GetProperty("d").GetString() ?? "");
@@ -271,6 +288,8 @@ public sealed class TerminalView : Border
         if (_tab is not null) _tab.Closed -= OnTabClosed;
         ThemeChanged -= ApplyTheme;
         FontSizeBroadcast -= ApplyFontSize;
+        if (_tab is not null) _tab.FocusRequested -= OnFocusRequested;
+        _ready = false;
         _webView?.Dispose();
         _webView = null;
         Child = null;

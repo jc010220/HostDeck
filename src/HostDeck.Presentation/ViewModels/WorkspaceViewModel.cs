@@ -61,6 +61,17 @@ public sealed partial class SessionTabViewModel : ObservableObject
 
     [RelayCommand] private void FullScreen() => Rdp?.FullScreenCommand.Execute(null);
 
+    /// <summary>Tab soll die Tastatur bekommen (neu geöffnet bzw. angeklickt) – die Ansicht fokussiert sich, sobald sie bereit ist.</summary>
+    public event EventHandler? FocusRequested;
+    /// <summary>Fokuswunsch, der noch nicht erfüllt werden konnte (z. B. Terminal lädt noch).</summary>
+    public bool FocusPending { get; set; }
+
+    public void RequestFocus()
+    {
+        FocusPending = true;
+        FocusRequested?.Invoke(this, EventArgs.Empty);
+    }
+
     /// <summary>Laufenden Verbindungsaufbau abbrechen – unabhängig vom Protokoll.</summary>
     [RelayCommand]
     public void CancelConnect()
@@ -141,6 +152,8 @@ public sealed partial class PaneViewModel(int index) : ObservableObject
     {
         if (oldValue is not null) oldValue.IsSelected = false;
         if (newValue is not null) newValue.IsSelected = true;
+        // Tab gewechselt (Klick, Strg+Tab, Schließen) ⇒ gleich weitertippen können
+        if (oldValue is not null && newValue is not null) newValue.RequestFocus();
     }
     internal void NotifyEmptyChanged() => OnPropertyChanged(nameof(IsEmpty));
 }
@@ -223,6 +236,7 @@ public sealed partial class WorkspaceViewModel : ObservableObject
         pane.NotifyEmptyChanged();
         ActivePane = pane;
         NotifyTabsChanged();
+        tab.RequestFocus(); // neue Shell: sofort lostippen, ohne erst hineinzuklicken
         return tab;
     }
 

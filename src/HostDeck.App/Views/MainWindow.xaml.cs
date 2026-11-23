@@ -21,6 +21,7 @@ public partial class MainWindow : FluentWindow
 
         SidebarColumn.Width = new GridLength(Math.Clamp(viewModel.Settings.SidebarWidth, 200, 700));
         SetSidebarVisible(!viewModel.Settings.SidebarCollapsed, save: false);
+        SidebarPanel.IsKeyboardFocusWithinChanged += OnSidebarFocusWithinChanged;
         Workspace.OpenInPane = viewModel.OpenInPane;
         RegisterShortcuts();
         // Ordner aufgeklappt ⇒ Online-Status der jetzt sichtbaren Verbindungen gleich prüfen
@@ -72,7 +73,7 @@ public partial class MainWindow : FluentWindow
             case "ctrl+shift+tab": _vm.FocusedWorkspace.SelectNextTab(backwards: true); break;
             case "ctrl+shift+w": _vm.FocusedWorkspace.Close(_vm.FocusedWorkspace.ActiveTab); break;
             case "ctrl+shift+m": _vm.ToggleMultiExecutionCommand.Execute(null); break;
-            case "ctrl+shift+l": QuickConnectBox.Focus(); break;
+            case "ctrl+shift+l": FocusQuickConnect(); break;
             case "ctrl+f": FocusSearch(); break;
             case "ctrl+shift+b": ToggleSidebar(); break;
             case "ctrl+alt+arrowright": _vm.Workspace.FocusNextPane(); break;
@@ -211,7 +212,7 @@ public partial class MainWindow : FluentWindow
         Bind(Key.F, ModifierKeys.Control, FocusSearch);
         Bind(Key.B, ModifierKeys.Control | ModifierKeys.Shift, ToggleSidebar);
         Bind(Key.S, ModifierKeys.Control, () => { if (_vm.HasTeamLibrary) _vm.SyncTeamCommand.Execute(null); });
-        Bind(Key.L, ModifierKeys.Control, () => QuickConnectBox.Focus());
+        Bind(Key.L, ModifierKeys.Control, FocusQuickConnect);
         Bind(Key.O, ModifierKeys.Control, () => _vm.ImportMRemoteNGCommand.Execute(null));
         Bind(Key.N, ModifierKeys.Control, () => _vm.NewConnectionCommand.Execute(null));
         Bind(Key.N, ModifierKeys.Control | ModifierKeys.Shift, () => _vm.NewFolderCommand.Execute(null));
@@ -404,16 +405,49 @@ public partial class MainWindow : FluentWindow
 
     private void ToggleSidebar() => SetSidebarVisible(SidebarPanel.Visibility != Visibility.Visible);
 
-    /// <summary>Suche braucht die Seitenleiste – eingeklappt wird sie dafür wieder geöffnet.</summary>
+    /// <summary>Seitenleiste nur vorübergehend eingeblendet (Strg+L/Strg+F bei eingeklappter Leiste).</summary>
+    private bool _sidebarTemporary;
+
+    /// <summary>
+    /// Eingeklappt ⇒ für Schnellverbindung/Suche kurz einblenden (ohne die Einstellung zu ändern) und wieder
+    /// einklappen, sobald der Fokus die Seitenleiste verlässt (z. B. nach dem Verbinden).
+    /// </summary>
+    private void ShowSidebarTemporarily()
+    {
+        if (SidebarPanel.Visibility == Visibility.Visible) return;
+        SetSidebarVisible(true, save: false);
+        _sidebarTemporary = true;
+    }
+
+    private void OnSidebarFocusWithinChanged(object sender, DependencyPropertyChangedEventArgs e)
+    {
+        if (e.NewValue is true || !_sidebarTemporary) return;
+        // Dropdown der Schnellverbindung/Kontextmenü: Fokus liegt kurz in einem Popup ⇒ erst danach prüfen
+        Dispatcher.BeginInvoke(() =>
+        {
+            if (!_sidebarTemporary || SidebarPanel.IsKeyboardFocusWithin || QuickConnectBox.IsDropDownOpen) return;
+            _sidebarTemporary = false;
+            SetSidebarVisible(false, save: false);
+        }, System.Windows.Threading.DispatcherPriority.Background);
+    }
+
+    private void FocusQuickConnect()
+    {
+        ShowSidebarTemporarily();
+        Dispatcher.BeginInvoke(() => QuickConnectBox.Focus(), System.Windows.Threading.DispatcherPriority.Input);
+    }
+
+    /// <summary>Suche braucht die Seitenleiste – eingeklappt wird sie dafür vorübergehend eingeblendet.</summary>
     private void FocusSearch()
     {
-        if (SidebarPanel.Visibility != Visibility.Visible) SetSidebarVisible(true);
+        ShowSidebarTemporarily();
         SidebarTabs.SelectedIndex = 0;
         Dispatcher.BeginInvoke(() => { SearchBox.Focus(); SearchBox.SelectAll(); }, System.Windows.Threading.DispatcherPriority.Input);
     }
 
     private void SetSidebarVisible(bool visible, bool save = true)
     {
+        if (save) _sidebarTemporary = false; // bewusst ein-/ausgeklappt ⇒ bleibt so
         SidebarPanel.Visibility = visible ? Visibility.Visible : Visibility.Collapsed;
         SidebarSplitter.Visibility = SidebarPanel.Visibility;
         SidebarColumn.MinWidth = visible ? 200 : 0;

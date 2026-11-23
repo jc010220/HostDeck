@@ -76,6 +76,7 @@ public sealed class TerminalView : Border
             menu.Items.Add(new Separator());
             Item("Reconnect", null, () => tab.ReconnectCommand.Execute(null), !connected && tab.State != SessionState.Connecting);
             Item("Duplicate session", null, () => tab.RequestDuplicateCommand.Execute(null));
+            Item("Duplicate in split view", "Ctrl+Shift+D", () => tab.RequestDuplicateSplitCommand.Execute(null));
             Item("Open in new window", null, () => tab.RequestDetachCommand.Execute(null));
         }
         menu.Closed += (_, _) => Post(new { t = "focus" });

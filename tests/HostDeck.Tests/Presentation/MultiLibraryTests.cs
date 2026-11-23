@@ -243,4 +243,23 @@ public sealed class RightClickPasteSettingTests
         Assert.Same(conn, vm.Workspace.ActiveTab!.Connection);
         Assert.NotSame(first, vm.Workspace.ActiveTab);
     }
+
+    [Fact]
+    public void Duplicate_in_split_view_switches_to_two_columns_and_opens_next_to_the_original()
+    {
+        var (vm, _, _, _) = MainViewModelTests.Create();
+        var conn = new HostDeck.Core.Model.ConnectionNode("web01") { Hostname = "10.0.0.5", Settings = { Protocol = HostDeck.Core.Model.ProtocolKind.Https } };
+        vm.SessionTree.Add(conn);
+        vm.OpenCommand.Execute(vm.SessionTree.FindByNode(conn));
+        var first = vm.Workspace.ActiveTab!;
+        first.RequestDuplicateSplitCommand.Execute(null);
+        Assert.Equal(WorkspaceLayout.TwoColumns, vm.Workspace.Layout);
+        Assert.Contains(first, vm.Workspace.Panes[0].Tabs);
+        Assert.Same(conn, Assert.Single(vm.Workspace.Panes[1].Tabs).Connection);
+
+        // aus dem rechten Bereich ⇒ wieder in den linken (Layout bleibt)
+        vm.DuplicateInSplitView(vm.Workspace.Panes[1].Tabs[0]);
+        Assert.Equal(WorkspaceLayout.TwoColumns, vm.Workspace.Layout);
+        Assert.Equal(2, vm.Workspace.Panes[0].Tabs.Count);
+    }
 }

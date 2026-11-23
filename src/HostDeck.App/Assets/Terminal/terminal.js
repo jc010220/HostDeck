@@ -61,7 +61,7 @@
   }, { passive: false });
 
   // Tastenkürzel: App-Kürzel an C# weiterreichen (Fokus liegt im WebView2-HWND)
-  const appShortcuts = new Set(['ctrl+shift+k', 'ctrl+shift+p', 'ctrl+tab', 'ctrl+shift+tab', 'ctrl+shift+w', 'ctrl+shift+m', 'ctrl+shift+l',
+  const appShortcuts = new Set(['ctrl+shift+k', 'ctrl+shift+p', 'ctrl+tab', 'ctrl+shift+tab', 'ctrl+shift+w', 'ctrl+shift+m', 'ctrl+shift+l', 'ctrl+shift+d',
     'ctrl+alt+1', 'ctrl+alt+2', 'ctrl+alt+3', 'ctrl+alt+4', 'ctrl+alt+arrowright', 'ctrl+f', 'ctrl+shift+b', 'ctrl+,', 'ctrl+alt+l']);
   term.attachCustomKeyEventHandler((e) => {
     if (e.type !== 'keydown') return true;

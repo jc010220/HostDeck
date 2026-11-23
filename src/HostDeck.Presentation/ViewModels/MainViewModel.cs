@@ -91,6 +91,21 @@ public sealed partial class MainViewModel : ObservableObject
         return tab;
     }
 
+    /// <summary>
+    /// Gleiche Verbindung daneben öffnen: Bei nur einem Bereich wird auf „zwei nebeneinander“ umgeschaltet,
+    /// sonst kommt die Kopie in den nächsten anderen Bereich (z. B. links arbeiten, rechts Log beobachten).
+    /// </summary>
+    public void DuplicateInSplitView(SessionTabViewModel? tab)
+    {
+        if (tab is null) return;
+        var owner = AllWorkspaces.FirstOrDefault(w => w.AllTabs.Contains(tab)) ?? Workspace;
+        if (owner.Panes.Count == 1) owner.SetLayout(WorkspaceLayout.TwoColumns);
+        var source = owner.Panes.FirstOrDefault(p => p.Tabs.Contains(tab)) ?? owner.ActivePane;
+        var target = owner.Panes[(owner.Panes.IndexOf(source) + 1) % owner.Panes.Count];
+        owner.Open(CreateTab(tab.Connection, SessionTree.Tree.Vault, tab.IsTransient), target);
+        StatusText = $"Opened again in split view: {tab.Connection.Name}";
+    }
+
     private void OnTabAction(SessionTabViewModel tab, TabAction action)
     {
         switch (action)
@@ -109,6 +124,9 @@ public sealed partial class MainViewModel : ObservableObject
                 var owner = AllWorkspaces.FirstOrDefault(w => w.AllTabs.Contains(tab)) ?? Workspace;
                 owner.Open(CreateTab(tab.Connection, SessionTree.Tree.Vault, tab.IsTransient));
                 StatusText = $"Opened again: {tab.Connection.Name}";
+                break;
+            case TabAction.DuplicateSplit:
+                DuplicateInSplitView(tab);
                 break;
         }
     }
@@ -264,6 +282,8 @@ public sealed partial class MainViewModel : ObservableObject
         yield return ("Layout: two stacked", "split horizontal rows 2", () => Workspace.SetLayout(WorkspaceLayout.TwoRows));
         yield return ("Layout: 2×2 grid", "grid quad 4", () => Workspace.SetLayout(WorkspaceLayout.Grid));
         yield return ("Toggle multi-execution", "multiexec broadcast", () => IsMultiExecutionEnabled = !IsMultiExecutionEnabled);
+        if (FocusedWorkspace.ActiveTab is { } current)
+            yield return ($"Duplicate session in split view: {current.Connection.Name}  (Ctrl+Shift+D)", "duplicate split side by side nebeneinander kopie", () => DuplicateInSplitView(current));
         if (HasTeamLibrary)
         {
             yield return ("Sync libraries  (Ctrl+S)", "team library sync synchronisieren speichern share laufwerk", () => SyncTeamCommand.Execute(null));

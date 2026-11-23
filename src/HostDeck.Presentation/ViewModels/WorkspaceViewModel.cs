@@ -49,6 +49,7 @@ public sealed partial class SessionTabViewModel : ObservableObject
     [RelayCommand] private void RequestDetach() => ActionRequested?.Invoke(this, TabAction.Detach);
     [RelayCommand] private void RequestSave() => ActionRequested?.Invoke(this, TabAction.Save);
     [RelayCommand] private void RequestDuplicate() => ActionRequested?.Invoke(this, TabAction.Duplicate);
+    [RelayCommand] private void RequestDuplicateSplit() => ActionRequested?.Invoke(this, TabAction.DuplicateSplit);
 
     [RelayCommand]
     private void Reconnect()
@@ -123,7 +124,7 @@ public sealed partial class SessionTabViewModel : ObservableObject
     }
 }
 
-public enum TabAction { Close, Detach, Save, Duplicate }
+public enum TabAction { Close, Detach, Save, Duplicate, DuplicateSplit }
 
 /// <summary>Ein Bereich im Split-Screen mit eigener Tab-Leiste.</summary>
 public sealed partial class PaneViewModel(int index) : ObservableObject

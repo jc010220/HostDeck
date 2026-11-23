@@ -73,6 +73,7 @@ public partial class MainWindow : FluentWindow
             case "ctrl+shift+tab": _vm.FocusedWorkspace.SelectNextTab(backwards: true); break;
             case "ctrl+shift+w": _vm.FocusedWorkspace.Close(_vm.FocusedWorkspace.ActiveTab); break;
             case "ctrl+shift+m": _vm.ToggleMultiExecutionCommand.Execute(null); break;
+            case "ctrl+shift+d": _vm.DuplicateInSplitView(_vm.FocusedWorkspace.ActiveTab); break;
             case "ctrl+shift+l": FocusQuickConnect(); break;
             case "ctrl+f": FocusSearch(); break;
             case "ctrl+shift+b": ToggleSidebar(); break;
@@ -213,6 +214,7 @@ public partial class MainWindow : FluentWindow
         Bind(Key.B, ModifierKeys.Control | ModifierKeys.Shift, ToggleSidebar);
         Bind(Key.S, ModifierKeys.Control, () => { if (_vm.HasTeamLibrary) _vm.SyncTeamCommand.Execute(null); });
         Bind(Key.L, ModifierKeys.Control, FocusQuickConnect);
+        Bind(Key.D, ModifierKeys.Control | ModifierKeys.Shift, () => _vm.DuplicateInSplitView(_vm.FocusedWorkspace.ActiveTab));
         Bind(Key.O, ModifierKeys.Control, () => _vm.ImportMRemoteNGCommand.Execute(null));
         Bind(Key.N, ModifierKeys.Control, () => _vm.NewConnectionCommand.Execute(null));
         Bind(Key.N, ModifierKeys.Control | ModifierKeys.Shift, () => _vm.NewFolderCommand.Execute(null));

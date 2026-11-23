@@ -23,6 +23,7 @@ public partial class App : Application
     {
         base.OnStartup(e);
         Behaviors.GentleWheelScroll.Register();
+        Behaviors.FocusRecovery.Register();
         DispatcherUnhandledException += OnUnhandledException;
         AppDomain.CurrentDomain.UnhandledException += (_, args) => Log.Error("Unhandled exception", (Exception)args.ExceptionObject);
         TaskScheduler.UnobservedTaskException += (_, args) => { Log.Error("Background task", args.Exception); args.SetObserved(); };

@@ -307,6 +307,8 @@ public sealed class RdpView : Grid
                 return;
             }
             _vm?.ReportDisconnected(reason, description);
+            var window = Window.GetWindow(this);
+            Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () => HostDeck.App.Behaviors.FocusRecovery.Restore(window));
             // WICHTIG: Das Control hier NICHT zerstören – mstscax verarbeitet die Trennung noch (nativer Absturz).
             // Es wird nur ausgeblendet und erst beim nächsten Verbinden bzw. Schließen des Tabs (verzögert) freigegeben.
             Dispatcher.BeginInvoke(DispatcherPriority.ApplicationIdle, () => Safe("Status", () => ShowStatus(_vm?.Message ?? "Connection closed.")));
@@ -376,6 +378,7 @@ public sealed class RdpView : Grid
         _resizeTimer.Stop();
         _connected = false;
         if (_host is null) return;
+        var window = Window.GetWindow(this);
         var host = _host;
         _host = null;
         try
@@ -393,6 +396,8 @@ public sealed class RdpView : Grid
                 host.Dispose();
             }
             catch (Exception ex) { HostDeck.App.Services.Log.Error("RDP control release", ex); }
+            // Das RDP-Fenster hatte den Tastaturfokus – ohne Zurückholen kämen keine Tasten (Strg+K …) mehr an
+            HostDeck.App.Behaviors.FocusRecovery.Restore(window ?? Application.Current?.MainWindow);
         });
     }
 

@@ -8,7 +8,7 @@
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
     <Company>HostDeck</Company>
     <Product>HostDeck</Product>
-    <Version>1.1.11</Version>
+    <Version>1.1.12</Version>
     <Description>Verbindungsmanager für RDP und SSH (mRemoteNG-kompatibel)</Description>
     <Copyright>© 2026</Copyright>
     <!-- WPF-/Windows-Projekte (Phase 3+) lassen sich so auch auf Linux-CI bauen -->

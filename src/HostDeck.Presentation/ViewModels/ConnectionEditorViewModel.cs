@@ -37,16 +37,13 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
         _hostname = (node as ConnectionNode)?.Hostname ?? "";
         // Nur Protokolle zur Auswahl, die HostDeck wirklich verbindet (aus mRemoteNG übernommene andere bleiben sichtbar,
         // solange der Eintrag sie nutzt). SSH1 ist veraltet und unsicher – HostDeck verbindet es ohnehin per SSH (Version 2).
+        // SSH1-Einträge aus mRemoteNG werden als „SSH“ angezeigt (HostDeck verbindet sie ohnehin per SSH2); der gespeicherte
+        // Wert bleibt SSH1, solange man das Protokoll nicht ändert – so sieht die Team-Datei für mRemoteNG-Kollegen gleich aus.
+        _keepSsh1 = s.Protocol == ProtocolKind.Ssh1;
         ProtocolOptions = Options(_inherited.Protocol)
-            .Where(o => o.Value is null || SupportedProtocols.Contains(o.Value.Value) || o.Value == s.Protocol)
-            .Select(o => o.Value switch
-            {
-                ProtocolKind.Ssh2 => new Option<ProtocolKind>(o.Value, "SSH (SSH2)"),
-                ProtocolKind.Ssh1 => new Option<ProtocolKind>(o.Value, "SSH1 – outdated, connects as SSH2"),
-                _ => o,
-            })
+            .Where(o => o.Value is null || SupportedProtocols.Contains(o.Value.Value) || (o.Value == s.Protocol && o.Value != ProtocolKind.Ssh1))
             .ToList();
-        _protocol = Find(ProtocolOptions, s.Protocol);
+        _protocol = Find(ProtocolOptions, _keepSsh1 ? ProtocolKind.Ssh2 : s.Protocol);
         _port = s.Port?.ToString(CultureInfo.InvariantCulture) ?? "";
         _description = s.Description ?? "";
         _tags = s.EnvironmentTags ?? "";
@@ -92,6 +89,8 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
     [ObservableProperty] private bool? _favorite;
 
     public IReadOnlyList<Option<ProtocolKind>> ProtocolOptions { get; }
+
+    private readonly bool _keepSsh1;
 
     private static readonly HashSet<ProtocolKind> SupportedProtocols =
         [ProtocolKind.Rdp, ProtocolKind.Ssh2, ProtocolKind.Telnet, ProtocolKind.Raw, ProtocolKind.Vnc, ProtocolKind.Http, ProtocolKind.Https];
@@ -230,7 +229,7 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
         if (_node is ConnectionNode c) c.Hostname = Hostname.Trim();
 
         var s = _node.Settings;
-        s.Protocol = Protocol.Value;
+        s.Protocol = _keepSsh1 && Protocol.Value == ProtocolKind.Ssh2 ? ProtocolKind.Ssh1 : Protocol.Value;
         s.Port = port;
         s.Description = NullIfEmpty(Description);
         s.EnvironmentTags = NullIfEmpty(Tags);

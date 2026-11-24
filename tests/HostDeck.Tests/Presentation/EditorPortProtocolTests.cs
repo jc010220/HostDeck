@@ -98,6 +98,9 @@ public sealed class EditorProtocolListTests
         var old = new ConnectionNode("old") { Hostname = "10.0.0.2", Settings = { Protocol = ProtocolKind.Ssh1 } };
         new ConnectionTree().Root.Add(old);
         var e2 = new ConnectionEditorViewModel(old, new CredentialVault());
-        Assert.Equal(ProtocolKind.Ssh1, e2.Protocol.Value);    // bestehender Eintrag bleibt auswählbar
+        Assert.Equal(ProtocolKind.Ssh2, e2.Protocol.Value);    // wird als „SSH“ angezeigt …
+        Assert.DoesNotContain(e2.ProtocolOptions, o => o.Value == ProtocolKind.Ssh1);
+        Assert.Null(e2.Apply());
+        Assert.Equal(ProtocolKind.Ssh1, old.Settings.Protocol); // … bleibt aber gespeichert SSH1 (mRemoteNG-Kollegen)
     }
 }

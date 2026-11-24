@@ -22,7 +22,7 @@ public partial class SettingsWindow : FluentWindow
         // Während InitializeComponent existieren die Bereiche evtl. noch nicht
         if (SecAppearance is null || Nav.SelectedItem is not System.Windows.Controls.ListBoxItem { Tag: string target }) return;
         foreach (var section in new[] { SecAppearance, SecBehavior, SecTeam, SecBackups, SecUpdates })
-            section.Visibility = section.Name == target ? Visibility.Visible : Visibility.Collapsed;
+            section.Visibility = section.Name == target ? Visibility.Visible : Visibility.Hidden;
     }
 
     private bool _navCollapsed;

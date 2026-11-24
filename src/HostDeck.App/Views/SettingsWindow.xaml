@@ -3,7 +3,7 @@
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
                  xmlns:app="clr-namespace:HostDeck.App"
-                 Title="Settings" Width="900" Height="640" MinWidth="640" MinHeight="420" WindowStartupLocation="CenterOwner" ResizeMode="CanResize"
+                 Title="Settings" Width="860" SizeToContent="Height" MinWidth="640" MinHeight="360" WindowStartupLocation="CenterOwner" ResizeMode="CanResize"
                  ShowInTaskbar="False" ExtendsContentIntoTitleBar="True" WindowBackdropType="Mica">
     <DockPanel Margin="0,0,0,16">
         <ui:TitleBar DockPanel.Dock="Top" Title="Settings" ShowMinimize="False" ShowMaximize="False" />
@@ -37,7 +37,9 @@
                 </ListBox>
             </DockPanel>
             <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
-                <StackPanel Margin="24,4,24,0">
+                <!-- Bereiche liegen übereinander; ausgeblendete sind „Hidden“ (nicht „Collapsed“), damit das Fenster genau so hoch
+                     wird wie der längste Bereich und beim Umschalten nicht springt -->
+                <Grid Margin="24,4,24,0">
             <StackPanel x:Name="SecAppearance" Visibility="Visible">
                 <TextBlock Text="Appearance" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,12" />
             <Grid Margin="0,0,0,4">
@@ -54,7 +56,7 @@
             <CheckBox Content="Online status in the tree (TCP check of visible connections)" IsChecked="{Binding ShowReachability}" Margin="0,4,0,0" />
 
             </StackPanel>
-            <StackPanel x:Name="SecBehavior" Visibility="Collapsed">
+            <StackPanel x:Name="SecBehavior" Visibility="Hidden">
                 <TextBlock Text="Behavior" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,12" />
             <Grid Margin="0,0,0,4">
                 <Grid.ColumnDefinitions><ColumnDefinition Width="220" /><ColumnDefinition /></Grid.ColumnDefinitions>
@@ -82,7 +84,7 @@
             </Grid>
 
             </StackPanel>
-            <StackPanel x:Name="SecTeam" Visibility="Collapsed">
+            <StackPanel x:Name="SecTeam" Visibility="Hidden">
                 <TextBlock Text="Libraries" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,4" />
             <TextBlock Margin="0,0,0,8" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                        Text="Each library is a confCons.xml (stays compatible with mRemoteNG) and appears as its own folder in the tree – e.g. one per team, or your own file on OneDrive. Changes by others appear automatically, save your own with Ctrl+S. Folder instead of file: the newest .xml in it is used. A file that does not exist yet is created when you click OK." />
@@ -144,7 +146,7 @@
             </StackPanel>
             <TextBlock Margin="0,4,0,0" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Text="{Binding TeamBackupSummary}" />
             </StackPanel>
-            <StackPanel x:Name="SecBackups" Visibility="Collapsed">
+            <StackPanel x:Name="SecBackups" Visibility="Hidden">
                 <TextBlock Text="Personal backups" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,12" />
             <TextBlock Margin="0,0,0,6" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                        Text="Your own HostDeck database: personal folders and connections, vault, personal snippets and settings for team entries. The team library keeps its own version history (last 10 versions before each save)." />
@@ -179,7 +181,7 @@
             </TextBlock>
 
             </StackPanel>
-            <StackPanel x:Name="SecUpdates" Visibility="Collapsed">
+            <StackPanel x:Name="SecUpdates" Visibility="Hidden">
                 <TextBlock Text="Updates" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,12" />
             <DockPanel>
                 <ui:Button DockPanel.Dock="Right" Content="Check for updates now" Click="OnCheckForUpdates" VerticalAlignment="Center" />
@@ -202,7 +204,7 @@
             </Expander>
 
             </StackPanel>
-                </StackPanel>
+                </Grid>
             </ScrollViewer>
         </Grid>
     </DockPanel>

@@ -39,7 +39,12 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
         // solange der Eintrag sie nutzt). SSH1 ist veraltet und unsicher – HostDeck verbindet es ohnehin per SSH (Version 2).
         ProtocolOptions = Options(_inherited.Protocol)
             .Where(o => o.Value is null || SupportedProtocols.Contains(o.Value.Value) || o.Value == s.Protocol)
-            .Select(o => o.Value == ProtocolKind.Ssh1 ? new Option<ProtocolKind>(o.Value, "SSH1 (from mRemoteNG – connects as SSH)") : o)
+            .Select(o => o.Value switch
+            {
+                ProtocolKind.Ssh2 => new Option<ProtocolKind>(o.Value, "SSH (SSH2)"),
+                ProtocolKind.Ssh1 => new Option<ProtocolKind>(o.Value, "SSH1 – outdated, connects as SSH2"),
+                _ => o,
+            })
             .ToList();
         _protocol = Find(ProtocolOptions, s.Protocol);
         _port = s.Port?.ToString(CultureInfo.InvariantCulture) ?? "";

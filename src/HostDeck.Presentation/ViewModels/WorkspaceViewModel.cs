@@ -59,6 +59,13 @@ public sealed partial class SessionTabViewModel : ObservableObject
         if (Vnc is { } vnc) _ = vnc.ConnectAsync();
     }
 
+    /// <summary>Doppelklick auf den Tab: nur wenn die Verbindung getrennt bzw. fehlgeschlagen ist, neu verbinden.</summary>
+    [RelayCommand]
+    private void ReconnectIfClosed()
+    {
+        if (State is SessionState.Disconnected or SessionState.Failed) Reconnect();
+    }
+
     [RelayCommand] private void FullScreen() => Rdp?.FullScreenCommand.Execute(null);
 
     /// <summary>Tab soll die Tastatur bekommen (neu geöffnet bzw. angeklickt) – die Ansicht fokussiert sich, sobald sie bereit ist.</summary>

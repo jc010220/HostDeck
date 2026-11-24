@@ -45,6 +45,9 @@
                                 <ControlTemplate TargetType="ListBoxItem">
                                     <Border x:Name="Bd" Margin="0,0,2,0" Padding="10,5,4,5" CornerRadius="6,6,0,0"
                                             Background="Transparent">
+                                        <Border.InputBindings>
+                                            <MouseBinding Gesture="LeftDoubleClick" Command="{Binding ReconnectIfClosedCommand}" />
+                                        </Border.InputBindings>
                                         <ContentPresenter />
                                     </Border>
                                     <ControlTemplate.Triggers>

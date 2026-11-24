@@ -125,11 +125,13 @@ internal static class SshConnectionFactory
 public sealed class SshTerminalSession : ITerminalBackend
 {
     // Setzt einen Prompt-Hook, der das Verzeichnis per OSC 7 meldet (bash: PROMPT_COMMAND, zsh: precmd).
-    // Führendes Leerzeichen ⇒ bei HISTCONTROL=ignorespace nicht in der History.
+    // Führendes Leerzeichen ⇒ bei HISTCONTROL=ignorespace nicht in der History. Sonst entfernt die Zeile sich in bash
+    // selbst wieder aus der History (nur wenn der letzte Eintrag wirklich diese Zeile ist – nie einen Befehl des Benutzers).
     internal const string CwdHook =
         " __hd_osc7(){ printf '\\033]7;file://%s%s\\033\\\\' \"${HOSTNAME:-$HOST}\" \"$PWD\"; }; " +
         "if [ -n \"$ZSH_VERSION\" ]; then precmd_functions+=(__hd_osc7); " +
-        "else PROMPT_COMMAND=\"__hd_osc7${PROMPT_COMMAND:+;$PROMPT_COMMAND}\"; fi\n";
+        "else PROMPT_COMMAND=\"__hd_osc7${PROMPT_COMMAND:+;$PROMPT_COMMAND}\"; " +
+        "case \"$(history 1)\" in *__hd_osc7*) read -r __hd_n _ <<< \"$(history 1)\"; history -d \"$__hd_n\" 2>/dev/null; unset __hd_n;; esac; fi\n";
 
     private readonly SshEndpoint _endpoint;
     private readonly IKnownHosts _knownHosts;

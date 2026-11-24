@@ -83,3 +83,21 @@ public sealed class EditorClearPasswordTests
         Assert.Equal("", c.Settings.Password); // gelöscht und nicht vom Ordner geerbt
     }
 }
+
+public sealed class EditorProtocolListTests
+{
+    [Fact]
+    public void Only_supported_protocols_are_offered()
+    {
+        var c = new ConnectionNode("srv") { Hostname = "10.0.0.1" };
+        new ConnectionTree().Root.Add(c);
+        var e = new ConnectionEditorViewModel(c, new CredentialVault());
+        Assert.DoesNotContain(e.ProtocolOptions, o => o.Value is ProtocolKind.Ssh1 or ProtocolKind.Rlogin or ProtocolKind.Ica);
+        Assert.Contains(e.ProtocolOptions, o => o.Value == ProtocolKind.Ssh2);
+
+        var old = new ConnectionNode("old") { Hostname = "10.0.0.2", Settings = { Protocol = ProtocolKind.Ssh1 } };
+        new ConnectionTree().Root.Add(old);
+        var e2 = new ConnectionEditorViewModel(old, new CredentialVault());
+        Assert.Equal(ProtocolKind.Ssh1, e2.Protocol.Value);    // bestehender Eintrag bleibt auswählbar
+    }
+}

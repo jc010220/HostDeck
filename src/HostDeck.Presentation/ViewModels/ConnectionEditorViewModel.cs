@@ -35,7 +35,13 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
         var s = node.Settings;
         _name = node.Name;
         _hostname = (node as ConnectionNode)?.Hostname ?? "";
-        _protocol = Find(ProtocolOptions = Options(_inherited.Protocol), s.Protocol);
+        // Nur Protokolle zur Auswahl, die HostDeck wirklich verbindet (aus mRemoteNG übernommene andere bleiben sichtbar,
+        // solange der Eintrag sie nutzt). SSH1 ist veraltet und unsicher – HostDeck verbindet es ohnehin per SSH (Version 2).
+        ProtocolOptions = Options(_inherited.Protocol)
+            .Where(o => o.Value is null || SupportedProtocols.Contains(o.Value.Value) || o.Value == s.Protocol)
+            .Select(o => o.Value == ProtocolKind.Ssh1 ? new Option<ProtocolKind>(o.Value, "SSH1 (from mRemoteNG – connects as SSH)") : o)
+            .ToList();
+        _protocol = Find(ProtocolOptions, s.Protocol);
         _port = s.Port?.ToString(CultureInfo.InvariantCulture) ?? "";
         _description = s.Description ?? "";
         _tags = s.EnvironmentTags ?? "";
@@ -81,6 +87,9 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
     [ObservableProperty] private bool? _favorite;
 
     public IReadOnlyList<Option<ProtocolKind>> ProtocolOptions { get; }
+
+    private static readonly HashSet<ProtocolKind> SupportedProtocols =
+        [ProtocolKind.Rdp, ProtocolKind.Ssh2, ProtocolKind.Telnet, ProtocolKind.Raw, ProtocolKind.Vnc, ProtocolKind.Http, ProtocolKind.Https];
     public string PortPlaceholder => _inherited.Port is { } p && IsInheritedProtocolPort && Protocol.Value is null ? $"inherited: {p}" : $"default: {ProtocolDefaults.DefaultPort(EffectiveProtocol)}";
     private ProtocolKind EffectiveProtocol => Protocol.Value ?? _inherited.Protocol ?? ProtocolKind.Rdp;
 

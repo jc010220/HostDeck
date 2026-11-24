@@ -62,10 +62,12 @@
 
   // Tastenkürzel: App-Kürzel an C# weiterreichen (Fokus liegt im WebView2-HWND)
   const appShortcuts = new Set(['ctrl+shift+k', 'ctrl+shift+p', 'ctrl+tab', 'ctrl+shift+tab', 'ctrl+shift+w', 'ctrl+shift+m', 'ctrl+shift+l', 'ctrl+shift+d',
-    'ctrl+alt+1', 'ctrl+alt+2', 'ctrl+alt+3', 'ctrl+alt+4', 'ctrl+alt+arrowright', 'ctrl+f', 'ctrl+shift+b', 'ctrl+,', 'ctrl+alt+l']);
+    'ctrl+alt+arrowright', 'ctrl+f', 'ctrl+shift+b', 'ctrl+,', 'ctrl+alt+l']);
   term.attachCustomKeyEventHandler((e) => {
     if (e.type !== 'keydown') return true;
     const key = [e.ctrlKey && 'ctrl', e.altKey && 'alt', e.shiftKey && 'shift', e.key.toLowerCase()].filter(Boolean).join('+');
+    // Layout: Strg+Umschalt+1…4 (e.key wäre mit Umschalt „!“, „"“ … ⇒ physische Taste)
+    if (e.ctrlKey && e.shiftKey && !e.altKey && /^Digit[1-4]$/.test(e.code)) { e.preventDefault(); send({ t: 'shortcut', key: 'ctrl+shift+' + e.code.slice(5) }); return false; }
     if (key === 'ctrl+shift+c') { const s = term.getSelection(); if (s) send({ t: 'copy', d: s }); return false; }
     if (key === 'ctrl+shift+v') { e.preventDefault(); requestPaste(); return false; }
     if (key === 'ctrl+shift+f') { openSearch(); return false; }

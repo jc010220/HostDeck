@@ -101,10 +101,10 @@ public partial class MainWindow : FluentWindow
             case "ctrl+f": FocusSearch(); break;
             case "ctrl+shift+b": ToggleSidebar(); break;
             case "ctrl+alt+arrowright": _vm.Workspace.FocusNextPane(); break;
-            case "ctrl+alt+1": _vm.Workspace.SetLayout(WorkspaceLayout.Single); break;
-            case "ctrl+alt+2": _vm.Workspace.SetLayout(WorkspaceLayout.TwoColumns); break;
-            case "ctrl+alt+3": _vm.Workspace.SetLayout(WorkspaceLayout.TwoRows); break;
-            case "ctrl+alt+4": _vm.Workspace.SetLayout(WorkspaceLayout.Grid); break;
+            case "ctrl+shift+1": _vm.Workspace.SetLayout(WorkspaceLayout.Single); break;
+            case "ctrl+shift+2": _vm.Workspace.SetLayout(WorkspaceLayout.TwoColumns); break;
+            case "ctrl+shift+3": _vm.Workspace.SetLayout(WorkspaceLayout.TwoRows); break;
+            case "ctrl+shift+4": _vm.Workspace.SetLayout(WorkspaceLayout.Grid); break;
         }
     }
 
@@ -256,10 +256,10 @@ public partial class MainWindow : FluentWindow
         Bind(Key.Tab, ModifierKeys.Control, () => _vm.Workspace.SelectNextTab());
         Bind(Key.Tab, ModifierKeys.Control | ModifierKeys.Shift, () => _vm.Workspace.SelectNextTab(backwards: true));
         Bind(Key.Right, ModifierKeys.Control | ModifierKeys.Alt, () => _vm.Workspace.FocusNextPane());
-        Bind(Key.D1, ModifierKeys.Control | ModifierKeys.Alt, () => _vm.Workspace.SetLayout(WorkspaceLayout.Single));
-        Bind(Key.D2, ModifierKeys.Control | ModifierKeys.Alt, () => _vm.Workspace.SetLayout(WorkspaceLayout.TwoColumns));
-        Bind(Key.D3, ModifierKeys.Control | ModifierKeys.Alt, () => _vm.Workspace.SetLayout(WorkspaceLayout.TwoRows));
-        Bind(Key.D4, ModifierKeys.Control | ModifierKeys.Alt, () => _vm.Workspace.SetLayout(WorkspaceLayout.Grid));
+        Bind(Key.D1, ModifierKeys.Control | ModifierKeys.Shift, () => _vm.Workspace.SetLayout(WorkspaceLayout.Single));
+        Bind(Key.D2, ModifierKeys.Control | ModifierKeys.Shift, () => _vm.Workspace.SetLayout(WorkspaceLayout.TwoColumns));
+        Bind(Key.D3, ModifierKeys.Control | ModifierKeys.Shift, () => _vm.Workspace.SetLayout(WorkspaceLayout.TwoRows));
+        Bind(Key.D4, ModifierKeys.Control | ModifierKeys.Shift, () => _vm.Workspace.SetLayout(WorkspaceLayout.Grid));
         Bind(Key.M, ModifierKeys.Control | ModifierKeys.Shift, () => _vm.ToggleMultiExecutionCommand.Execute(null));
     }
 
@@ -461,6 +461,15 @@ public partial class MainWindow : FluentWindow
                 // Zähler-Badge (in einem Border) bleibt sichtbar
             }
         }
+    }
+
+    /// <summary>Layout-Button: Menü mit den vier Layouts unter dem Button öffnen.</summary>
+    private void OnLayoutButton(object sender, RoutedEventArgs e)
+    {
+        if (LayoutButton.ContextMenu is not { } menu) return;
+        menu.PlacementTarget = LayoutButton;
+        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
+        menu.IsOpen = true;
     }
 
     private void ToggleSidebar() => SetSidebarVisible(SidebarPanel.Visibility != Visibility.Visible);

@@ -159,7 +159,7 @@ MainWindow (FluentWindow, Mica, PerMonitorV2 DPI)
 | Enter / double-click / Del | Connect / connect / delete (in the tree) |
 | Ctrl+Shift+W, middle-click | Close tab |
 | Ctrl+Tab / Ctrl+Shift+Tab | Next / previous tab |
-| Ctrl+Alt+1…4 | Layout: 1 / 2 side by side / 2 stacked / 2×2 grid |
+| Ctrl+Shift+1…4 | Layout: 1 / 2 side by side / 2 stacked / 2×2 grid |
 | Ctrl+Alt+→ | Next pane |
 | Ctrl+Shift+M | Toggle multi-execution |
 | Ctrl+Shift+B | Show/hide sidebar |
@@ -210,7 +210,7 @@ SftpSession ── separate connection, same (already confirmed) host key
   itself; full-screen programs (vim, htop) are left alone.
 * **Terminal usage:** select = copy, right-click menu like PuTTY (copy, paste, find, copy all, clear scrollback, reset, reconnect, duplicate session; or direct paste if turned off in Settings → Behavior), Ctrl+Shift+C/V, Ctrl+Shift+F search,
   Ctrl+mouse wheel font size, clickable links, Enter in a disconnected session reconnects. App shortcuts inside the terminal:
-  Ctrl+Tab, Ctrl+Shift+W (close tab; Ctrl+W stays "delete word" in the shell), Ctrl+Shift+M, Ctrl+Shift+L, Ctrl+Shift+B, Ctrl+Alt+1…4.
+  Ctrl+Tab, Ctrl+Shift+W (close tab; Ctrl+W stays "delete word" in the shell), Ctrl+Shift+M, Ctrl+Shift+L, Ctrl+Shift+B, Ctrl+Shift+1…4.
 * **Integration tests** run against a real OpenSSH server when `HOSTDECK_TEST_SSH`, `HOSTDECK_TEST_SSH_USER`,
   `HOSTDECK_TEST_SSH_PASSWORD` (optionally `HOSTDECK_TEST_SSH_KEYFILE`) are set.
 

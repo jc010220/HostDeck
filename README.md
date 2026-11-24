@@ -66,7 +66,7 @@ If mRemoteNG is installed, HostDeck offers to import `%APPDATA%\mRemoteNG\confCo
 | Ctrl+Tab, Ctrl+Shift+W | Switch / close tab (Ctrl+W stays "delete word" in the shell) |
 | **Ctrl+Alt** (left keys, press and release) | In an RDP session: release the keyboard to HostDeck (session stays open), like VMware – then all shortcuts work. Ctrl+Shift+K, Ctrl+Alt+L and Ctrl+Alt+→ also work directly from a session |
 | Ctrl+Shift+D | Duplicate the current session in split view (side by side) |
-| Ctrl+Alt+1…4 | Layout |
+| Ctrl+Shift+1…4 | Layout |
 | Ctrl+Shift+M | Multi-execution |
 | Ctrl+Shift+B | Show/hide the sidebar (also via the leftmost toolbar button) |
 | Esc / Ctrl+C (terminal), "Cancel" in the status bar | Cancel a connection attempt |

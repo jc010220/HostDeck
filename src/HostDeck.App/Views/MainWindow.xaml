@@ -72,23 +72,29 @@
                 </ui:Button>
                 <Separator />
 
-                <!-- Split-Screen -->
-                <ToggleButton ToolTip="Single pane  (Ctrl+Alt+1)" Command="{Binding Workspace.SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.Single}"
-                              IsChecked="{Binding Workspace.Layout, Mode=OneWay, Converter={StaticResource EnumEquals}, ConverterParameter=Single}">
-                    <controls:LayoutGlyph Layout="Single" />
-                </ToggleButton>
-                <ToggleButton ToolTip="Two panes side by side  (Ctrl+Alt+2)" Command="{Binding Workspace.SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.TwoColumns}"
-                              IsChecked="{Binding Workspace.Layout, Mode=OneWay, Converter={StaticResource EnumEquals}, ConverterParameter=TwoColumns}">
-                    <controls:LayoutGlyph Layout="TwoColumns" />
-                </ToggleButton>
-                <ToggleButton ToolTip="Two panes stacked  (Ctrl+Alt+3)" Command="{Binding Workspace.SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.TwoRows}"
-                              IsChecked="{Binding Workspace.Layout, Mode=OneWay, Converter={StaticResource EnumEquals}, ConverterParameter=TwoRows}">
-                    <controls:LayoutGlyph Layout="TwoRows" />
-                </ToggleButton>
-                <ToggleButton ToolTip="2×2 grid  (Ctrl+Alt+4)" Command="{Binding Workspace.SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.Grid}"
-                              IsChecked="{Binding Workspace.Layout, Mode=OneWay, Converter={StaticResource EnumEquals}, ConverterParameter=Grid}">
-                    <controls:LayoutGlyph Layout="Grid" />
-                </ToggleButton>
+                <!-- Split-Screen: ein Button mit Menü (aktuelles Layout als Symbol) -->
+                <ui:Button x:Name="LayoutButton" Click="OnLayoutButton" ToolTip="Layout  (Ctrl+Shift+1 … 4)">
+                    <StackPanel Orientation="Horizontal">
+                        <controls:LayoutGlyph Layout="{Binding Workspace.Layout}" />
+                        <ui:SymbolIcon Symbol="ChevronDown20" FontSize="10" Margin="4,0,0,0" />
+                    </StackPanel>
+                    <ui:Button.ContextMenu>
+                        <ContextMenu>
+                            <MenuItem Header="Single pane" InputGestureText="Ctrl+Shift+1" Command="{Binding Workspace.SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.Single}">
+                                <MenuItem.Icon><controls:LayoutGlyph Layout="Single" /></MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Two panes – vertical" InputGestureText="Ctrl+Shift+2" Command="{Binding Workspace.SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.TwoColumns}">
+                                <MenuItem.Icon><controls:LayoutGlyph Layout="TwoColumns" /></MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Two panes – horizontal" InputGestureText="Ctrl+Shift+3" Command="{Binding Workspace.SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.TwoRows}">
+                                <MenuItem.Icon><controls:LayoutGlyph Layout="TwoRows" /></MenuItem.Icon>
+                            </MenuItem>
+                            <MenuItem Header="Four panes" InputGestureText="Ctrl+Shift+4" Command="{Binding Workspace.SetLayoutCommand}" CommandParameter="{x:Static vm:WorkspaceLayout.Grid}">
+                                <MenuItem.Icon><controls:LayoutGlyph Layout="Grid" /></MenuItem.Icon>
+                            </MenuItem>
+                        </ContextMenu>
+                    </ui:Button.ContextMenu>
+                </ui:Button>
                 <Separator />
                 <ui:Button Command="{Binding SyncTeamCommand}" Visibility="{Binding HasTeamLibrary, Converter={StaticResource BoolToVisibility}}"
                            ToolTip="Sync libraries: pull others' changes, save your own  (Ctrl+S)">

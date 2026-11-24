@@ -22,6 +22,7 @@ public partial class MainWindow : FluentWindow
         SidebarColumn.Width = new GridLength(Math.Clamp(viewModel.Settings.SidebarWidth, 200, 700));
         SetSidebarVisible(!viewModel.Settings.SidebarCollapsed, save: false);
         SidebarPanel.IsKeyboardFocusWithinChanged += OnSidebarFocusWithinChanged;
+        SizeChanged += (_, _) => UpdateToolbarCompact();
         Workspace.OpenInPane = viewModel.OpenInPane;
         RegisterShortcuts();
         // Ordner aufgeklappt ⇒ Online-Status der jetzt sichtbaren Verbindungen gleich prüfen
@@ -435,6 +436,30 @@ public partial class MainWindow : FluentWindow
     // ---- Seitenleiste ein-/ausklappen ---------------------------------------------------------------
 
     private void OnSidebarToggle(object sender, RoutedEventArgs e) => SetSidebarVisible(SidebarToggle.IsChecked == true);
+
+    private bool? _compactToolbar;
+
+    /// <summary>Schmales Fenster (z. B. halber Laptop-Bildschirm): Toolbar nur mit Symbolen, Beschriftung als Tooltip.</summary>
+    private void UpdateToolbarCompact()
+    {
+        var compact = ActualWidth < 1050;
+        if (_compactToolbar == compact) return;
+        _compactToolbar = compact;
+        foreach (var button in Toolbar.Children.OfType<System.Windows.Controls.Primitives.ButtonBase>())
+            if (button.Content is System.Windows.Controls.Panel panel)
+                foreach (var label in LabelsOf(panel)) label.Visibility = compact ? Visibility.Collapsed : Visibility.Visible;
+
+        static IEnumerable<FrameworkElement> LabelsOf(System.Windows.Controls.Panel panel)
+        {
+            foreach (var child in panel.Children)
+            {
+                if (child is System.Windows.Controls.TextBlock t) yield return t;
+                else if (child is System.Windows.Controls.Border { Tag: "label" } hint) yield return hint;
+                else if (child is System.Windows.Controls.Panel inner) foreach (var x in LabelsOf(inner)) yield return x;
+                // Zähler-Badge (in einem Border) bleibt sichtbar
+            }
+        }
+    }
 
     private void ToggleSidebar() => SetSidebarVisible(SidebarPanel.Visibility != Visibility.Visible);
 

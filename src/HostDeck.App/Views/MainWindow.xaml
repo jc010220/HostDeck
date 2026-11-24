@@ -7,7 +7,7 @@
                  xmlns:views="clr-namespace:HostDeck.App.Views"
                  xmlns:vm="clr-namespace:HostDeck.Presentation.ViewModels;assembly=HostDeck.Presentation"
                  xmlns:behaviors="clr-namespace:HostDeck.App.Behaviors"
-                 Title="HostDeck" Width="1440" Height="900" MinWidth="900" MinHeight="560"
+                 Title="HostDeck" Width="1440" Height="900" MinWidth="600" MinHeight="420"
                  WindowStartupLocation="CenterScreen"
                  ExtendsContentIntoTitleBar="True" WindowBackdropType="Mica" WindowCornerPreference="Round"
                  UseLayoutRounding="True" TextOptions.TextFormattingMode="Ideal">
@@ -27,7 +27,7 @@
 
         <!-- ===== Toolbar ===== -->
         <Border Grid.Row="1" Padding="8,2,8,6">
-            <DockPanel LastChildFill="False">
+            <DockPanel x:Name="Toolbar" LastChildFill="False">
                 <DockPanel.Resources>
                     <Style TargetType="ui:Button" BasedOn="{StaticResource {x:Type ui:Button}}">
                         <Setter Property="Appearance" Value="Transparent" />
@@ -113,7 +113,7 @@
                     <StackPanel Orientation="Horizontal">
                         <ui:SymbolIcon Symbol="{x:Static app:Icons.Search}" Margin="0,0,6,0" />
                         <TextBlock Text="Search …" Foreground="{DynamicResource TextFillColorSecondaryBrush}" />
-                        <Border Margin="10,0,0,0" Padding="5,0" CornerRadius="3" BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
+                        <Border Tag="label" Margin="10,0,0,0" Padding="5,0" CornerRadius="3" BorderThickness="1" BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}">
                             <TextBlock Text="Ctrl+K" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                         </Border>
                     </StackPanel>

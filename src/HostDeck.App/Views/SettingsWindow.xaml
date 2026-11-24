@@ -3,7 +3,7 @@
                  xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                  xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
                  xmlns:app="clr-namespace:HostDeck.App"
-                 Title="Settings" Width="860" SizeToContent="Height" MinWidth="640" MinHeight="360" WindowStartupLocation="CenterOwner" ResizeMode="CanResize"
+                 Title="Settings" Width="860" SizeToContent="Height" MinWidth="600" MinHeight="360" WindowStartupLocation="CenterOwner" ResizeMode="CanResize"
                  ShowInTaskbar="False" ExtendsContentIntoTitleBar="True" WindowBackdropType="Mica">
     <DockPanel Margin="0,0,0,16">
         <ui:TitleBar DockPanel.Dock="Top" Title="Settings" ShowMinimize="False" ShowMaximize="False" />

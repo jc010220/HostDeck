@@ -20,6 +20,8 @@ internal static class FocusRecovery
     public static void Restore(Window? window)
     {
         if (window is null || !window.IsActive) return;
+        // Nur wenn der Fokus wirklich verloren ist – ein inzwischen fokussiertes anderes Terminal nicht wegnehmen
+        if (GetFocus() != IntPtr.Zero) return;
         Reclaim(window);
     }
 

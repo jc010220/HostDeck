@@ -179,7 +179,9 @@ public sealed class WebView : DockPanel
     {
         if (_web is null) return;
         Children.Remove(_web);
+        var window = Window.GetWindow(this) ?? Application.Current?.MainWindow;
         _web.Dispose();
+        Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Background, () => HostDeck.App.Behaviors.FocusRecovery.Restore(window));
         _web = null;
         _vm = null;
     }

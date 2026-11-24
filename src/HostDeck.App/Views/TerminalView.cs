@@ -290,7 +290,10 @@ public sealed class TerminalView : Border
         FontSizeBroadcast -= ApplyFontSize;
         if (_tab is not null) _tab.FocusRequested -= OnFocusRequested;
         _ready = false;
+        // Hatte das Terminal den Tastaturfokus, läge er nach dem Schließen „nirgends“ ⇒ Kürzel gingen nicht mehr
+        var window = Window.GetWindow(this) ?? Application.Current?.MainWindow;
         _webView?.Dispose();
+        Dispatcher.BeginInvoke(DispatcherPriority.Background, () => HostDeck.App.Behaviors.FocusRecovery.Restore(window));
         _webView = null;
         Child = null;
     }

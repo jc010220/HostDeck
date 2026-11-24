@@ -81,12 +81,65 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
     [ObservableProperty] private bool? _favorite;
 
     public IReadOnlyList<Option<ProtocolKind>> ProtocolOptions { get; }
-    public string PortPlaceholder => _inherited.Port is { } p && IsInheritedProtocolPort ? $"inherited: {p}" : $"default: {ProtocolDefaults.DefaultPort(Protocol.Value ?? _inherited.Protocol ?? ProtocolKind.Rdp)}";
+    public string PortPlaceholder => _inherited.Port is { } p && IsInheritedProtocolPort && Protocol.Value is null ? $"inherited: {p}" : $"default: {ProtocolDefaults.DefaultPort(EffectiveProtocol)}";
+    private ProtocolKind EffectiveProtocol => Protocol.Value ?? _inherited.Protocol ?? ProtocolKind.Rdp;
     private bool IsInheritedProtocolPort => _node.Parent is not null && SettingsResolver.FindOrigin(_node.Parent, x => x.Port) is not null;
     public string DescriptionPlaceholder => Hint(_inherited.Description);
     public string TagsPlaceholder => Hint(_inherited.EnvironmentTags);
 
-    partial void OnProtocolChanged(Option<ProtocolKind> value) => OnPropertyChanged(nameof(PortPlaceholder));
+    // ---- Protokoll ⇄ Port ----
+    // Protokoll gewählt ⇒ dessen Standardport eintragen (nur wenn das Feld leer ist oder den Standardport des bisherigen
+    // Protokolls enthält – eigene Ports bleiben). Bekannter Port eines anderen Protokolls eingetippt (22, 3389 …) ⇒ Protokoll
+    // passend umstellen; tippt man weiter („22“ → „2200“), wird die automatische Umstellung wieder zurückgenommen.
+    private bool _syncing;
+    private Option<ProtocolKind>? _autoSwitchedFrom;
+
+    private static readonly Dictionary<int, ProtocolKind> WellKnownPorts = new()
+    {
+        [22] = ProtocolKind.Ssh2, [23] = ProtocolKind.Telnet, [80] = ProtocolKind.Http, [443] = ProtocolKind.Https,
+        [513] = ProtocolKind.Rlogin, [3389] = ProtocolKind.Rdp, [5900] = ProtocolKind.Vnc,
+    };
+
+    partial void OnProtocolChanged(Option<ProtocolKind>? oldValue, Option<ProtocolKind> newValue)
+    {
+        OnPropertyChanged(nameof(PortPlaceholder));
+        if (_syncing || oldValue is null) return;
+        _autoSwitchedFrom = null; // bewusst gewählt
+        var oldProtocol = oldValue.Value ?? _inherited.Protocol ?? ProtocolKind.Rdp;
+        var newProtocol = EffectiveProtocol;
+        if (oldProtocol == newProtocol) return;
+        var current = Port.Trim();
+        if (current.Length > 0 && current != ProtocolDefaults.DefaultPort(oldProtocol).ToString(CultureInfo.InvariantCulture)) return;
+        var port = ProtocolDefaults.DefaultPort(newProtocol);
+        _syncing = true;
+        // Protokoll wieder auf „geerbt“ ⇒ auch den Port erben; sonst Standardport sichtbar eintragen
+        try { Port = newValue.Value is null || port == 0 ? "" : port.ToString(CultureInfo.InvariantCulture); }
+        finally { _syncing = false; }
+    }
+
+    partial void OnPortChanged(string value)
+    {
+        if (_syncing) return;
+        var known = int.TryParse(value.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var port)
+                    && WellKnownPorts.TryGetValue(port, out var p) ? p : (ProtocolKind?)null;
+        _syncing = true;
+        try
+        {
+            if (known is { } protocol && protocol != EffectiveProtocol
+                && !(protocol == ProtocolKind.Ssh2 && EffectiveProtocol == ProtocolKind.Ssh1))
+            {
+                _autoSwitchedFrom ??= Protocol;
+                Protocol = ProtocolOptions.First(o => o.Value == protocol);
+            }
+            else if (known is null && _autoSwitchedFrom is { } previous)
+            {
+                // „22“ war nur der Anfang von „2200“ ⇒ wieder das vorherige Protokoll
+                Protocol = previous;
+                _autoSwitchedFrom = null;
+            }
+        }
+        finally { _syncing = false; }
+    }
 
     // ---- Anmeldung --------------------------------------------------------------------------------
     public IReadOnlyList<CredentialOption> CredentialOptions { get; }

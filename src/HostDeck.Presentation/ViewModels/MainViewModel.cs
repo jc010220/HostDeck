@@ -654,6 +654,27 @@ public sealed partial class MainViewModel : ObservableObject
             string.Equals(c.Name, text, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(c.Hostname, text, StringComparison.OrdinalIgnoreCase));
 
+        // Protokoll ausdrücklich gewählt (nicht „Auto“) und der Eintrag im Baum nutzt ein anderes ⇒ gleicher Host,
+        // aber mit dem gewählten Protokoll (z. B. Server per RDP gespeichert, jetzt kurz per SSH drauf)
+        if (existing is not null && QuickConnectProtocol.Value is { } chosen
+            && (Core.Inheritance.SettingsResolver.Resolve(existing).Protocol ?? ProtocolKind.Rdp) != chosen
+            && !string.IsNullOrWhiteSpace(existing.Hostname))
+        {
+            var user = Core.Inheritance.SettingsResolver.Resolve(existing).Username;
+            var hostText = string.IsNullOrWhiteSpace(user) || chosen is ProtocolKind.Vnc or ProtocolKind.Https
+                ? existing.Hostname.Trim() : $"{user.Trim()}@{existing.Hostname.Trim()}";
+            if (QuickConnectParser.TryParse(hostText, chosen, out var sameHost, inferFromPort: false))
+            {
+                var connection = sameHost!.ToConnection();
+                connection.Name = $"{existing.Name} ({chosen.DisplayName()})";
+                Workspace.Open(CreateTab(connection, new CredentialVault(), transient: true));
+                StatusText = $"Quick connect: {chosen.DisplayName()} → {existing.Hostname} (entry “{existing.Name}” uses another protocol)";
+                RememberQuickConnect(text);
+                QuickConnectText = "";
+                return;
+            }
+        }
+
         if (existing is not null)
         {
             Workspace.Open(CreateTab(existing, SessionTree.Tree.Vault, transient: false));

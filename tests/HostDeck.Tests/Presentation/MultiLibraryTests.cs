@@ -295,3 +295,28 @@ public sealed class CloseTabOnSessionEndTests
         Assert.Equal(1, vm.Workspace.TabCount);
     }
 }
+
+public sealed class QuickConnectChosenProtocolTests
+{
+    [Fact]
+    public void Chosen_protocol_wins_over_a_tree_entry_with_another_protocol()
+    {
+        var (vm, _, _, _) = MainViewModelTests.Create();
+        var conn = new HostDeck.Core.Model.ConnectionNode("MGMT-20") { Hostname = "10.0.0.20", Settings = { Protocol = HostDeck.Core.Model.ProtocolKind.Rdp, Username = "tons" } };
+        vm.SessionTree.Add(conn);
+
+        vm.QuickConnectProtocol = vm.QuickConnectProtocols.Single(p => p.Value == HostDeck.Core.Model.ProtocolKind.Ssh2);
+        vm.QuickConnectText = "MGMT-20";
+        vm.QuickConnectCommand.Execute(null);
+        var tab = vm.Workspace.ActiveTab!;
+        Assert.Equal(HostDeck.Core.Model.ProtocolKind.Ssh2, tab.Protocol);
+        Assert.Equal("10.0.0.20", tab.Connection.Hostname);
+        Assert.True(tab.IsTransient);
+
+        // „Auto“ ⇒ wie bisher der gespeicherte Eintrag
+        vm.QuickConnectProtocol = vm.QuickConnectProtocols[0];
+        vm.QuickConnectText = "MGMT-20";
+        vm.QuickConnectCommand.Execute(null);
+        Assert.Same(conn, vm.Workspace.ActiveTab!.Connection);
+    }
+}

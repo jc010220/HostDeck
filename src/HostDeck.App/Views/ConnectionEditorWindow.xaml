@@ -79,7 +79,7 @@
                 </ScrollViewer>
             </TabItem>
 
-            <TabItem Header="RDP">
+            <TabItem Header="RDP" Visibility="{Binding ShowRdpTab, Converter={StaticResource BoolToVisibility}}">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
                     <StackPanel Margin="8,4,8,8">
                         <Border Background="#33E81123" BorderBrush="#E81123" BorderThickness="1" CornerRadius="6" Padding="10" Margin="0,8,0,0"

@@ -83,6 +83,9 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
     public IReadOnlyList<Option<ProtocolKind>> ProtocolOptions { get; }
     public string PortPlaceholder => _inherited.Port is { } p && IsInheritedProtocolPort && Protocol.Value is null ? $"inherited: {p}" : $"default: {ProtocolDefaults.DefaultPort(EffectiveProtocol)}";
     private ProtocolKind EffectiveProtocol => Protocol.Value ?? _inherited.Protocol ?? ProtocolKind.Rdp;
+
+    /// <summary>RDP-Reiter nur bei RDP-Verbindungen; Ordner zeigen ihn immer (Vorgaben für die Einträge darin).</summary>
+    public bool ShowRdpTab => IsFolder || EffectiveProtocol == ProtocolKind.Rdp;
     private bool IsInheritedProtocolPort => _node.Parent is not null && SettingsResolver.FindOrigin(_node.Parent, x => x.Port) is not null;
     public string DescriptionPlaceholder => Hint(_inherited.Description);
     public string TagsPlaceholder => Hint(_inherited.EnvironmentTags);
@@ -103,6 +106,7 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
     partial void OnProtocolChanged(Option<ProtocolKind>? oldValue, Option<ProtocolKind> newValue)
     {
         OnPropertyChanged(nameof(PortPlaceholder));
+        OnPropertyChanged(nameof(ShowRdpTab));
         if (_syncing || oldValue is null) return;
         _autoSwitchedFrom = null; // bewusst gewählt
         var oldProtocol = oldValue.Value ?? _inherited.Protocol ?? ProtocolKind.Rdp;

@@ -49,3 +49,20 @@ public sealed class EditorPortProtocolTests
         Assert.Equal(ProtocolKind.Vnc, e.Protocol.Value);
     }
 }
+
+public sealed class EditorRdpTabTests
+{
+    [Fact]
+    public void Rdp_tab_only_for_rdp_connections_and_folders()
+    {
+        var folder = new FolderNode("f");
+        var c = new ConnectionNode("srv") { Hostname = "10.0.0.1", Settings = { Protocol = ProtocolKind.Ssh2 } };
+        folder.Add(c);
+        new ConnectionTree().Root.Add(folder);
+        var e = new ConnectionEditorViewModel(c, new CredentialVault());
+        Assert.False(e.ShowRdpTab);
+        e.Protocol = e.ProtocolOptions.Single(o => o.Value == ProtocolKind.Rdp);
+        Assert.True(e.ShowRdpTab);
+        Assert.True(new ConnectionEditorViewModel(folder, new CredentialVault()).ShowRdpTab);
+    }
+}

@@ -74,6 +74,8 @@
                         <TextBlock Style="{StaticResource Label}" Text="Password" />
                         <CheckBox Content="Inherit password from folder" IsThreeState="False" IsChecked="{Binding InheritPassword}" Margin="0,0,0,6" />
                         <PasswordBox x:Name="PasswordInput" IsEnabled="{Binding InheritPassword, Converter={StaticResource InverseBool}}" />
+                        <CheckBox Content="Delete stored password" IsChecked="{Binding ClearPassword}" Margin="0,6,0,0"
+                                  Visibility="{Binding CanClearPassword, Converter={StaticResource BoolToVisibility}}" />
                         <TextBlock Text="{Binding PasswordHint}" Margin="0,4,0,0" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
                     </StackPanel>
                 </ScrollViewer>

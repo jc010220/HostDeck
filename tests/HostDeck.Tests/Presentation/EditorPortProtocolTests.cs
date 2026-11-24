@@ -66,3 +66,20 @@ public sealed class EditorRdpTabTests
         Assert.True(new ConnectionEditorViewModel(folder, new CredentialVault()).ShowRdpTab);
     }
 }
+
+public sealed class EditorClearPasswordTests
+{
+    [Fact]
+    public void Stored_password_can_be_deleted()
+    {
+        var folder = new FolderNode("f") { Settings = { Password = "FolderPw!" } };
+        var c = new ConnectionNode("srv") { Hostname = "10.0.0.1", Settings = { Password = "Secret!1" } };
+        folder.Add(c);
+        new ConnectionTree().Root.Add(folder);
+        var e = new ConnectionEditorViewModel(c, new CredentialVault());
+        Assert.True(e.CanClearPassword);
+        e.ClearPassword = true;
+        Assert.Null(e.Apply());
+        Assert.Equal("", c.Settings.Password); // gelöscht und nicht vom Ordner geerbt
+    }
+}

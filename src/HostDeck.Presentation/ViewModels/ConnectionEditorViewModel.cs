@@ -154,10 +154,16 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
     public string? NewPassword { get; set; }
     public bool HasOwnPassword { get; }
     [ObservableProperty] private bool _inheritPassword;
+    /// <summary>Gespeichertes Passwort löschen (danach: kein Passwort, beim Verbinden wird gefragt).</summary>
+    [ObservableProperty] private bool _clearPassword;
+    public bool CanClearPassword => HasOwnPassword && !InheritPassword;
+    partial void OnInheritPasswordChanged(bool value) { OnPropertyChanged(nameof(CanClearPassword)); OnPropertyChanged(nameof(PasswordHint)); }
+    partial void OnClearPasswordChanged(bool value) => OnPropertyChanged(nameof(PasswordHint));
 
     public string UsernamePlaceholder => Hint(InheritedCredentials.Username);
     public string DomainPlaceholder => Hint(InheritedCredentials.Domain);
-    public string PasswordHint => HasOwnPassword ? "A password is stored – leave empty to keep it."
+    public string PasswordHint => ClearPassword && CanClearPassword ? "The stored password will be deleted – you will be asked for it when connecting."
+        : HasOwnPassword ? "A password is stored – leave empty to keep it."
         : InheritPassword && InheritedCredentials.Password.Length > 0 ? $"Password is inherited from “{InheritedFrom}”." : "No password stored.";
     private ResolvedCredentials InheritedCredentials => _node.Parent is { } parent ? CredentialResolver.Resolve(parent, Vault)
         : new ResolvedCredentials("", "", "", null, null);
@@ -221,6 +227,7 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
         s.Domain = NullIfEmpty(Domain);
         if (InheritPassword) s.Password = null;
         else if (!string.IsNullOrEmpty(NewPassword)) s.Password = NewPassword;
+        else if (ClearPassword) s.Password = "";                      // gelöscht, nicht erben
         else if (s.Password is null) s.Password = ""; // „nicht erben“ ohne neues Passwort ⇒ explizit leer
 
         var r = s.Rdp;

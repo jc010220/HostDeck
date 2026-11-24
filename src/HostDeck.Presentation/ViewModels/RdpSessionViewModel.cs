@@ -60,6 +60,9 @@ public sealed partial class RdpSessionViewModel(SessionTabViewModel tab) : Obser
         var normal = RdpPlanBuilder.IsNormalDisconnect(reason);
         Tab.State = normal ? SessionState.Disconnected : SessionState.Failed;
         Message = normal ? "Connection closed." : $"Disconnected: {description ?? $"Code 0x{reason:X}"}";
+        // 2 = in der Sitzung abgemeldet/getrennt, 0xB08 = Abmeldung durch den Benutzer ⇒ Tab schließen (falls eingestellt).
+        // 1 (lokal getrennt, z. B. beim Verschieben in ein anderes Fenster) und Serverabbrüche lassen den Tab offen.
+        if (reason is 2 or 0xB08) Tab.ReportEndedNormally();
     }
 
     /// <summary>Tab wurde in ein anderes Fenster verschoben – die neue Ansicht verbindet neu.</summary>

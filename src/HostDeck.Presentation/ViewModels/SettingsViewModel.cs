@@ -24,6 +24,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _highlighting = settings.TerminalHighlighting;
         _sftpFollows = settings.SftpFollowsTerminal;
         _rightClickMenu = settings.TerminalRightClickMenu;
+        _closeTabOnSessionEnd = settings.CloseTabOnSessionEnd;
         _restoreWorkspace = settings.RestoreWorkspaceOnStart;
         _showReachability = settings.ShowReachability;
         // Per Strg+Mausrad gewählte Größe (z. B. 17) ist evtl. nicht in der Liste ⇒ ergänzen statt still auf 14 zurückzusetzen
@@ -54,6 +55,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool _highlighting;
     [ObservableProperty] private bool _sftpFollows;
     [ObservableProperty] private bool _rightClickMenu;
+    [ObservableProperty] private bool _closeTabOnSessionEnd;
     [ObservableProperty] private bool _restoreWorkspace;
     [ObservableProperty] private bool _showReachability;
     [ObservableProperty] private int _fontSize;
@@ -250,6 +252,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _settings.TerminalHighlighting = Highlighting;
         _settings.SftpFollowsTerminal = SftpFollows;
         _settings.TerminalRightClickMenu = RightClickMenu;
+        _settings.CloseTabOnSessionEnd = CloseTabOnSessionEnd;
         _settings.RestoreWorkspaceOnStart = RestoreWorkspace;
         _settings.ShowReachability = ShowReachability;
         _settings.TerminalFontSize = Math.Clamp(FontSize, 8, 32);

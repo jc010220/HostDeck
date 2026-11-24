@@ -276,3 +276,22 @@ public sealed class TerminalAutoFocusTests
         Assert.True(vm.Workspace.ActiveTab!.FocusPending);
     }
 }
+
+public sealed class CloseTabOnSessionEndTests
+{
+    [Fact]
+    public void Tab_closes_when_the_session_ends_normally_unless_turned_off()
+    {
+        var (vm, _, _, _) = MainViewModelTests.Create();
+        var conn = new HostDeck.Core.Model.ConnectionNode("web01") { Hostname = "10.0.0.5", Settings = { Protocol = HostDeck.Core.Model.ProtocolKind.Https } };
+        vm.SessionTree.Add(conn);
+        vm.OpenCommand.Execute(vm.SessionTree.FindByNode(conn));
+        vm.Workspace.ActiveTab!.ReportEndedNormally();
+        Assert.Equal(0, vm.Workspace.TabCount);
+
+        vm.Settings.CloseTabOnSessionEnd = false;
+        vm.OpenCommand.Execute(vm.SessionTree.FindByNode(conn));
+        vm.Workspace.ActiveTab!.ReportEndedNormally();
+        Assert.Equal(1, vm.Workspace.TabCount);
+    }
+}

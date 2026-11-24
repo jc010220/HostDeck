@@ -67,6 +67,12 @@ public sealed partial class MainViewModel : ObservableObject
         if (!transient && !ConfirmTeamTarget(connection, vault)) vault = new CredentialVault();
         var tab = new SessionTabViewModel(connection, vault, transient);
         tab.ActionRequested += OnTabAction;
+        tab.EndedNormally += t =>
+        {
+            if (!Settings.CloseTabOnSessionEnd) return;
+            OnTabAction(t, TabAction.Close);
+            StatusText = $"Session ended: {t.Connection.Name}";
+        };
         if (!transient) RememberRecent(connection.Id);
         if (tab.Protocol is ProtocolKind.Ssh2 or ProtocolKind.Ssh1 or ProtocolKind.Telnet or ProtocolKind.Raw)
         {

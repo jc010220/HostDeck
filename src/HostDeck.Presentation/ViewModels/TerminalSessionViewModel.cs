@@ -127,6 +127,7 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
             if (_tab.State != SessionState.Connected) return;
             SetState(SessionState.Disconnected);
             WriteStatus("Connection closed" + (reason is null ? "." : $": {reason}") + " – press Enter or double-click the tab to reconnect.");
+            if (reason is null) _tab.ReportEndedNormally(); // exit/logout ⇒ Tab schließen (falls eingestellt)
         });
     }
 

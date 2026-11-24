@@ -93,6 +93,8 @@ public sealed class AppSettings
     public bool SftpFollowsTerminal { get; set; } = true;
     /// <summary>Rechtsklick ins Terminal öffnet ein Menü (Kopieren, Einfügen, Suchen …); aus = sofort einfügen wie MobaXterm.</summary>
     public bool TerminalRightClickMenu { get; set; } = true;
+    /// <summary>Tab schließen, wenn die Sitzung regulär beendet wird (exit/logout, RDP-Abmeldung) – nicht bei Verbindungsabbruch.</summary>
+    public bool CloseTabOnSessionEnd { get; set; } = true;
     /// <summary>Online-Status im Baum anzeigen (TCP-Test des Dienst-Ports sichtbarer Verbindungen).</summary>
     public bool ShowReachability { get; set; } = true;
     public int TerminalFontSize { get; set; } = 14;

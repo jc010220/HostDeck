@@ -59,6 +59,10 @@ public sealed partial class SessionTabViewModel : ObservableObject
         if (Vnc is { } vnc) _ = vnc.ConnectAsync();
     }
 
+    /// <summary>Sitzung wurde vom Benutzer regulär beendet (exit/logout, Abmelden in RDP) – nicht bei Verbindungsfehlern.</summary>
+    public event Action<SessionTabViewModel>? EndedNormally;
+    public void ReportEndedNormally() => EndedNormally?.Invoke(this);
+
     /// <summary>Doppelklick auf den Tab: nur wenn die Verbindung getrennt bzw. fehlgeschlagen ist, neu verbinden.</summary>
     [RelayCommand]
     private void ReconnectIfClosed()

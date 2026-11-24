@@ -19,6 +19,7 @@ internal sealed class RdpAxHost : AxHost
     public event Action<int>? FatalError;
     public event Action<int>? Warning;
     public event Action<int>? LogonError;
+    public event Action? EnteredFullScreen;
     public event Action? LeftFullScreen;
     public event Action<int, int>? AutoReconnecting;
     public event Action? AutoReconnected;
@@ -43,7 +44,7 @@ internal sealed class RdpAxHost : AxHost
         public void OnConnected() => host.Connected?.Invoke();
         public void OnLoginComplete() => host.LoginComplete?.Invoke();
         public void OnDisconnected(int discReason) => host.Disconnected?.Invoke(discReason);
-        public void OnEnterFullScreenMode() { }
+        public void OnEnterFullScreenMode() => host.EnteredFullScreen?.Invoke();
         public void OnLeaveFullScreenMode() => host.LeftFullScreen?.Invoke();
         public void OnFatalError(int errorCode) => host.FatalError?.Invoke(errorCode);
         public void OnWarning(int warningCode) => host.Warning?.Invoke(warningCode);

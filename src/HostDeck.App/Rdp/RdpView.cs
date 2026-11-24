@@ -246,7 +246,7 @@ public sealed class RdpView : Grid
     {
         if (plan.ResolutionMode == RdpResolutionMode.Fixed && plan.FixedWidth is > 0 && plan.FixedHeight is > 0)
             return (plan.FixedWidth.Value, plan.FixedHeight.Value);
-        if (plan.ResolutionMode == RdpResolutionMode.Fullscreen)
+        if (plan.ResolutionMode == RdpResolutionMode.Fullscreen || _fullScreen)
         {
             var screen = WinForms.Screen.FromControl(_panel).Bounds;
             return (screen.Width, screen.Height);
@@ -283,8 +283,34 @@ public sealed class RdpView : Grid
         catch (Exception ex) { HostDeck.App.Services.Log.Error($"RDP {context}", ex); }
     }
 
+    /// <summary>Gerade im Vollbild (Vollbild-Button, Strg+Alt+Pause) – Auflösung dann auf den ganzen Monitor.</summary>
+    private bool _fullScreen;
+
+    /// <summary>
+    /// Vollbild betreten/verlassen: Das Control vergrößert nur sein Fenster, die Sitzung behält die alte Auflösung (kleines
+    /// Bild mit schwarzem Rand). Daher die Auflösung an den Monitor bzw. zurück an den Tab anpassen – oder, wenn der Server
+    /// das nicht kann bzw. eine feste Auflösung eingestellt ist, für die Dauer des Vollbilds skalieren.
+    /// </summary>
+    private void OnFullScreenChanged(bool fullScreen)
+    {
+        _fullScreen = fullScreen;
+        if (_host is null || _plan is null || !_connected) return;
+        var advanced = FirstAvailable(_host.Ocx, "AdvancedSettings9", "AdvancedSettings2") ?? _host.Ocx;
+        if (_plan.DynamicResolution)
+        {
+            // kurz warten, bis das Vollbildfenster seine endgültige Größe hat
+            Dispatcher.BeginInvoke(DispatcherPriority.Background, () => { _resizeTimer.Stop(); _resizeTimer.Start(); });
+        }
+        else
+        {
+            Dispatch.TrySet(advanced, "SmartSizing", fullScreen || _plan.ResolutionMode == RdpResolutionMode.SmartSize);
+        }
+    }
+
     private void WireEvents(RdpAxHost host)
     {
+        host.EnteredFullScreen += () => Safe("EnterFullScreen", () => OnFullScreenChanged(true));
+        host.LeftFullScreen += () => Safe("LeaveFullScreen", () => OnFullScreenChanged(false));
         host.Connecting += () => Safe("Connecting", () => ApplyCustomDrives(host));
         host.LoginComplete += () => Safe("LoginComplete", () => { _connected = true; _vm?.ReportConnected(); });
         host.Connected += () => Safe("Connected", () => { _connected = true; _vm?.ReportConnected(); });

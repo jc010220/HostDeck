@@ -32,6 +32,7 @@ public partial class MainWindow : FluentWindow
         TerminalView.FontSize = viewModel.Settings.TerminalFontSize;
         TerminalView.RightClickMenu = () => viewModel.Settings.TerminalRightClickMenu;
         TerminalView.ConfirmMultiLinePaste = () => viewModel.Settings.ConfirmMultiLinePaste;
+        TerminalView.MultiLinePasteConfirmationTurnedOff = () => { viewModel.Settings.ConfirmMultiLinePaste = false; viewModel.SaveSettings(); };
         TerminalView.FontSizeChanged = size => { viewModel.Settings.TerminalFontSize = size; viewModel.SaveSettings(); };
         viewModel.SettingsApplied += () => TerminalView.BroadcastFontSize(viewModel.Settings.TerminalFontSize);
         // Windows wechselt hell/dunkel (Modus „System“) ⇒ Terminals sofort mitziehen

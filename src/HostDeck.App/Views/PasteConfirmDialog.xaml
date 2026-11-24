@@ -1,0 +1,28 @@
+<ui:FluentWindow x:Class="HostDeck.App.Views.PasteConfirmDialog"
+                 xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                 xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                 xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+                 Title="Multi-line paste" Width="520" SizeToContent="Height" MaxHeight="640"
+                 WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+                 ExtendsContentIntoTitleBar="True" WindowBackdropType="Mica" ShowInTaskbar="False">
+    <Grid Margin="0,0,0,16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" /><RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <ui:TitleBar Title="Multi-line paste" ShowMinimize="False" ShowMaximize="False" />
+        <TextBlock x:Name="Intro" Grid.Row="1" Margin="24,4,24,8" TextWrapping="Wrap" FontSize="14" />
+        <Border Grid.Row="2" Margin="24,0,24,12" Padding="10,8" CornerRadius="6" Background="{DynamicResource ControlFillColorDefaultBrush}">
+            <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
+                <TextBlock x:Name="Preview" FontFamily="Cascadia Mono, Consolas" FontSize="12" />
+            </ScrollViewer>
+        </Border>
+        <DockPanel Grid.Row="3" Margin="24,0,24,0">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <ui:Button Content="Paste" Appearance="Primary" MinWidth="96" Margin="0,0,8,0" Click="OnPaste" />
+                <ui:Button Content="Cancel" IsDefault="True" IsCancel="True" MinWidth="96" />
+            </StackPanel>
+            <CheckBox x:Name="DontAsk" Content="Don't ask again" VerticalAlignment="Center"
+                      ToolTip="Can be turned on again in Settings → Behavior" />
+        </DockPanel>
+    </Grid>
+</ui:FluentWindow>

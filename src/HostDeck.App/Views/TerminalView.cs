@@ -47,6 +47,8 @@ public sealed class TerminalView : Border
 
     /// <summary>Mehrzeiliges Einfügen per Tastatur bestätigen (Einstellung, Standard: an).</summary>
     public static Func<bool> ConfirmMultiLinePaste { get; set; } = () => true;
+    /// <summary>„Nicht mehr fragen“ im Dialog gewählt (App speichert die Einstellung).</summary>
+    public static Action? MultiLinePasteConfirmationTurnedOff { get; set; }
 
     /// <summary>Einfügen. Aus dem Rechtsklick-Menü ist das bereits eine bewusste Wahl ⇒ keine zusätzliche Rückfrage.</summary>
     private void Paste(bool fromMenu = false)
@@ -241,12 +243,10 @@ public sealed class TerminalView : Border
         var lines = normalized.TrimEnd('\n').Split('\n');
         if (lines.Length < 2) return text;
         var preview = string.Join("\n", lines.Take(8).Select(l => l.Length > 100 ? l[..100] + "…" : l)) + (lines.Length > 8 ? $"\n… ({lines.Length - 8} more lines)" : "");
-        var owner = Window.GetWindow(this);
-        var message = $"You are pasting {lines.Length} lines. Each line is executed immediately:\n\n{preview}\n\nPaste?";
-        var result = owner is null
-            ? MessageBox.Show(message, "Multi-line paste", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No)
-            : MessageBox.Show(owner, message, "Multi-line paste", MessageBoxButton.YesNo, MessageBoxImage.Warning, MessageBoxResult.No);
-        return result == MessageBoxResult.Yes ? text : null;
+        var dialog = new PasteConfirmDialog(lines.Length, preview) { Owner = Window.GetWindow(this) };
+        var ok = dialog.ShowDialog() == true;
+        if (ok && dialog.DontAskAgain) MultiLinePasteConfirmationTurnedOff?.Invoke();
+        return ok ? text : null;
     }
 
     private static void TrySetClipboard(string? text)

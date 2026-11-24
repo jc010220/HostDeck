@@ -175,39 +175,65 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
         SetState(SessionState.Connecting);
         WriteStatus($"Connecting to {endpoint.Username}@{endpoint.Host}:{endpoint.Port} …  – Esc cancels");
 
-        var session = new SshTerminalSession(endpoint, _knownHosts, new SshSessionOptions
+        // Wie PuTTY: Ohne gespeichertes Passwort (oder wenn es abgelehnt wird) nach dem Passwort fragen und erneut
+        // anmelden. Viele Server erlauben nur „password“ (z. B. Ubuntu: KbdInteractiveAuthentication no) – dort käme
+        // sonst nie eine Passwortabfrage, sondern sofort „Login rejected“.
+        for (var attempt = 1; ; attempt++)
         {
-            Columns = _columns,
-            Rows = _rows,
-            Highlighting = _settings.TerminalHighlighting,
-        });
-        Wire(session);
+            var session = new SshTerminalSession(endpoint, _knownHosts, new SshSessionOptions
+            {
+                Columns = _columns,
+                Rows = _rows,
+                Highlighting = _settings.TerminalHighlighting,
+            });
+            Wire(session);
 
-        try
-        {
-            await session.ConnectAsync(
-                info => OnUiAndWait(() => _dialogs.AskHostKey(info)),
-                (prompt, echo) => OnUiAndWait(() => _dialogs.Prompt($"{endpoint.Host}", prompt, secret: !echo)), ct);
-            _session = session;
-            SetState(SessionState.Connected);
-            Sftp = new SftpBrowserViewModel(session, _dialogs, _ui);
-            _ = Sftp.ConnectAsync();
-        }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
-        {
-            await session.DisposeAsync();
-            ReportCancelled();
-        }
-        catch (Exception ex)
-        {
-            if (ex is not (SshException or HostKeyRejectedException or System.Net.Sockets.SocketException or TimeoutException or OperationCanceledException))
-                AppLog.Error($"SSH {endpoint.Host}:{endpoint.Port}", ex);
-            else // erwartete Fehler trotzdem protokollieren (ohne Passwörter) – für die Fehlersuche
-                AppLog.Info($"SSH {endpoint.Host}:{endpoint.Port} as '{endpoint.Username}' failed: {ex.GetType().Name}: {ex.Message}" +
-                            (ex.InnerException is { } inner ? $" ({inner.GetType().Name}: {inner.Message})" : ""));
-            await session.DisposeAsync();
-            SetState(SessionState.Failed);
-            WriteStatus($"Connection failed: {Describe(ex)}");
+            try
+            {
+                var current = endpoint;
+                await session.ConnectAsync(
+                    info => OnUiAndWait(() => _dialogs.AskHostKey(info)),
+                    (prompt, echo) => OnUiAndWait(() => _dialogs.Prompt($"{current.Host}", prompt, secret: !echo)), ct);
+                _session = session;
+                SetState(SessionState.Connected);
+                Sftp = new SftpBrowserViewModel(session, _dialogs, _ui);
+                _ = Sftp.ConnectAsync();
+                return;
+            }
+            catch (OperationCanceledException) when (ct.IsCancellationRequested)
+            {
+                await session.DisposeAsync();
+                ReportCancelled();
+                return;
+            }
+            catch (SshAuthenticationException) when (attempt <= 3 && string.IsNullOrEmpty(endpoint.PrivateKey))
+            {
+                await session.DisposeAsync();
+                var question = string.IsNullOrEmpty(endpoint.Password)
+                    ? $"Password for {endpoint.Username}@{endpoint.Host}:"
+                    : $"Access denied. Password for {endpoint.Username}@{endpoint.Host}:";
+                var password = OnUiAndWait(() => _dialogs.Prompt(endpoint.Host, question, secret: true));
+                if (string.IsNullOrEmpty(password))
+                {
+                    SetState(SessionState.Failed);
+                    WriteStatus("Connection failed: no password entered. Press Enter to try again.");
+                    return;
+                }
+                endpoint = endpoint with { Password = password };
+                WriteStatus($"Logging in as {endpoint.Username} …");
+            }
+            catch (Exception ex)
+            {
+                if (ex is not (SshException or HostKeyRejectedException or System.Net.Sockets.SocketException or TimeoutException or OperationCanceledException))
+                    AppLog.Error($"SSH {endpoint.Host}:{endpoint.Port}", ex);
+                else // erwartete Fehler trotzdem protokollieren (ohne Passwörter) – für die Fehlersuche
+                    AppLog.Info($"SSH {endpoint.Host}:{endpoint.Port} as '{endpoint.Username}' failed: {ex.GetType().Name}: {ex.Message}" +
+                                (ex.InnerException is { } inner ? $" ({inner.GetType().Name}: {inner.Message})" : ""));
+                await session.DisposeAsync();
+                SetState(SessionState.Failed);
+                WriteStatus($"Connection failed: {Describe(ex)}");
+                return;
+            }
         }
     }
 

@@ -463,15 +463,6 @@ public partial class MainWindow : FluentWindow
         }
     }
 
-    /// <summary>Layout-Button: Menü mit den vier Layouts unter dem Button öffnen.</summary>
-    private void OnLayoutButton(object sender, RoutedEventArgs e)
-    {
-        if (LayoutButton.ContextMenu is not { } menu) return;
-        menu.PlacementTarget = LayoutButton;
-        menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom;
-        menu.IsOpen = true;
-    }
-
     private void ToggleSidebar() => SetSidebarVisible(SidebarPanel.Visibility != Visibility.Visible);
 
     /// <summary>Seitenleiste nur vorübergehend eingeblendet (Strg+L/Strg+F bei eingeklappter Leiste).</summary>

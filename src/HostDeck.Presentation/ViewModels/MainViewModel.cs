@@ -283,10 +283,10 @@ public sealed partial class MainViewModel : ObservableObject
         yield return ("Save workspace as …", "workspace arbeitsbereich save speichern", () => SaveWorkspaceCommand.Execute(null));
         foreach (var name in Settings.SavedWorkspaces.Keys.Order())
             yield return ($"Delete workspace: {name}", "workspace arbeitsbereich delete löschen " + name, () => { Settings.SavedWorkspaces.Remove(name); SaveSettings(); });
-        yield return ("Layout: single pane", "single layout 1", () => Workspace.SetLayout(WorkspaceLayout.Single));
-        yield return ("Layout: two side by side", "split vertical columns 2", () => Workspace.SetLayout(WorkspaceLayout.TwoColumns));
-        yield return ("Layout: two stacked", "split horizontal rows 2", () => Workspace.SetLayout(WorkspaceLayout.TwoRows));
-        yield return ("Layout: 2×2 grid", "grid quad 4", () => Workspace.SetLayout(WorkspaceLayout.Grid));
+        yield return ("Layout: single pane  (Ctrl+Shift+1)", "single layout 1", () => Workspace.SetLayout(WorkspaceLayout.Single));
+        yield return ("Layout: two panes – vertical  (Ctrl+Shift+2)", "split vertical columns side by side 2", () => Workspace.SetLayout(WorkspaceLayout.TwoColumns));
+        yield return ("Layout: two panes – horizontal  (Ctrl+Shift+3)", "split horizontal rows stacked 2", () => Workspace.SetLayout(WorkspaceLayout.TwoRows));
+        yield return ("Layout: four panes  (Ctrl+Shift+4)", "grid quad four 2x2 4", () => Workspace.SetLayout(WorkspaceLayout.Grid));
         yield return ("Toggle multi-execution", "multiexec broadcast", () => IsMultiExecutionEnabled = !IsMultiExecutionEnabled);
         if (FocusedWorkspace.ActiveTab is { } current)
             yield return ($"Duplicate session in split view: {current.Connection.Name}  (Ctrl+Shift+D)", "duplicate split side by side nebeneinander kopie", () => DuplicateInSplitView(current));

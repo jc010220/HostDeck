@@ -320,7 +320,9 @@ public sealed class RdpView : Grid
         {
             _connected = false;
             string? description = null;
-            try
+            // Normale Trennung (lokal, in der Sitzung abgemeldet) ⇒ keine Fehlerbeschreibung; mstscax liefert dafür sonst
+            // irreführend „An internal error has occurred“
+            if (!HostDeck.Protocols.Rdp.RdpPlanBuilder.IsNormalDisconnect(reason)) try
             {
                 var extended = Convert.ToInt64(Dispatch.Get(host.Ocx, "ExtendedDisconnectReason") ?? 0) & 0xFFFFFFFF;
                 description = Dispatch.Call(host.Ocx, "GetErrorDescription", unchecked((uint)reason), (uint)extended) as string;

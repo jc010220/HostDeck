@@ -202,6 +202,9 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
         {
             if (ex is not (SshException or HostKeyRejectedException or System.Net.Sockets.SocketException or TimeoutException or OperationCanceledException))
                 AppLog.Error($"SSH {endpoint.Host}:{endpoint.Port}", ex);
+            else // erwartete Fehler trotzdem protokollieren (ohne Passwörter) – für die Fehlersuche
+                AppLog.Info($"SSH {endpoint.Host}:{endpoint.Port} as '{endpoint.Username}' failed: {ex.GetType().Name}: {ex.Message}" +
+                            (ex.InnerException is { } inner ? $" ({inner.GetType().Name}: {inner.Message})" : ""));
             await session.DisposeAsync();
             SetState(SessionState.Failed);
             WriteStatus($"Connection failed: {Describe(ex)}");

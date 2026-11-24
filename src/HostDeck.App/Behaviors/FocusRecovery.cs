@@ -26,22 +26,23 @@ internal static class FocusRecovery
     }
 
     /// <summary>Tastatur aus einer eingebetteten Sitzung (RDP …) zurück an HostDeck – die Sitzung bleibt offen.</summary>
-    public static void Release(Window window) => Reclaim(window);
+    public static bool Release(Window window) => Reclaim(window);
 
-    private static void Reclaim(Window window)
+    private static bool Reclaim(Window window)
     {
         var hwnd = new WindowInteropHelper(window).Handle;
-        if (hwnd == IntPtr.Zero) return;
+        if (hwnd == IntPtr.Zero) return false;
         var focused = GetFocus();
         var lost = focused == IntPtr.Zero && window.IsActive;
         var embedded = focused != IntPtr.Zero && focused != hwnd && IsChild(hwnd, focused);
-        if (!lost && !embedded) return;            // WPF hat den Fokus bereits bzw. anderes Programm aktiv
+        if (!lost && !embedded) return false;      // WPF hat den Fokus bereits bzw. anderes Programm aktiv
 
         // WPF würde beim Zurückholen sonst wieder das eingebettete Element fokussieren (das gibt ihn an das Kindfenster weiter)
         if (Keyboard.FocusedElement is HwndHost || FocusManager.GetFocusedElement(window) is HwndHost)
             FocusManager.SetFocusedElement(window, null);
         SetFocus(hwnd);
         if (Keyboard.FocusedElement is null or HwndHost) window.Focus();
+        return true;
     }
 
     [DllImport("user32.dll")] private static extern IntPtr GetFocus();

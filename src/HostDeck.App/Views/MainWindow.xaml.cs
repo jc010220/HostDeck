@@ -48,8 +48,8 @@ public partial class MainWindow : FluentWindow
                 if (key == "release")
                 {
                     var active = Application.Current.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive) ?? this;
-                    Behaviors.FocusRecovery.Release(active);
-                    _vm.StatusText = "Keyboard released from the session – HostDeck shortcuts work now. Click into the session to continue there.";
+                    if (Behaviors.FocusRecovery.Release(active))
+                        _vm.StatusText = "Keyboard released from the session – HostDeck shortcuts work now. Click into the session to continue there.";
                 }
                 else
                 {

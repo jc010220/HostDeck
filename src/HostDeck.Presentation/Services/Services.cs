@@ -95,6 +95,8 @@ public sealed class AppSettings
     public bool TerminalRightClickMenu { get; set; } = true;
     /// <summary>Tab schließen, wenn die Sitzung regulär beendet wird (exit/logout, RDP-Abmeldung) – nicht bei Verbindungsabbruch.</summary>
     public bool CloseTabOnSessionEnd { get; set; } = true;
+    /// <summary>Mehrzeiliges Einfügen per Tastatur (Strg+V, Strg+Umschalt+V) bestätigen. Über das Rechtsklick-Menü nie.</summary>
+    public bool ConfirmMultiLinePaste { get; set; } = true;
     /// <summary>Online-Status im Baum anzeigen (TCP-Test des Dienst-Ports sichtbarer Verbindungen).</summary>
     public bool ShowReachability { get; set; } = true;
     public int TerminalFontSize { get; set; } = 14;

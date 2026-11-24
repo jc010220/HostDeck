@@ -45,11 +45,20 @@ public sealed class TerminalView : Border
     /// <summary>Rechtsklick öffnet ein Menü (Einstellung, Standard: an) statt sofort einzufügen.</summary>
     public static Func<bool> RightClickMenu { get; set; } = () => true;
 
-    private void Paste()
+    /// <summary>Mehrzeiliges Einfügen per Tastatur bestätigen (Einstellung, Standard: an).</summary>
+    public static Func<bool> ConfirmMultiLinePaste { get; set; } = () => true;
+
+    /// <summary>Einfügen. Aus dem Rechtsklick-Menü ist das bereits eine bewusste Wahl ⇒ keine zusätzliche Rückfrage.</summary>
+    private void Paste(bool fromMenu = false)
     {
-        if (Clipboard.ContainsText() && ConfirmPaste(Clipboard.GetText()) is { } text)
-            Post(new { t = "paste", d = text.Replace("\r\n", "\r") });
+        if (!Clipboard.ContainsText()) return;
+        var raw = Clipboard.GetText();
+        var text = fromMenu || !ConfirmMultiLinePaste() ? CleanPaste(raw) : ConfirmPaste(raw);
+        if (text is not null) Post(new { t = "paste", d = text.Replace("\r\n", "\r") });
     }
+
+    /// <summary>Bracketed-Paste-Markierungen entfernen (würden den Schutz der Shell aushebeln) – auch ohne Rückfrage.</summary>
+    private static string CleanPaste(string text) => text.Replace("\u001b[201~", "").Replace("\u001b[200~", "");
 
     /// <summary>Menü wie bei PuTTY/mRemoteNG – nur die nützlichen Einträge.</summary>
     private void ShowContextMenu(string selection)
@@ -64,7 +73,7 @@ public sealed class TerminalView : Border
         }
         var connected = _tab?.State == SessionState.Connected;
         Item("Copy", "Ctrl+Shift+C", () => TrySetClipboard(selection), selection.Length > 0);
-        Item("Paste", "Ctrl+Shift+V", Paste, connected && Clipboard.ContainsText());
+        Item("Paste", "Ctrl+Shift+V", () => Paste(fromMenu: true), connected && Clipboard.ContainsText());
         Item("Select all", null, () => Post(new { t = "select-all" }));
         menu.Items.Add(new Separator());
         Item("Find …", "Ctrl+Shift+F", () => Post(new { t = "search" }));

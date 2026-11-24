@@ -74,6 +74,8 @@
             <CheckBox Content="SFTP browser follows the terminal directory" IsChecked="{Binding SftpFollows}" Margin="0,4,0,0" />
             <CheckBox Content="Close the tab when the session ends (exit, logout, RDP sign-out)" IsChecked="{Binding CloseTabOnSessionEnd}" Margin="0,4,0,0"
                       ToolTip="Like PuTTY “close window on clean exit”. Lost connections and errors keep the tab open so you can reconnect." />
+            <CheckBox Content="Ask before pasting several lines with the keyboard (Ctrl+V / Ctrl+Shift+V)" IsChecked="{Binding ConfirmMultiLinePaste}" Margin="0,4,0,0"
+                      ToolTip="Each line is executed immediately – protects against accidental pastes. “Paste” from the right-click menu never asks." />
             <CheckBox Content="Right-click in the terminal opens a menu (otherwise it pastes directly)" IsChecked="{Binding RightClickMenu}" Margin="0,4,0,0"
                       ToolTip="Menu with copy, paste, find, copy all, clear scrollback, reset, reconnect and duplicate – prevents accidental pastes. Multi-line text always asks before pasting." />
             <Grid Margin="0,8,0,4">

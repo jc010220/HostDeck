@@ -11,15 +11,15 @@
         <Grid Margin="16,4,16,16">
             <Grid.ColumnDefinitions><ColumnDefinition Width="260" /><ColumnDefinition Width="16" /><ColumnDefinition Width="*" /></Grid.ColumnDefinitions>
             <DockPanel>
-                <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
+                <WrapPanel DockPanel.Dock="Bottom" Orientation="Horizontal" Margin="0,8,0,0">
                     <ui:Button Command="{Binding AddCommand}" Margin="0,0,8,0">
                         <StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="{x:Static app:Icons.Add}" Margin="0,0,6,0" /><TextBlock Text="New" /></StackPanel>
                     </ui:Button>
                     <ui:Button Click="OnRemove" IsEnabled="{Binding HasSelection}" Margin="0,0,8,0">
                         <StackPanel Orientation="Horizontal"><ui:SymbolIcon Symbol="{x:Static app:Icons.Delete}" Margin="0,0,6,0" /><TextBlock Text="Delete" /></StackPanel>
                     </ui:Button>
-                    <ui:Button Content="Clean up …" Click="OnCleanUp" ToolTip="Merge identical credentials (e.g. from mRemoteNG imports) and remove unused ones" />
-                </StackPanel>
+                    <ui:Button Content="Clean up …" Click="OnCleanUp" Margin="0,8,0,0" ToolTip="Merge identical credentials (e.g. from mRemoteNG imports) and remove unused ones" />
+                </WrapPanel>
                 <ui:TextBox DockPanel.Dock="Top" Margin="0,0,0,8" PlaceholderText="Search credentials …  (Ctrl+F)" x:Name="SearchBox"
                             Text="{Binding Filter, UpdateSourceTrigger=PropertyChanged}" ClearButtonEnabled="True">
                     <ui:TextBox.Icon>

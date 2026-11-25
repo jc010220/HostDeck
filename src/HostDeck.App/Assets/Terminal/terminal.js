@@ -22,6 +22,8 @@
     cursorBlink: true,
     scrollback: 10000,
     allowProposedApi: true,
+    // Doppelklick markiert ein Wort: auch an < > | ; = trennen ⇒ aus „<interface>“ wird nur „interface“ kopiert
+    wordSeparator: ' ()[]{}<>\'",`|;=',
     theme: themes.dark,
   });
   const fit = new FitAddon.FitAddon();

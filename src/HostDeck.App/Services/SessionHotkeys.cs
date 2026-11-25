@@ -8,7 +8,7 @@ namespace HostDeck.App.Services;
 /// Hat eine RDP-Sitzung den Tastaturfokus, gehen alle Tasten an den entfernten Rechner – HostDeck-Kürzel kommen nie an.
 /// Daher meldet HostDeck einige Kürzel bei Windows an (RegisterHotKey), aber nur solange ein HostDeck-Fenster aktiv ist.
 /// So wirken sie auch aus einer Sitzung heraus, ohne andere Programme zu stören:
-/// Strg+Umschalt+K (Schnellsuche), Strg+Alt+L (Sperren), Strg+Alt+→ (nächster Bereich).
+/// Strg+Umschalt+K (Schnellsuche), Strg+Umschalt+W (Tab schließen), Strg+Alt+L (Sperren), Strg+Alt+→ (nächster Bereich).
 /// Dazu wie bei VMware: linke Strg + linke Alt drücken und loslassen (ohne andere Taste) ⇒ Tastatur aus der Sitzung lösen.
 /// AltGr (intern Strg + rechte Alt) löst dabei nie aus.
 /// </summary>
@@ -22,6 +22,7 @@ internal sealed class SessionHotkeys : IDisposable
         (2, ModControl | ModShift, 0x4B, "ctrl+shift+k"),      // Strg+Umschalt+K
         (3, ModControl | ModAlt, 0x4C, "ctrl+alt+l"),          // Strg+Alt+L
         (4, ModControl | ModAlt, 0x27, "ctrl+alt+arrowright"), // Strg+Alt+→
+        (5, ModControl | ModShift, 0x57, "ctrl+shift+w"),      // Strg+Umschalt+W: aktuellen Tab schließen – auch aus RDP/Terminal
     ];
 
     private readonly IntPtr _hwnd;

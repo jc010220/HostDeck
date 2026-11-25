@@ -93,7 +93,13 @@ public partial class CommandPaletteWindow : Window
         if (_main.SessionTree.FindByNode(item.Connection) is { } treeItem) _main.RevealInTree(treeItem);
     }
 
-    private void OnDeactivated(object? sender, EventArgs e) => CloseSafe();
+    private void OnDeactivated(object? sender, EventArgs e)
+    {
+        // Klick in ein anderes Programm: Schließt sich ein Fenster mit Besitzer, während eine andere App aktiv ist, schiebt
+        // Windows das Hauptfenster ganz nach hinten (wirkt wie „minimiert“). Besitzer vorher lösen ⇒ HostDeck bleibt, wo es ist.
+        if (!_closing) Owner = null;
+        CloseSafe();
+    }
 
     private void CloseSafe()
     {

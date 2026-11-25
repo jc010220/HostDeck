@@ -112,6 +112,44 @@ public sealed partial class CredentialVaultViewModel : ObservableObject
         return users.Count;
     }
 
+    // ---- Doppelte zusammenführen (z. B. nach mRemoteNG-Importen) ----
+
+    private static (string, string, string, string, string) Key(Credential c) =>
+        (c.Username.Trim().ToUpperInvariant(), c.Domain.Trim().ToUpperInvariant(), c.Password, c.PrivateKey ?? "", c.PrivateKeyPassphrase ?? "");
+
+    /// <summary>Gruppen gleicher Zugangsdaten (Benutzer, Domäne, Passwort, Schlüssel) mit mehr als einem Eintrag.</summary>
+    public IReadOnlyList<IReadOnlyList<Credential>> DuplicateGroups() =>
+        _tree.Vault.Items.GroupBy(Key).Where(g => g.Count() > 1).Select(g => (IReadOnlyList<Credential>)g.ToList()).ToList();
+
+    /// <summary>
+    /// Doppelte zusammenführen: je Gruppe bleibt der meistgenutzte Eintrag (bei Gleichstand der kürzeste Name), alle
+    /// Verweise zeigen danach auf ihn, die übrigen werden gelöscht. Liefert die Zahl entfernter Einträge.
+    /// </summary>
+    public int MergeDuplicates()
+    {
+        var removed = 0;
+        var nodes = _tree.Root.Descendants().Prepend(_tree.Root).ToList();
+        foreach (var group in DuplicateGroups())
+        {
+            var keep = group.OrderByDescending(UsageCount).ThenBy(c => c.Name.Length).ThenBy(c => c.Name, StringComparer.OrdinalIgnoreCase).First();
+            foreach (var dup in group.Where(c => c != keep))
+            {
+                foreach (var n in nodes.Where(n => n.Settings.CredentialId == dup.Id)) n.Settings.CredentialId = keep.Id;
+                if (dup.Notes.Trim().Length > 0 && !keep.Notes.Contains(dup.Notes.Trim(), StringComparison.Ordinal))
+                    keep.Notes = (keep.Notes.Trim() + Environment.NewLine + dup.Notes.Trim()).Trim();
+                _tree.Vault.Remove(dup.Id);
+                Items.Remove(dup);
+                VisibleItems.Remove(dup);
+                removed++;
+            }
+        }
+        Selected = VisibleItems.FirstOrDefault();
+        return removed;
+    }
+
+    /// <summary>Einträge, die von keinem Ordner und keiner Verbindung genutzt werden.</summary>
+    public IReadOnlyList<Credential> Unused() => _tree.Vault.Items.Where(c => UsageCount(c) == 0).ToList();
+
     /// <summary>Mehrere Einträge auf einmal entfernen; liefert die Zahl gelöster Verweise.</summary>
     public int RemoveMany(IReadOnlyCollection<Credential> credentials)
     {

@@ -36,6 +36,28 @@ public partial class VaultWindow : FluentWindow
         PassphraseInput.Clear();
     }
 
+    /// <summary>Aufräumen: gleiche Zugangsdaten zusammenführen, danach optional ungenutzte Einträge löschen.</summary>
+    private void OnCleanUp(object sender, RoutedEventArgs e)
+    {
+        var groups = _vm.DuplicateGroups();
+        var duplicates = groups.Sum(g => g.Count - 1);
+        if (duplicates > 0 && System.Windows.MessageBox.Show(this,
+                $"{duplicates} credential(s) are exact duplicates of others (same user, domain, password and key) in {groups.Count} group(s).\n\n" +
+                "Merge them? One entry per group is kept and all folders/connections are switched to it – nothing has to be re-assigned.",
+                "Clean up vault", MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+            _vm.MergeDuplicates();
+
+        var unused = _vm.Unused();
+        if (unused.Count > 0 && System.Windows.MessageBox.Show(this,
+                $"{unused.Count} credential(s) are not used by any folder or connection:\n\n" +
+                string.Join("\n", unused.Take(12).Select(c => $"• {c.Name}  ({c.DisplayUser})")) + (unused.Count > 12 ? $"\n… and {unused.Count - 12} more" : "") +
+                "\n\nDelete them?", "Clean up vault", MessageBoxButton.YesNo, MessageBoxImage.Question, MessageBoxResult.No) == MessageBoxResult.Yes)
+            _vm.RemoveMany(unused);
+
+        if (duplicates == 0 && unused.Count == 0)
+            System.Windows.MessageBox.Show(this, "No duplicates and no unused credentials found.", "Clean up vault", MessageBoxButton.OK, MessageBoxImage.Information);
+    }
+
     private void OnListKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
     {
         if (e.Key != System.Windows.Input.Key.Delete) return;

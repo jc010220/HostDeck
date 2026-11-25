@@ -21,7 +21,7 @@ internal static class FocusRecovery
     {
         if (window is null || !window.IsActive) return;
         // Nur wenn der Fokus wirklich verloren ist – ein inzwischen fokussiertes anderes Terminal nicht wegnehmen
-        if (GetFocus() != IntPtr.Zero) return;
+        if (CurrentFocus() != IntPtr.Zero) return;
         Reclaim(window);
     }
 
@@ -30,7 +30,7 @@ internal static class FocusRecovery
     {
         if (window is null) return false;
         var hwnd = new WindowInteropHelper(window).Handle;
-        var focused = GetFocus();
+        var focused = CurrentFocus();
         return hwnd != IntPtr.Zero && focused != IntPtr.Zero && focused != hwnd && IsChild(hwnd, focused);
     }
 
@@ -41,7 +41,7 @@ internal static class FocusRecovery
     {
         var hwnd = new WindowInteropHelper(window).Handle;
         if (hwnd == IntPtr.Zero) return false;
-        var focused = GetFocus();
+        var focused = CurrentFocus();
         var lost = focused == IntPtr.Zero && window.IsActive;
         var embedded = focused != IntPtr.Zero && focused != hwnd && IsChild(hwnd, focused);
         if (!lost && !embedded) return false;      // WPF hat den Fokus bereits bzw. anderes Programm aktiv
@@ -54,6 +54,32 @@ internal static class FocusRecovery
         return true;
     }
 
+    /// <summary>
+    /// Fenster mit Tastaturfokus – auch wenn es einem anderen Prozess gehört (WebView2/Chromium läuft in eigenen Prozessen;
+    /// GetFocus sieht dann nichts).
+    /// </summary>
+    private static IntPtr CurrentFocus()
+    {
+        var focus = GetFocus();
+        if (focus != IntPtr.Zero) return focus;
+        var foreground = GetForegroundWindow();
+        if (foreground == IntPtr.Zero) return IntPtr.Zero;
+        var info = new GuiThreadInfo { cbSize = Marshal.SizeOf<GuiThreadInfo>() };
+        return GetGUIThreadInfo(GetWindowThreadProcessId(foreground, out _), ref info) ? info.hwndFocus : IntPtr.Zero;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct GuiThreadInfo
+    {
+        public int cbSize;
+        public int flags;
+        public IntPtr hwndActive, hwndFocus, hwndCapture, hwndMenuOwner, hwndMoveSize, hwndCaret;
+        public int left, top, right, bottom;
+    }
+
+    [DllImport("user32.dll")] private static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] private static extern uint GetWindowThreadProcessId(IntPtr hwnd, out uint processId);
+    [DllImport("user32.dll")] private static extern bool GetGUIThreadInfo(uint threadId, ref GuiThreadInfo info);
     [DllImport("user32.dll")] private static extern IntPtr GetFocus();
     [DllImport("user32.dll")] private static extern IntPtr SetFocus(IntPtr hwnd);
     [DllImport("user32.dll")] private static extern bool IsChild(IntPtr parent, IntPtr child);

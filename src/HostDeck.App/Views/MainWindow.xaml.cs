@@ -113,8 +113,15 @@ public partial class MainWindow : FluentWindow
     /// WPF merkt sich das Terminal als „fokussiertes Element“ oft weiter, auch nachdem man in Baum, Toolbar oder die leere
     /// Fläche geklickt hat. Früher blockierte das Strg+K dort.
     /// </summary>
-    internal static bool KeyboardInTerminal(Window window) =>
-        Behaviors.FocusRecovery.FocusInEmbeddedChild(window) && IsInsideTerminal(Keyboard.FocusedElement as DependencyObject);
+    internal static bool KeyboardInTerminal(Window window) => _keyFromTerminal ||
+        (Behaviors.FocusRecovery.FocusInEmbeddedChild(window) && IsInsideTerminal(Keyboard.FocusedElement as DependencyObject));
+
+    /// <summary>
+    /// Kam der aktuelle Tastendruck aus dem Terminal? Das WebView2 meldet seine Tasten mit sich selbst als Quelle an WPF –
+    /// das ist das verlässlichste Merkmal (WPFs „fokussiertes Element“ stimmt nach einem Mausklick ins Terminal oft nicht).
+    /// Wird im Klassen-Handler je Tastendruck gesetzt, bevor die Tastenkürzel des Fensters ausgewertet werden.
+    /// </summary>
+    private static bool _keyFromTerminal;
 
     internal static bool IsInsideTerminal(DependencyObject? d)
     {
@@ -134,6 +141,7 @@ public partial class MainWindow : FluentWindow
     public static void RegisterGlobalShortcuts(MainWindow main) =>
         EventManager.RegisterClassHandler(typeof(Window), Keyboard.PreviewKeyDownEvent, new KeyEventHandler((sender, e) =>
         {
+            _keyFromTerminal = IsInsideTerminal(e.OriginalSource as DependencyObject);
             if (e.Handled || sender is not (MainWindow or SessionWindow)) return; // nicht in Dialogen/Palette
             // Im Terminal gehören Tasten wie Strg+K (nano: ausschneiden, bash: Zeile löschen) dem Server. Das WebView2 meldet
             // solche Tasten zusätzlich an WPF – hier ignorieren; App-Kürzel kommen aus dem Terminal über Strg+Umschalt+…

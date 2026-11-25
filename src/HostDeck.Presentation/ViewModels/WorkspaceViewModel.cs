@@ -40,7 +40,14 @@ public sealed partial class SessionTabViewModel : ObservableObject
     [ObservableProperty] private SessionState _state = SessionState.Disconnected;
 
     public bool IsConnecting => State == SessionState.Connecting;
-    partial void OnStateChanged(SessionState value) => OnPropertyChanged(nameof(IsConnecting));
+    partial void OnStateChanged(SessionState value)
+    {
+        OnPropertyChanged(nameof(IsConnecting));
+        if (value == SessionState.Connected) ConnectedAtUtc = DateTime.UtcNow;
+    }
+
+    /// <summary>Zeitpunkt der letzten erfolgreichen Verbindung.</summary>
+    public DateTime? ConnectedAtUtc { get; private set; }
 
     /// <summary>Aktionen, die das Fenster/der Workspace ausführen muss (Schließen, Ablösen, Speichern).</summary>
     public event Action<SessionTabViewModel, TabAction>? ActionRequested;

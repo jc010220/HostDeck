@@ -27,13 +27,6 @@ jobs:
       contents: write
       id-token: write      # für die Herkunftsbescheinigung (Build Provenance)
       attestations: write
-    env:
-      SIGN_PFX_BASE64: ${{ secrets.SIGN_PFX_BASE64 }}
-      SIGN_PFX_PASSWORD: ${{ secrets.SIGN_PFX_PASSWORD }}
-      AZURE_TRUSTED_SIGNING_JSON: ${{ secrets.AZURE_TRUSTED_SIGNING_JSON }}
-      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-      AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
       - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
@@ -67,6 +60,14 @@ jobs:
 
       - name: Installer und Update-Pakete bauen
         shell: pwsh
+        env:
+          # Signatur-Geheimnisse nur in diesem Schritt (nicht für Tests/Build mit Repository-Code sichtbar)
+          SIGN_PFX_BASE64: ${{ secrets.SIGN_PFX_BASE64 }}
+          SIGN_PFX_PASSWORD: ${{ secrets.SIGN_PFX_PASSWORD }}
+          AZURE_TRUSTED_SIGNING_JSON: ${{ secrets.AZURE_TRUSTED_SIGNING_JSON }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
         run: |
           $pack = @('pack', '-u', 'HostDeck', '-v', $env:VERSION, '-p', 'publish', '-e', 'HostDeck.exe',
                     '--packTitle', 'HostDeck', '--packAuthors', 'HostDeck', '-i', 'src/HostDeck.App/Assets/hostdeck.ico', '-o', 'releases')

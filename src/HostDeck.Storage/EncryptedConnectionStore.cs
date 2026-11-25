@@ -482,7 +482,7 @@ public sealed class EncryptedConnectionStore : IDisposable
             Execute(connection, null, "PRAGMA cipher = 'sqlcipher'; PRAGMA legacy = 4;");
             ApplyRawKey(connection, dek);
             // Schlüsselprüfung: wirft SQLITE_NOTADB bei falschem Schlüssel
-            Execute(connection, null, "SELECT count(*) FROM sqlite_master; PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;");
+            Execute(connection, null, "SELECT count(*) FROM sqlite_master; PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON; PRAGMA temp_store = MEMORY;");
             return connection;
         }
         catch

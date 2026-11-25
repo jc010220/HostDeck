@@ -115,7 +115,7 @@ public sealed partial class CredentialVaultViewModel : ObservableObject
     // ---- Doppelte zusammenführen (z. B. nach mRemoteNG-Importen) ----
 
     private static (string, string, string, string, string) Key(Credential c) =>
-        (c.Username.Trim().ToUpperInvariant(), c.Domain.Trim().ToUpperInvariant(), c.Password, c.PrivateKey ?? "", c.PrivateKeyPassphrase ?? "");
+        (c.Username.Trim(), c.Domain.Trim().ToUpperInvariant(), c.Password, c.PrivateKey ?? "", c.PrivateKeyPassphrase ?? ""); // Benutzer: SSH unterscheidet Groß/klein
 
     /// <summary>Gruppen gleicher Zugangsdaten (Benutzer, Domäne, Passwort, Schlüssel) mit mehr als einem Eintrag.</summary>
     public IReadOnlyList<IReadOnlyList<Credential>> DuplicateGroups() =>
@@ -154,7 +154,7 @@ public sealed partial class CredentialVaultViewModel : ObservableObject
     public int RemoveMany(IReadOnlyCollection<Credential> credentials)
     {
         var ids = credentials.Select(c => c.Id).ToHashSet();
-        var users = _tree.Root.Descendants().Where(n => n.Settings.CredentialId is { } id && ids.Contains(id)).ToList();
+        var users = _tree.Root.Descendants().Prepend(_tree.Root).Where(n => n.Settings.CredentialId is { } id && ids.Contains(id)).ToList();
         foreach (var n in users) n.Settings.CredentialId = null;
         foreach (var c in credentials)
         {
@@ -166,5 +166,5 @@ public sealed partial class CredentialVaultViewModel : ObservableObject
         return users.Count;
     }
 
-    public int UsageCount(Credential c) => _tree.Root.Descendants().Count(n => n.Settings.CredentialId == c.Id);
+    public int UsageCount(Credential c) => _tree.Root.Descendants().Prepend(_tree.Root).Count(n => n.Settings.CredentialId == c.Id);
 }

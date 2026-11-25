@@ -113,7 +113,7 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
     private static readonly Dictionary<int, ProtocolKind> WellKnownPorts = new()
     {
         [22] = ProtocolKind.Ssh2, [23] = ProtocolKind.Telnet, [80] = ProtocolKind.Http, [443] = ProtocolKind.Https,
-        [513] = ProtocolKind.Rlogin, [3389] = ProtocolKind.Rdp, [5900] = ProtocolKind.Vnc,
+        [3389] = ProtocolKind.Rdp, [5900] = ProtocolKind.Vnc,
     };
 
     partial void OnProtocolChanged(Option<ProtocolKind>? oldValue, Option<ProtocolKind> newValue)
@@ -146,7 +146,7 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
                 && !(protocol == ProtocolKind.Ssh2 && EffectiveProtocol == ProtocolKind.Ssh1))
             {
                 _autoSwitchedFrom ??= Protocol;
-                Protocol = ProtocolOptions.First(o => o.Value == protocol);
+                Protocol = ProtocolOptions.FirstOrDefault(o => o.Value == protocol) ?? Protocol;
             }
             else if (known is null && _autoSwitchedFrom is { } previous)
             {
@@ -233,12 +233,12 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
             if (!InheritPassword && HasOwnPassword) list.Add("password");
             if (ColorDepth.Value is not null) list.Add("color depth");
             if (Sound.Value is not null) list.Add("audio");
-            if (UseCredSsp is not null) list.Add("NLA");
+            if (UseCredSsp == false) list.Add("NLA off");
             if (RedirectClipboard is not null) list.Add("clipboard");
             if (RedirectPrinters is not null) list.Add("printers");
             if (RedirectKeys is not null) list.Add("Windows keys");
             if (ConsoleSession is not null) list.Add("console session");
-            if (RestrictedAdmin is not null) list.Add("Restricted Admin");
+            if (RestrictedAdmin == false) list.Add("Restricted Admin off");
             return list.Count == 0 ? null : "This folder also passes on: " + string.Join(", ", list) + ".";
         }
     }
@@ -254,12 +254,12 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
         InheritPassword = true;
         ColorDepth = ColorOptions[0];
         Sound = SoundOptions[0];
-        UseCredSsp = null;
+        if (UseCredSsp == false) UseCredSsp = null;          // Schutz (NLA an, Restricted Admin an) bleibt erhalten
         RedirectClipboard = null;
         RedirectPrinters = null;
         RedirectKeys = null;
         ConsoleSession = null;
-        RestrictedAdmin = null;
+        if (RestrictedAdmin == false) RestrictedAdmin = null;
         OnPropertyChanged(nameof(HiddenFolderValues));
     }
 

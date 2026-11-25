@@ -145,14 +145,15 @@ public sealed class VaultCleanupTests
     {
         var tree = new ConnectionTree();
         var a = tree.Vault.Add(new Credential { Name = "admin (import 1)", Username = "admin", Password = "pw" });
-        var b = tree.Vault.Add(new Credential { Name = "admin", Username = "ADMIN", Password = "pw" });
+        var b = tree.Vault.Add(new Credential { Name = "admin", Username = "admin", Password = "pw" });
+        tree.Vault.Add(new Credential { Name = "upper", Username = "ADMIN", Password = "pw" }); // andere Schreibweise ⇒ bleibt (SSH unterscheidet)
         var other = tree.Vault.Add(new Credential { Name = "admin other pw", Username = "admin", Password = "different" });
         var c1 = new ConnectionNode("x") { Hostname = "h", Settings = { CredentialId = a.Id } };
         var c2 = new ConnectionNode("y") { Hostname = "h", Settings = { CredentialId = b.Id } };
         tree.Root.Add(c1); tree.Root.Add(c2);
         var vm = new CredentialVaultViewModel(tree);
         Assert.Equal(1, vm.MergeDuplicates());
-        Assert.Equal(2, tree.Vault.Items.Count);
+        Assert.Equal(3, tree.Vault.Items.Count);
         Assert.Equal(c1.Settings.CredentialId, c2.Settings.CredentialId);
         Assert.Contains(tree.Vault.Items, c => c.Id == other.Id);
     }

@@ -198,7 +198,13 @@ public sealed partial class MainViewModel
     {
         using var input = new System.IO.Compression.GZipStream(new MemoryStream(data), System.IO.Compression.CompressionMode.Decompress);
         using var output = new MemoryStream();
-        input.CopyTo(output);
+        var buffer = new byte[81920];
+        int read;
+        while ((read = input.Read(buffer, 0, buffer.Length)) > 0)
+        {
+            if (output.Length + read > TeamLibraryFile.MaxFileBytes) throw new InvalidDataException("Backup too large.");
+            output.Write(buffer, 0, read);
+        }
         return output.ToArray();
     }
 

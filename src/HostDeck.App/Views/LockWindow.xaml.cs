@@ -21,11 +21,16 @@ public partial class LockWindow : FluentWindow
     {
         var password = PasswordInput.Password;
         PasswordInput.Clear();
-        if (password.Length > 0 && _verify(password))
+        // Argon2id (64 MiB) nicht im UI-Thread: sonst stockt die ganze Oberfläche – und der Tastatur-Hook
+        IsEnabled = false;
+        var ok = password.Length > 0 && await Task.Run(() => _verify(password));
+        IsEnabled = true;
+        if (ok)
         {
             DialogResult = true;
             return;
         }
+        PasswordInput.Focus();
         _failures++;
         ErrorText.Visibility = Visibility.Visible;
         // nach mehreren Fehlversuchen kurz bremsen (Argon2id bremst zusätzlich)

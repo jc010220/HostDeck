@@ -70,6 +70,8 @@ public sealed partial class MainViewModel : ObservableObject
         tab.EndedNormally += t =>
         {
             if (!Settings.CloseTabOnSessionEnd) return;
+            // Sofort nach dem Verbinden wieder getrennt (Server lehnt ab, Fehler) ⇒ Tab offen lassen, damit man die Meldung sieht
+            if (t.ConnectedAtUtc is { } since && DateTime.UtcNow - since < TimeSpan.FromSeconds(3)) return;
             OnTabAction(t, TabAction.Close);
             StatusText = $"Session ended: {t.Connection.Name}";
         };
@@ -101,6 +103,16 @@ public sealed partial class MainViewModel : ObservableObject
     /// Gleiche Verbindung daneben öffnen: Bei nur einem Bereich wird auf „zwei nebeneinander“ umgeschaltet,
     /// sonst kommt die Kopie in den nächsten anderen Bereich (z. B. links arbeiten, rechts Log beobachten).
     /// </summary>
+    /// <summary>
+    /// Kopie eines Tabs: Schnellverbindungen ohne Platz im Baum bleiben „flüchtig“ und ohne Vault; ein inzwischen
+    /// gespeicherter Eintrag (evtl. in einer Bibliothek) geht durch die normale Prüfung (Ziel-Bestätigung, Vault-Login).
+    /// </summary>
+    private SessionTabViewModel DuplicateTab(SessionTabViewModel tab)
+    {
+        var transient = tab.IsTransient && tab.Connection.Parent is null;
+        return CreateTab(tab.Connection, transient ? new CredentialVault() : SessionTree.Tree.Vault, transient);
+    }
+
     public void DuplicateInSplitView(SessionTabViewModel? tab)
     {
         if (tab is null) return;
@@ -108,7 +120,7 @@ public sealed partial class MainViewModel : ObservableObject
         if (owner.Panes.Count == 1) owner.SetLayout(WorkspaceLayout.TwoColumns);
         var source = owner.Panes.FirstOrDefault(p => p.Tabs.Contains(tab)) ?? owner.ActivePane;
         var target = owner.Panes[(owner.Panes.IndexOf(source) + 1) % owner.Panes.Count];
-        owner.Open(CreateTab(tab.Connection, SessionTree.Tree.Vault, tab.IsTransient), target);
+        owner.Open(DuplicateTab(tab), target);
         StatusText = $"Opened again in split view: {tab.Connection.Name}";
     }
 
@@ -128,7 +140,7 @@ public sealed partial class MainViewModel : ObservableObject
             case TabAction.Duplicate:
                 // Gleiche Verbindung noch einmal im selben Fenster öffnen (wie PuTTY „Duplicate Session“)
                 var owner = AllWorkspaces.FirstOrDefault(w => w.AllTabs.Contains(tab)) ?? Workspace;
-                owner.Open(CreateTab(tab.Connection, SessionTree.Tree.Vault, tab.IsTransient));
+                owner.Open(DuplicateTab(tab));
                 StatusText = $"Opened again: {tab.Connection.Name}";
                 break;
             case TabAction.DuplicateSplit:
@@ -656,6 +668,12 @@ public sealed partial class MainViewModel : ObservableObject
 
         // Protokoll ausdrücklich gewählt (nicht „Auto“) und der Eintrag im Baum nutzt ein anderes ⇒ gleicher Host,
         // aber mit dem gewählten Protokoll (z. B. Server per RDP gespeichert, jetzt kurz per SSH drauf)
+        // Eintrag einer Bibliothek (von Kollegen pflegbar), nur über den Namen gefunden ⇒ Ziel vorher zeigen
+        if (existing is not null && LibraryOf(existing) is not null
+            && !string.Equals(existing.Hostname.Trim(), text, StringComparison.OrdinalIgnoreCase)
+            && !_dialogs.Confirm("Quick connect", $"“{text}” is the library entry “{existing.Path}”.\n\nConnect to {existing.Hostname}?"))
+            return;
+
         if (existing is not null && QuickConnectProtocol.Value is { } chosen
             && (Core.Inheritance.SettingsResolver.Resolve(existing).Protocol ?? ProtocolKind.Rdp) != chosen
             && !string.IsNullOrWhiteSpace(existing.Hostname))

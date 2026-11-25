@@ -103,8 +103,14 @@ Honest status – .NET and the protocol libraries limit what is possible:
   host and port; raw TCP never sends credentials.
 * **Terminal (WebView2):** own WebView2 profile; navigation is locked to the embedded page, messages are only accepted
   from that origin, no host objects, links open only `http(s)` in the default browser. Every paste (Ctrl+V, Shift+Insert,
-  right-click, Ctrl+Shift+V) goes through HostDeck; multi-line text (any line break, including bare CR and Unicode
-  separators) asks first, bracketed-paste markers are removed, dropping text is blocked.
+  Ctrl+Shift+V, right-click menu) goes through HostDeck: bracketed-paste markers are removed and dropping text is blocked.
+  Multi-line text pasted with the keyboard asks first (can be turned off); "Paste" from the right-click menu is a deliberate
+  choice and does not ask – **except** when multi-exec is on (the text would reach all sessions) or the text contains hidden
+  control characters (e.g. ^O, ESC), which always ask and show them visibly.
+* **Global hotkeys:** while a HostDeck window is active, Ctrl+Shift+K/W, Ctrl+Alt+L and Ctrl+Alt+→ are registered with
+  Windows, and a low-level keyboard hook watches only the left Ctrl/Alt keys (press and release alone = release the keyboard
+  from a session). Nothing is logged or stored, every key is passed on unchanged, both are removed when HostDeck is not
+  active, and they do nothing while a dialog or the lock screen is open.
 * **Web tabs (WebView2):** separate WebView2 profile from the terminal; **no** WebMessage channel, **no** host objects,
   no dev tools, only `http(s)`, no external protocol handlers, stored credentials only for the configured host/port/scheme.
   Certificate exceptions are bound to host, port and SHA-256 fingerprint and last until HostDeck is closed.

@@ -41,7 +41,25 @@ internal sealed class SessionHotkeys : IDisposable
         if (Application.Current.Windows.OfType<Window>().Any(w => w.IsActive)) Register();
     }
 
-    private void OnActivated(object? sender, EventArgs e) => Register();
+    /// <summary>
+    /// Nur im Haupt- bzw. Sitzungsfenster und ohne offenen Dialog (Host-Key-, Passwort-, Bestätigungsdialog …) und nie
+    /// während der Sperre – sonst ließe sich z. B. der Tab unter einer offenen Rückfrage schließen.
+    /// </summary>
+    private static bool MayAct()
+    {
+        if (Application.Current is not { } app) return false;
+        if (System.Windows.Interop.ComponentDispatcher.IsThreadModal) return false;
+        if (app.Windows.OfType<Views.LockWindow>().Any(w => w.IsVisible)) return false;
+        return app.Windows.OfType<Window>().FirstOrDefault(w => w.IsActive) is Views.MainWindow or Views.SessionWindow;
+    }
+
+    private void OnActivated(object? sender, EventArgs e)
+    {
+        // Windows entfernt einen Low-Level-Hook still, wenn er einmal zu langsam war ⇒ bei jeder Aktivierung neu setzen
+        RemoveReleaseHook();
+        Register();
+        InstallReleaseHook();
+    }
     private void OnDeactivated(object? sender, EventArgs e) => Unregister();
 
     private void Register()
@@ -69,8 +87,7 @@ internal sealed class SessionHotkeys : IDisposable
         var match = Keys.FirstOrDefault(k => k.Id == id);
         if (match.Action is null) return IntPtr.Zero;
         handled = true;
-        // Gesperrt ⇒ nichts ausführen (Schnellsuche über dem Sperrbildschirm wäre eine Umgehung)
-        if (Application.Current.Windows.OfType<Views.LockWindow>().Any(w => w.IsVisible)) return IntPtr.Zero;
+        if (!MayAct()) return IntPtr.Zero;
         _handler(match.Action);
         return IntPtr.Zero;
     }
@@ -106,6 +123,8 @@ internal sealed class SessionHotkeys : IDisposable
         if (code >= 0)
         {
             var vk = Marshal.ReadInt32(lParam);
+            var injected = (Marshal.ReadInt32(lParam, 8) & 0x10) != 0; // LLKHF_INJECTED: von Programmen erzeugt ⇒ ignorieren
+            if (injected) return CallNextHookEx(_hook, code, wParam, lParam);
             var msg = wParam.ToInt32();
             var down = msg is WmKeyDown or WmSysKeyDown;
             var up = msg is WmKeyUp or WmSysKeyUp;
@@ -125,7 +144,7 @@ internal sealed class SessionHotkeys : IDisposable
                         _spoiled = true; // nur einmal pro Druck
                         Application.Current?.Dispatcher.BeginInvoke(() =>
                         {
-                            if (!Application.Current.Windows.OfType<Views.LockWindow>().Any(w => w.IsVisible)) _handler("release");
+                            if (MayAct()) _handler("release");
                         });
                     }
                 }

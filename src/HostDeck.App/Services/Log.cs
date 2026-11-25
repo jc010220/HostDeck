@@ -32,7 +32,14 @@ public static class Log
         if (count <= 10) Write("FEHLER", $"{context}: {ex}");
         else if (count % 1000 == 0) Write("FEHLER", $"{context}: {ex.GetType().Name}: {ex.Message} (bisher {count}× aufgetreten)");
     }
-    public static void Info(string message) => Write("INFO", message);
+    /// <summary>Info-Zeilen enthalten auch Texte von Servern bzw. aus Bibliotheken ⇒ Steuerzeichen entschärfen (keine gefälschten Zeilen).</summary>
+    public static void Info(string message) => Write("INFO", Sanitize(message));
+
+    internal static string Sanitize(string message)
+    {
+        var clean = new string(message.Select(c => c is '\r' or '\n' ? ' ' : char.IsControl(c) ? '?' : c).ToArray());
+        return clean.Length > 2000 ? clean[..2000] + " …" : clean;
+    }
 
     private static void Write(string level, string message)
     {

@@ -50,14 +50,34 @@ public sealed class TerminalView : Border
     /// <summary>„Nicht mehr fragen“ im Dialog gewählt (App speichert die Einstellung).</summary>
     public static Action? MultiLinePasteConfirmationTurnedOff { get; set; }
 
-    /// <summary>Einfügen. Aus dem Rechtsklick-Menü ist das bereits eine bewusste Wahl ⇒ keine zusätzliche Rückfrage.</summary>
+    /// <summary>Multi-Exec aktiv (von der App gesetzt) – Einfügen ginge dann an alle markierten Sitzungen.</summary>
+    public static Func<bool> MultiExecActive { get; set; } = () => false;
+
+    /// <summary>
+    /// Einfügen. Aus dem Rechtsklick-Menü ist mehrzeiliger Text bereits eine bewusste Wahl ⇒ keine Rückfrage – außer bei
+    /// Multi-Exec (ginge an alle Server) oder versteckten Steuerzeichen (z. B. Strg+O führt in bash die Zeile aus).
+    /// </summary>
     private void Paste(bool fromMenu = false)
     {
         if (!Clipboard.ContainsText()) return;
-        var raw = Clipboard.GetText();
-        var text = fromMenu || !ConfirmMultiLinePaste() ? CleanPaste(raw) : ConfirmPaste(raw);
+        var raw = CleanPaste(Clipboard.GetText());
+        var mustAsk = HasHiddenControlCharacters(raw) || MultiExecActive() && LineCount(raw) > 1;
+        var text = mustAsk || (!fromMenu && ConfirmMultiLinePaste()) ? ConfirmPaste(raw, force: mustAsk) : raw;
         if (text is not null) Post(new { t = "paste", d = text.Replace("\r\n", "\r") });
     }
+
+    /// <summary>Steuerzeichen außer Tab/Zeilenumbruch (C0, DEL, C1) – wirken im Terminal wie Tastendrücke.</summary>
+    internal static bool HasHiddenControlCharacters(string text) =>
+        text.Any(c => (c < 0x20 && c is not '\t' and not '\r' and not '\n') || c == 0x7F || c is >= '\u0080' and <= '\u009F');
+
+    private static string Normalize(string text) =>
+        text.Replace("\r\n", "\n").Replace('\r', '\n').Replace('\u2028', '\n').Replace('\u2029', '\n').Replace('\u0085', '\n');
+
+    private static int LineCount(string text) => Normalize(text).TrimEnd('\n').Split('\n').Length;
+
+    /// <summary>Steuerzeichen in der Vorschau sichtbar machen (^O, ␛ …).</summary>
+    private static string Visible(string line) => new(line.SelectMany(c =>
+        c == 0x1B ? "␛" : c < 0x20 && c != '\t' ? "^" + (char)(c + 64) : c == 0x7F ? "^?" : c is >= '\u0080' and <= '\u009F' ? $"<{(int)c:X2}>" : c.ToString()).ToArray());
 
     /// <summary>Bracketed-Paste-Markierungen entfernen (würden den Schutz der Shell aushebeln) – auch ohne Rückfrage.</summary>
     private static string CleanPaste(string text) => text.Replace("\u001b[201~", "").Replace("\u001b[200~", "");
@@ -234,18 +254,17 @@ public sealed class TerminalView : Border
     /// Mehrzeiliges Einfügen führt jede Zeile sofort aus (auch versteckte Befehle aus kopierten Webseiten).
     /// Daher wie Windows Terminal nachfragen – bei Multi-Exec sogar für alle Server gleichzeitig.
     /// </summary>
-    private string? ConfirmPaste(string text)
+    private string? ConfirmPaste(string text, bool force = false)
     {
         // Bracketed-Paste-Ende im Text würde den Schutz der Shell aushebeln ⇒ entfernen
         text = text.Replace("\u001b[201~", "").Replace("\u001b[200~", "");
         // Jede Art Zeilenumbruch zählt (auch einzelnes CR, U+2028/2029, U+0085) – sonst „ok\rrm -rf …“ als eine Zeile
-        var normalized = text.Replace("\r\n", "\n").Replace('\r', '\n').Replace('\u2028', '\n').Replace('\u2029', '\n').Replace('\u0085', '\n');
-        var lines = normalized.TrimEnd('\n').Split('\n');
-        if (lines.Length < 2) return text;
-        var preview = string.Join("\n", lines.Take(8).Select(l => l.Length > 100 ? l[..100] + "…" : l)) + (lines.Length > 8 ? $"\n… ({lines.Length - 8} more lines)" : "");
-        var dialog = new PasteConfirmDialog(lines.Length, preview) { Owner = Window.GetWindow(this) };
+        var lines = Normalize(text).TrimEnd('\n').Split('\n');
+        if (lines.Length < 2 && !force) return text;
+        var preview = string.Join("\n", lines.Take(8).Select(l => Visible(l.Length > 100 ? l[..100] + "…" : l))) + (lines.Length > 8 ? $"\n… ({lines.Length - 8} more lines)" : "");
+        var dialog = new PasteConfirmDialog(lines.Length, preview, HasHiddenControlCharacters(text), MultiExecActive(), canSkip: !force) { Owner = Window.GetWindow(this) };
         var ok = dialog.ShowDialog() == true;
-        if (ok && dialog.DontAskAgain) MultiLinePasteConfirmationTurnedOff?.Invoke();
+        if (ok && dialog.DontAskAgain && !force) MultiLinePasteConfirmationTurnedOff?.Invoke();
         return ok ? text : null;
     }
 

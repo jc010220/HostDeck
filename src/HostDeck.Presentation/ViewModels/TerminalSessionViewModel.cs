@@ -151,6 +151,7 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
         try
         {
             await session.ConnectAsync(_columns, _rows, ct: ct);
+            if (ct.IsCancellationRequested) { await session.DisposeAsync(); return; } // Tab inzwischen geschlossen
             _session = session;
             SetState(SessionState.Connected);
         }
@@ -194,6 +195,7 @@ public sealed partial class TerminalSessionViewModel : ObservableObject, IAsyncD
                 await session.ConnectAsync(
                     info => OnUiAndWait(() => _dialogs.AskHostKey(info)),
                     (prompt, echo) => OnUiAndWait(() => _dialogs.Prompt($"{current.Host}", prompt, secret: !echo)), ct);
+                if (ct.IsCancellationRequested) { await session.DisposeAsync(); return; } // Tab inzwischen geschlossen
                 _session = session;
                 SetState(SessionState.Connected);
                 Sftp = new SftpBrowserViewModel(session, _dialogs, _ui);

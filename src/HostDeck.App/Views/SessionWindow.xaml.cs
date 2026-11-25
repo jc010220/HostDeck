@@ -31,7 +31,7 @@ public partial class SessionWindow : FluentWindow
         Closed += (_, _) => main.CloseDetachedWorkspace(workspace);
         UpdateTitle();
 
-        void Bind(Key key, ModifierKeys mod, Action action) => InputBindings.Add(new KeyBinding(new RelayCommand(action, () => !MainWindow.IsInsideTerminal(Keyboard.FocusedElement as DependencyObject)), key, mod));
+        void Bind(Key key, ModifierKeys mod, Action action) => InputBindings.Add(new KeyBinding(new RelayCommand(action, () => !MainWindow.KeyboardInTerminal(this)), key, mod));
         Bind(Key.W, ModifierKeys.Control | ModifierKeys.Shift, () => workspace.Close(workspace.ActiveTab)); // Strg+W bleibt „Wort löschen“ (Shell)
         Bind(Key.Tab, ModifierKeys.Control, () => workspace.SelectNextTab());
         Bind(Key.Tab, ModifierKeys.Control | ModifierKeys.Shift, () => workspace.SelectNextTab(backwards: true));

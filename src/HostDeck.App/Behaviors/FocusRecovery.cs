@@ -25,6 +25,15 @@ internal static class FocusRecovery
         Reclaim(window);
     }
 
+    /// <summary>Hat wirklich ein eingebettetes Kindfenster (Terminal, RDP) den Windows-Tastaturfokus?</summary>
+    public static bool FocusInEmbeddedChild(Window? window)
+    {
+        if (window is null) return false;
+        var hwnd = new WindowInteropHelper(window).Handle;
+        var focused = GetFocus();
+        return hwnd != IntPtr.Zero && focused != IntPtr.Zero && focused != hwnd && IsChild(hwnd, focused);
+    }
+
     /// <summary>Tastatur aus einer eingebetteten Sitzung (RDP …) zurück an HostDeck – die Sitzung bleibt offen.</summary>
     public static bool Release(Window window) => Reclaim(window);
 

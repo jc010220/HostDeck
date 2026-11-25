@@ -108,6 +108,14 @@ public partial class MainWindow : FluentWindow
         }
     }
 
+    /// <summary>
+    /// Tippt der Benutzer gerade wirklich im Terminal? Nur dann, wenn das WebView2-Kindfenster den Windows-Fokus hat –
+    /// WPF merkt sich das Terminal als „fokussiertes Element“ oft weiter, auch nachdem man in Baum, Toolbar oder die leere
+    /// Fläche geklickt hat. Früher blockierte das Strg+K dort.
+    /// </summary>
+    internal static bool KeyboardInTerminal(Window window) =>
+        Behaviors.FocusRecovery.FocusInEmbeddedChild(window) && IsInsideTerminal(Keyboard.FocusedElement as DependencyObject);
+
     internal static bool IsInsideTerminal(DependencyObject? d)
     {
         for (; d is not null; d = d is System.Windows.Media.Visual or System.Windows.Media.Media3D.Visual3D ? System.Windows.Media.VisualTreeHelper.GetParent(d) : LogicalTreeHelper.GetParent(d))
@@ -129,7 +137,7 @@ public partial class MainWindow : FluentWindow
             if (e.Handled || sender is not (MainWindow or SessionWindow)) return; // nicht in Dialogen/Palette
             // Im Terminal gehören Tasten wie Strg+K (nano: ausschneiden, bash: Zeile löschen) dem Server. Das WebView2 meldet
             // solche Tasten zusätzlich an WPF – hier ignorieren; App-Kürzel kommen aus dem Terminal über Strg+Umschalt+…
-            if (IsInsideTerminal(e.OriginalSource as DependencyObject) || IsInsideTerminal(Keyboard.FocusedElement as DependencyObject)) return;
+            if (KeyboardInTerminal((Window)sender)) return;
             var mods = Keyboard.Modifiers;
             var key = e.Key == Key.System ? e.SystemKey : e.Key;
             if ((key == Key.K && mods == ModifierKeys.Control) || (key == Key.P && mods == (ModifierKeys.Control | ModifierKeys.Shift)))
@@ -242,7 +250,7 @@ public partial class MainWindow : FluentWindow
     {
         // Im Terminal nicht greifen: Strg+L/O/N/S … gehören dort der Shell bzw. nano. App-Kürzel leitet das Terminal selbst weiter.
         void Bind(Key key, ModifierKeys modifiers, Action action) =>
-            InputBindings.Add(new KeyBinding(new RelayCommand(action, () => !IsInsideTerminal(Keyboard.FocusedElement as DependencyObject)), key, modifiers));
+            InputBindings.Add(new KeyBinding(new RelayCommand(action, () => !KeyboardInTerminal(this)), key, modifiers));
 
         Bind(Key.F, ModifierKeys.Control, FocusSearch);
         Bind(Key.B, ModifierKeys.Control | ModifierKeys.Shift, ToggleSidebar);

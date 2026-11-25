@@ -28,7 +28,8 @@
                 <TextBlock DockPanel.Dock="Top" Margin="2,0,0,6" FontSize="11" Foreground="{DynamicResource TextFillColorTertiaryBrush}">
                     <Run Text="{Binding VisibleItems.Count, Mode=OneWay}" /><Run Text=" of " /><Run Text="{Binding Items.Count, Mode=OneWay}" /><Run Text=" entries" />
                 </TextBlock>
-                <ListBox ItemsSource="{Binding VisibleItems}" SelectedItem="{Binding Selected}">
+                <ListBox x:Name="VaultList" ItemsSource="{Binding VisibleItems}" SelectedItem="{Binding Selected}" SelectionMode="Extended" KeyDown="OnListKeyDown"
+                         ToolTip="Ctrl/Shift+click or Ctrl+A to select several (e.g. to delete them)">
                     <ListBox.ItemTemplate>
                         <DataTemplate>
                             <StackPanel Margin="0,2">

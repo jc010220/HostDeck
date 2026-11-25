@@ -104,3 +104,36 @@ public sealed class EditorProtocolListTests
         Assert.Equal(ProtocolKind.Ssh1, old.Settings.Protocol); // … bleibt aber gespeichert SSH1 (mRemoteNG-Kollegen)
     }
 }
+
+public sealed class FolderSimplificationTests
+{
+    [Fact]
+    public void Folder_shows_and_clears_values_passed_on_from_mremoteng()
+    {
+        var folder = new FolderNode("f") { Settings = { Protocol = ProtocolKind.Rdp, Port = 3389, Username = "admin" } };
+        new ConnectionTree().Root.Add(folder);
+        var e = new ConnectionEditorViewModel(folder, new CredentialVault());
+        Assert.Contains("port 3389", e.HiddenFolderValues);
+        e.ClearHiddenFolderValuesCommand.Execute(null);
+        Assert.Null(e.HiddenFolderValues);
+        Assert.Null(e.Apply());
+        Assert.Null(folder.Settings.Port);
+        Assert.Null(folder.Settings.Protocol);
+        Assert.Null(folder.Settings.Username);
+    }
+
+    [Fact]
+    public void Several_credentials_can_be_deleted_at_once()
+    {
+        var tree = new ConnectionTree();
+        var a = tree.Vault.Add(new Credential { Name = "a", Username = "a" });
+        var b = tree.Vault.Add(new Credential { Name = "b", Username = "b" });
+        tree.Vault.Add(new Credential { Name = "c", Username = "c" });
+        var conn = new ConnectionNode("x") { Hostname = "h", Settings = { CredentialId = a.Id } };
+        tree.Root.Add(conn);
+        var vm = new CredentialVaultViewModel(tree);
+        Assert.Equal(1, vm.RemoveMany([a, b]));
+        Assert.Single(tree.Vault.Items);
+        Assert.Null(conn.Settings.CredentialId);
+    }
+}

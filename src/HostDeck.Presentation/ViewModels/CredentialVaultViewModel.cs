@@ -112,5 +112,21 @@ public sealed partial class CredentialVaultViewModel : ObservableObject
         return users.Count;
     }
 
+    /// <summary>Mehrere Einträge auf einmal entfernen; liefert die Zahl gelöster Verweise.</summary>
+    public int RemoveMany(IReadOnlyCollection<Credential> credentials)
+    {
+        var ids = credentials.Select(c => c.Id).ToHashSet();
+        var users = _tree.Root.Descendants().Where(n => n.Settings.CredentialId is { } id && ids.Contains(id)).ToList();
+        foreach (var n in users) n.Settings.CredentialId = null;
+        foreach (var c in credentials)
+        {
+            _tree.Vault.Remove(c.Id);
+            Items.Remove(c);
+            VisibleItems.Remove(c);
+        }
+        Selected = VisibleItems.FirstOrDefault();
+        return users.Count;
+    }
+
     public int UsageCount(Credential c) => _tree.Root.Descendants().Count(n => n.Settings.CredentialId == c.Id);
 }

@@ -167,6 +167,9 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
     public string? NewPassword { get; set; }
     public bool HasOwnPassword { get; }
     [ObservableProperty] private bool _inheritPassword;
+    public string CredentialHint => IsFolder
+        ? "Applies to all connections in this folder that have no login of their own (e.g. your RADIUS login for all switches). Without a login, HostDeck asks when connecting."
+        : "A vault entry takes precedence over the fields below. Without any login, HostDeck asks when connecting.";
     /// <summary>Gespeichertes Passwort löschen (danach: kein Passwort, beim Verbinden wird gefragt).</summary>
     [ObservableProperty] private bool _clearPassword;
     public bool CanClearPassword => HasOwnPassword && !InheritPassword;
@@ -210,6 +213,55 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
 
     partial void OnAuthLevelChanged(Option<RdpAuthenticationLevel> value) => OnPropertyChanged(nameof(SecurityWarning));
     partial void OnUseCredSspChanged(bool? value) => OnPropertyChanged(nameof(SecurityWarning));
+
+    // ---- Ordner: nur sinnvolle Vorgaben -----------------------------------------------------------
+    // Ein Ordner gibt nur noch weiter, was viele Einträge wirklich gemeinsam haben: Login aus dem Vault (z. B. RADIUS
+    // für alle Switches), RD Gateway, Auflösung, Zertifikatsprüfung und Laufwerke. Weitere Werte (Protokoll, Port,
+    // Benutzer/Passwort direkt, Farbtiefe …) stammen meist aus mRemoteNG – sie werden angezeigt und lassen sich entfernen.
+
+    /// <summary>Weitere Werte, die dieser Ordner (meist aus mRemoteNG) an seine Einträge weitergibt; null = keine.</summary>
+    public string? HiddenFolderValues
+    {
+        get
+        {
+            if (!IsFolder) return null;
+            var list = new List<string>();
+            if (Protocol.Value is { } p) list.Add($"protocol {p.DisplayName()}");
+            if (Port.Trim().Length > 0) list.Add($"port {Port.Trim()}");
+            if (Username.Trim().Length > 0) list.Add($"username {Username.Trim()}");
+            if (Domain.Trim().Length > 0) list.Add($"domain {Domain.Trim()}");
+            if (!InheritPassword && HasOwnPassword) list.Add("password");
+            if (ColorDepth.Value is not null) list.Add("color depth");
+            if (Sound.Value is not null) list.Add("audio");
+            if (UseCredSsp is not null) list.Add("NLA");
+            if (RedirectClipboard is not null) list.Add("clipboard");
+            if (RedirectPrinters is not null) list.Add("printers");
+            if (RedirectKeys is not null) list.Add("Windows keys");
+            if (ConsoleSession is not null) list.Add("console session");
+            if (RestrictedAdmin is not null) list.Add("Restricted Admin");
+            return list.Count == 0 ? null : "This folder also passes on: " + string.Join(", ", list) + ".";
+        }
+    }
+
+    /// <summary>Diese weiteren Werte entfernen (Einträge nutzen dann ihre eigenen bzw. die Standardwerte).</summary>
+    [CommunityToolkit.Mvvm.Input.RelayCommand]
+    private void ClearHiddenFolderValues()
+    {
+        Protocol = ProtocolOptions[0];
+        Port = "";
+        Username = "";
+        Domain = "";
+        InheritPassword = true;
+        ColorDepth = ColorOptions[0];
+        Sound = SoundOptions[0];
+        UseCredSsp = null;
+        RedirectClipboard = null;
+        RedirectPrinters = null;
+        RedirectKeys = null;
+        ConsoleSession = null;
+        RestrictedAdmin = null;
+        OnPropertyChanged(nameof(HiddenFolderValues));
+    }
 
     // ---- Übernehmen -------------------------------------------------------------------------------
 

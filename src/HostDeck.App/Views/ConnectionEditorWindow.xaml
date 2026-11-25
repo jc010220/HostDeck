@@ -40,7 +40,7 @@
                             <TextBlock Style="{StaticResource Label}" Text="Hostname / IP address" />
                             <TextBox Text="{Binding Hostname, UpdateSourceTrigger=PropertyChanged}" FontFamily="{StaticResource MonoFont}" />
                         </StackPanel>
-                        <Grid>
+                        <Grid Visibility="{Binding IsConnection, Converter={StaticResource BoolToVisibility}}">
                             <Grid.ColumnDefinitions><ColumnDefinition Width="*" /><ColumnDefinition Width="16" /><ColumnDefinition Width="160" /></Grid.ColumnDefinitions>
                             <StackPanel>
                                 <TextBlock Style="{StaticResource Label}" Text="Protocol" />
@@ -56,6 +56,14 @@
                         <TextBlock Style="{StaticResource Label}" Text="Tags (found by quick search, e.g. “prod, linux, dmz”)" />
                         <ui:TextBox Text="{Binding Tags, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="{Binding TagsPlaceholder}" />
                         <CheckBox Content="Favorite (shown first in quick search)" IsChecked="{Binding Favorite}" Margin="0,14,0,0" />
+                        <!-- Ordner: weitere (meist aus mRemoteNG übernommene) vererbte Werte anzeigen und entfernen -->
+                        <Border Margin="0,16,0,0" Padding="10" CornerRadius="6" Background="{DynamicResource ControlFillColorDefaultBrush}"
+                                Visibility="{Binding HiddenFolderValues, Converter={StaticResource NullToVisibility}}">
+                            <DockPanel>
+                                <ui:Button DockPanel.Dock="Right" Content="Remove" Margin="8,0,0,0" VerticalAlignment="Center" Command="{Binding ClearHiddenFolderValuesCommand}" />
+                                <TextBlock Text="{Binding HiddenFolderValues}" TextWrapping="Wrap" VerticalAlignment="Center" FontSize="12" />
+                            </DockPanel>
+                        </Border>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
@@ -66,7 +74,8 @@
                         <TextBlock Style="{StaticResource Label}" Text="Credentials from the vault" />
                         <ComboBox ItemsSource="{Binding CredentialOptions}" SelectedItem="{Binding Credential}" />
                         <TextBlock Margin="0,4,0,0" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                                   Text="A vault entry takes precedence over the fields below. Set on a folder, it applies to all connections inside." />
+                                   Text="{Binding CredentialHint}" />
+                        <StackPanel Visibility="{Binding IsConnection, Converter={StaticResource BoolToVisibility}}">
                         <TextBlock Style="{StaticResource Label}" Text="Username" />
                         <ui:TextBox Text="{Binding Username, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="{Binding UsernamePlaceholder}" />
                         <TextBlock Style="{StaticResource Label}" Text="Domain" />
@@ -77,6 +86,7 @@
                         <CheckBox Content="Delete stored password" IsChecked="{Binding ClearPassword}" Margin="0,6,0,0"
                                   Visibility="{Binding CanClearPassword, Converter={StaticResource BoolToVisibility}}" />
                         <TextBlock Text="{Binding PasswordHint}" Margin="0,4,0,0" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}" />
+                        </StackPanel>
                     </StackPanel>
                 </ScrollViewer>
             </TabItem>
@@ -90,10 +100,13 @@
                         </Border>
                         <TextBlock Style="{StaticResource Label}" Text="Resolution" />
                         <ComboBox ItemsSource="{Binding ResolutionOptions}" SelectedItem="{Binding Resolution}" />
+                        <StackPanel Visibility="{Binding IsConnection, Converter={StaticResource BoolToVisibility}}">
                         <TextBlock Style="{StaticResource Label}" Text="Color depth" />
                         <ComboBox ItemsSource="{Binding ColorOptions}" SelectedItem="{Binding ColorDepth}" />
+                        </StackPanel>
                         <TextBlock Style="{StaticResource Label}" Text="Server certificate" />
                         <ComboBox ItemsSource="{Binding AuthLevelOptions}" SelectedItem="{Binding AuthLevel}" />
+                        <StackPanel Visibility="{Binding IsConnection, Converter={StaticResource BoolToVisibility}}">
                         <CheckBox Content="Network Level Authentication (NLA / CredSSP)" IsChecked="{Binding UseCredSsp}" />
                         <CheckBox Content="Restricted Admin (no credentials on the server)" IsChecked="{Binding RestrictedAdmin}" />
                         <CheckBox Content="Connect to console session (/admin)" IsChecked="{Binding ConsoleSession}" />
@@ -101,10 +114,13 @@
                         <CheckBox Content="Clipboard" IsChecked="{Binding RedirectClipboard}" />
                         <CheckBox Content="Printers" IsChecked="{Binding RedirectPrinters}" />
                         <CheckBox Content="Send Windows key combinations to the server (Alt+Tab, Win)" IsChecked="{Binding RedirectKeys}" />
+                        </StackPanel>
                         <TextBlock Style="{StaticResource Label}" Text="Drives" />
                         <ComboBox ItemsSource="{Binding DriveOptions}" SelectedItem="{Binding Drives}" />
+                        <StackPanel Visibility="{Binding IsConnection, Converter={StaticResource BoolToVisibility}}">
                         <TextBlock Style="{StaticResource Label}" Text="Audio" />
                         <ComboBox ItemsSource="{Binding SoundOptions}" SelectedItem="{Binding Sound}" />
+                        </StackPanel>
                         <TextBlock Style="{StaticResource Label}" Text="RD Gateway" FontWeight="SemiBold" />
                         <ComboBox ItemsSource="{Binding GatewayUsageOptions}" SelectedItem="{Binding GatewayUsage}" />
                         <ui:TextBox Text="{Binding GatewayHost, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="{Binding GatewayHostPlaceholder}" Margin="0,6,0,0" />

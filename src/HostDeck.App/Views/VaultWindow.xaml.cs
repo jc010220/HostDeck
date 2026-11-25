@@ -36,13 +36,25 @@ public partial class VaultWindow : FluentWindow
         PassphraseInput.Clear();
     }
 
+    private void OnListKeyDown(object sender, System.Windows.Input.KeyEventArgs e)
+    {
+        if (e.Key != System.Windows.Input.Key.Delete) return;
+        OnRemove(sender, e);
+        e.Handled = true;
+    }
+
+    /// <summary>Löschen – auch mehrere markierte Einträge auf einmal (Strg/Umschalt+Klick, Strg+A).</summary>
     private void OnRemove(object sender, RoutedEventArgs e)
     {
-        if (_vm.Selected is not { } c) return;
-        var uses = _vm.UsageCount(c);
-        var msg = uses > 0 ? $"“{c.Name}” is used by {uses} entry/entries. They will inherit from their folder again.\n\nDelete?" : $"Delete “{c.Name}”?";
+        var selected = VaultList.SelectedItems.OfType<HostDeck.Core.Model.Credential>().ToList();
+        if (selected.Count == 0 && _vm.Selected is { } single) selected.Add(single);
+        if (selected.Count == 0) return;
+        var uses = selected.Sum(_vm.UsageCount);
+        var what = selected.Count == 1 ? $"“{selected[0].Name}”" : $"{selected.Count} credentials";
+        var msg = (uses > 0 ? $"{what} {(selected.Count == 1 ? "is" : "are")} used by {uses} folder(s)/connection(s). They will ask for a login again (or use their folder's login).\n\n" : "")
+                  + $"Delete {what}?";
         if (System.Windows.MessageBox.Show(this, msg, "Delete credentials", MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
-            _vm.Remove();
+            _vm.RemoveMany(selected);
     }
 
     private void OnLoadKey(object sender, RoutedEventArgs e)

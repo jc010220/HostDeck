@@ -84,6 +84,12 @@ public partial class App : Application
             _backups = new BackupService(viewModel, _store!, Path.Combine(Path.GetDirectoryName(store.DatabasePath)!, "backups"));
             viewModel.BackupService = _backups;
             await Task.Run(_backups.Start); // Kopieren einer großen DB nicht im UI-Thread
+            // Danach (Sicherung existiert) ungenutzten Platz in der Datenbank freigeben, falls sich viel angesammelt hat
+            await Task.Run(() =>
+            {
+                try { if (_store!.CompactIfFragmented()) Log.Info($"Database compacted: {new FileInfo(store.DatabasePath).Length / 1024} KB"); }
+                catch (Exception ex) { Log.Error("Compact database", ex); }
+            });
             var mRemoteNgFile = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "mRemoteNG", "confCons.xml");
             await viewModel.InitializeAsync(mRemoteNgFile);
             Log.Info("Startup complete");

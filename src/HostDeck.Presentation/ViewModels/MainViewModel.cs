@@ -499,7 +499,7 @@ public sealed partial class MainViewModel : ObservableObject
 
         await StartTeamLibraryAsync();
 
-        Reachability = new ReachabilityMonitor(SessionTree, () => Settings.ShowReachability && !IsImporting, SynchronizationContext.Current);
+        Reachability = new ReachabilityMonitor(SessionTree, () => Settings.ShowReachability && !IsImporting && !IsLocked, SynchronizationContext.Current);
         Reachability.Start();
 
         if (!Settings.FirstRunImportOffered && !SessionTree.Tree.Root.Children.Any()
@@ -857,6 +857,9 @@ public sealed partial class MainViewModel : ObservableObject
 
     /// <summary>Nach „Einstellungen speichern“ (z. B. Update-Quelle neu prüfen).</summary>
     public event Action? SettingsApplied;
+
+    /// <summary>HostDeck ist gesperrt (von der App gesetzt) – Hintergrundprüfungen pausieren.</summary>
+    public bool IsLocked { get; set; }
 
     /// <summary>Übernahme der Bibliotheksliste aus dem letzten Einstellungsdialog (läuft asynchron; für Tests).</summary>
     internal Task LibrarySettingsTask { get; private set; } = Task.CompletedTask;

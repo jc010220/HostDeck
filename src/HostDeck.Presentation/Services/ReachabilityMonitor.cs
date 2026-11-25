@@ -93,7 +93,9 @@ public sealed class ReachabilityMonitor(SessionTreeViewModel tree, Func<bool> en
         var node = (ConnectionNode)item.Node;
         var host = node.Hostname.Trim();
         if (Uri.TryCreate(host, UriKind.Absolute, out var uri) && uri.Scheme is "http" or "https") return (uri.Host, uri.Port);
-        var port = SettingsResolver.Resolve(node).Port ?? 0;
+        // Ohne eigenen Port gilt der Standardport des Protokolls (früher: 0 ⇒ nie geprüft, kein Online-Status)
+        var settings = SettingsResolver.Resolve(node);
+        var port = settings.Port ?? ProtocolDefaults.DefaultPort(settings.Protocol ?? ProtocolKind.Rdp);
         return (host.Split('/')[0], port);
     }
 

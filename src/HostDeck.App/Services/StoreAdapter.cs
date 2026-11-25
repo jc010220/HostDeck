@@ -40,6 +40,7 @@ public sealed class StoreAdapter(EncryptedConnectionStore store, IDeviceKeyProte
     }
 
     public bool VerifyMasterPassword(string password) { lock (_lock) return store.VerifyMasterPassword(password); }
+    public bool CompactIfFragmented() { lock (_lock) return store.CompactIfFragmented(); }
 
     public void ChangeMasterPassword(string currentPassword, string newPassword)
     {

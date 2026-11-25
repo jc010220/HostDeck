@@ -48,6 +48,7 @@ public sealed class LockService : IDisposable
     {
         if (_locked || Application.Current is not { } app) return;
         _locked = true;
+        _vm.IsLocked = true;
         try
         {
             // RDP-Vollbild verlassen, dann WPF-Fenster und alle übrigen sichtbaren Fenster dieses Threads (offene Meldungen,
@@ -73,6 +74,7 @@ public sealed class LockService : IDisposable
         finally
         {
             _locked = false;
+            _vm.IsLocked = false;
         }
     }
 

@@ -162,7 +162,8 @@ public sealed partial class MainViewModel
     private void BackupTeamFile(LibraryState lib, byte[] content)
     {
         var index = int.TryParse(_store.ReadDocument(lib.Doc("team-backup-index")), out var i) ? (i + 1) % TeamBackupSlots : 0;
-        _store.WriteDocument(lib.Doc($"team-backup-{index}"), JsonSerializer.Serialize(new TeamBackup(DateTime.UtcNow, System.Text.Encoding.UTF8.GetString(content))));
+        // Komprimiert (GZip): XML schrumpft auf etwa ein Zehntel – die Datenbank wächst nicht mehr um viele MB
+        _store.WriteDocument(lib.Doc($"team-backup-{index}"), JsonSerializer.Serialize(new TeamBackup(DateTime.UtcNow, "", Convert.ToBase64String(Gzip(content)))));
         _store.WriteDocument(lib.Doc("team-backup-index"), index.ToString(System.Globalization.CultureInfo.InvariantCulture));
     }
 
@@ -174,13 +175,32 @@ public sealed partial class MainViewModel
         for (var i = 0; i < TeamBackupSlots; i++)
         {
             if (_store.ReadDocument(lib.Doc($"team-backup-{i}")) is not { Length: > 0 } json) continue;
-            try { if (JsonSerializer.Deserialize<TeamBackup>(json) is { } b) list.Add((b.SavedUtc, b.Content)); }
-            catch (JsonException) { }
+            try
+            {
+                if (JsonSerializer.Deserialize<TeamBackup>(json) is { } b)
+                    list.Add((b.SavedUtc, b.Gz is { Length: > 0 } gz ? System.Text.Encoding.UTF8.GetString(Gunzip(Convert.FromBase64String(gz))) : b.Content));
+            }
+            catch (Exception ex) when (ex is JsonException or FormatException or InvalidDataException) { }
         }
         return list.OrderByDescending(b => b.Item1).ToList();
     }
 
-    private sealed record TeamBackup(DateTime SavedUtc, string Content);
+    private sealed record TeamBackup(DateTime SavedUtc, string Content, string? Gz = null);
+
+    private static byte[] Gzip(byte[] data)
+    {
+        using var ms = new MemoryStream();
+        using (var gz = new System.IO.Compression.GZipStream(ms, System.IO.Compression.CompressionLevel.SmallestSize)) gz.Write(data);
+        return ms.ToArray();
+    }
+
+    private static byte[] Gunzip(byte[] data)
+    {
+        using var input = new System.IO.Compression.GZipStream(new MemoryStream(data), System.IO.Compression.CompressionMode.Decompress);
+        using var output = new MemoryStream();
+        input.CopyTo(output);
+        return output.ToArray();
+    }
 
     // ---- Einrichten / Trennen ---------------------------------------------------------------------
 

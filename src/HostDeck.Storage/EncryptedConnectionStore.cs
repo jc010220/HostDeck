@@ -345,6 +345,22 @@ public sealed class EncryptedConnectionStore : IDisposable
     /// </summary>
     public const string BackupPrefix = "HostDeck-Personal-AutoBackup_";
 
+    /// <summary>
+    /// Datenbank verkleinern, wenn viel freier Platz ungenutzt darin steckt (SQLite gibt gelöschte Seiten sonst nie an
+    /// das Dateisystem zurück). Liefert true, wenn verkleinert wurde.
+    /// </summary>
+    public bool CompactIfFragmented()
+    {
+        using var cmd = Connection.CreateCommand();
+        cmd.CommandText = "PRAGMA freelist_count;";
+        var free = Convert.ToInt64(cmd.ExecuteScalar(), CultureInfo.InvariantCulture);
+        cmd.CommandText = "PRAGMA page_count;";
+        var total = Convert.ToInt64(cmd.ExecuteScalar(), CultureInfo.InvariantCulture);
+        if (free < 512 || free * 4 < total) return false; // < 2 MB bzw. < 25 % frei ⇒ lohnt nicht
+        Execute(Connection, null, "PRAGMA wal_checkpoint(TRUNCATE); VACUUM; PRAGMA wal_checkpoint(TRUNCATE);");
+        return true;
+    }
+
     /// <summary>Sicherung in einen Ordner (Name mit Zeitstempel) – Datenbank + Schlüsseldatei.</summary>
     public string Backup(string targetDirectory)
     {

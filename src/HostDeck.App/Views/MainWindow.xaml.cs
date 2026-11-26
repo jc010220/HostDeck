@@ -265,6 +265,12 @@ public partial class MainWindow : FluentWindow
         Bind(Key.B, ModifierKeys.Control | ModifierKeys.Shift, ToggleSidebar);
         Bind(Key.S, ModifierKeys.Control, () => { if (_vm.HasTeamLibrary) _vm.SyncTeamCommand.Execute(null); });
         Bind(Key.L, ModifierKeys.Control, FocusQuickConnect);
+        Bind(Key.Z, ModifierKeys.Control, () =>
+        {
+            // In Textfeldern (Suche, Schnellverbindung …) bleibt Strg+Z deren eigenes Rückgängig
+            if (Keyboard.FocusedElement is System.Windows.Controls.Primitives.TextBoxBase or System.Windows.Controls.PasswordBox or System.Windows.Controls.ComboBox) return;
+            _vm.UndoCommand.Execute(null);
+        });
         Bind(Key.D, ModifierKeys.Control | ModifierKeys.Shift, () => _vm.DuplicateInSplitView(_vm.FocusedWorkspace.ActiveTab));
         Bind(Key.O, ModifierKeys.Control, () => _vm.ImportMRemoteNGCommand.Execute(null));
         Bind(Key.N, ModifierKeys.Control, () => _vm.NewConnectionCommand.Execute(null));
@@ -354,6 +360,7 @@ public partial class MainWindow : FluentWindow
         MenuDelete.Visibility = Show(isConnection || isFolder);
         MenuTeamSync.Visibility = Show(isTeamRoot);
         MenuTeamPassword.Visibility = Show(isTeamRoot);
+        MenuTeamDiscard.Visibility = Show(isTeamRoot);
         MenuTeamRemovePassword.Visibility = Show(isTeamRoot);
         MenuTeamDisconnect.Visibility = Show(isTeamRoot);
     }

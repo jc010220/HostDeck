@@ -135,6 +135,8 @@
                             <MenuItem Header="Create new library file (e.g. on OneDrive) …" Command="{Binding CreateLibraryCommand}" />
                             <MenuItem Header="Sync libraries" InputGestureText="Ctrl+S" Command="{Binding SyncTeamCommand}"
                                       Visibility="{Binding HasTeamLibrary, Converter={StaticResource BoolToVisibility}}" />
+                            <MenuItem Header="Discard unsaved library changes …" Command="{Binding DiscardTeamChangesCommand}"
+                                      Visibility="{Binding HasTeamLibrary, Converter={StaticResource BoolToVisibility}}" />
                             <MenuItem Header="Set library password …" Command="{Binding SetTeamPasswordCommand}"
                                       Visibility="{Binding HasTeamLibrary, Converter={StaticResource BoolToVisibility}}" />
                             <MenuItem Header="Remove library password …" Command="{Binding RemoveTeamPasswordCommand}"
@@ -220,6 +222,7 @@
                                 <MenuItem x:Name="MenuDuplicate" Header="Duplicate" InputGestureText="Ctrl+D" Click="OnMenuDuplicate" />
                                 <MenuItem x:Name="MenuDelete" Header="Delete" InputGestureText="Del" Click="OnMenuDelete" />
                                 <MenuItem x:Name="MenuTeamSync" Header="Sync libraries" InputGestureText="Ctrl+S" Command="{Binding SyncTeamCommand}" />
+                                <MenuItem x:Name="MenuTeamDiscard" Header="Discard unsaved changes …" Command="{Binding DiscardTeamChangesCommand}" />
                                 <MenuItem x:Name="MenuTeamPassword" Header="Set library password …" Command="{Binding SetTeamPasswordCommand}" />
                                 <MenuItem x:Name="MenuTeamRemovePassword" Header="Remove library password …" Command="{Binding RemoveTeamPasswordCommand}" />
                                 <MenuItem x:Name="MenuTeamDisconnect" Header="Disconnect library" Command="{Binding DisconnectTeamLibraryCommand}" />

@@ -867,6 +867,68 @@ public sealed partial class MainViewModel
         return true;
     }
 
+    // ---- Nicht gespeicherte Änderungen verwerfen ---------------------------------------------------
+
+    [RelayCommand]
+    private Task DiscardTeamChanges() => LibraryForCommand("Discard unsaved changes") is { } lib ? DiscardLibraryChangesAsync(lib, ask: true) : Task.CompletedTask;
+
+    /// <summary>
+    /// Eigene, noch nicht mit Strg+S gespeicherte Änderungen einer Bibliothek verwerfen: Der Ordner bekommt wieder exakt
+    /// den Stand der Datei. Persönliche Login-Zuweisungen und der Aufklapp-Zustand bleiben erhalten.
+    /// </summary>
+    public async Task<bool> DiscardLibraryChangesAsync(LibraryState lib, bool ask)
+    {
+        if (!_loadSucceeded || lib.Busy || ContainerOf(lib) is not { } container) return false;
+        var name = NameOf(lib);
+        var (baseline, _) = LoadTeamBase(lib);
+        var current = TreeMerge.Snapshot(container.Children);
+        var nodes = container.Descendants().ToDictionary(n => n.Id);
+        var changed = current.Where(kv => !baseline.TryGetValue(kv.Key, out var b) || b != kv.Value)
+            .Select(kv => (baseline.ContainsKey(kv.Key) ? "changed: " : "new: ") + nodes[kv.Key].Name).ToList();
+        var deleted = baseline.Keys.Count(id => !current.ContainsKey(id));
+        if (changed.Count == 0 && deleted == 0)
+        {
+            if (ask) _dialogs.ShowInfo(name, "There are no unsaved changes in this library.");
+            return false;
+        }
+        if (ask)
+        {
+            var list = string.Join("\n", changed.Take(15).Select(c => "• " + c)) + (changed.Count > 15 ? $"\n… and {changed.Count - 15} more" : "")
+                       + (deleted > 0 ? $"\n• {deleted} deleted entr{(deleted == 1 ? "y" : "ies")} will come back" : "");
+            if (!_dialogs.Confirm($"Discard unsaved changes – {name}",
+                    $"These changes have not been saved to the library file yet and will be discarded:\n\n{list}\n\n" +
+                    "The folder gets exactly the state of the file again. Your own login assignments are kept.\n\nDiscard?"))
+                return false;
+        }
+
+        if (TeamLibraryFile.Resolve(lib.Path) is not { } path) return false;
+        lib.Busy = true;
+        try
+        {
+            var known = PasswordOf(lib);
+            var askPw = AskTeamPassword();
+            TeamSnapshot remote;
+            try { remote = await Io(() => TeamLibraryFile.Read(path, known, askPw)); }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ConfConsAuthenticationException or ConfConsFormatException)
+            {
+                _dialogs.ShowError(name, $"The library file could not be read – nothing was discarded:\n{ex.Message}");
+                return false;
+            }
+            var mine = container.Children.Select(c => TreeMerge.CopyWithIds(c, includePersonal: true)).ToList();
+            var children = TreeMerge.WithPersonalFrom(remote.Children.ToList(), mine);
+            ApplyTeamChildren(lib, children);
+            SaveTeamBase(lib, TreeMerge.Snapshot(children), remote.Hash);
+            lib.Probe = TeamLibraryFile.Probe(path);
+            UpdateTeamStatus(lib, "unsaved changes discarded");
+            StatusText = $"{name}: unsaved changes discarded";
+            return true;
+        }
+        finally
+        {
+            lib.Busy = false;
+        }
+    }
+
     /// <summary>Nur für Tests/Aufrufer ohne UI-SynchronizationContext.</summary>
     public bool SyncTeam(bool write) => SyncTeamAsync(write, interactive: true).GetAwaiter().GetResult();
 
@@ -880,6 +942,7 @@ public sealed partial class MainViewModel
         if (item is not null) SessionTree.ReloadChildren(item);
         else SessionTree.Load(SessionTree.Tree);
         Persist();
+        ResetUndo(); // Stand aus der Datei übernommen ⇒ ältere Schritte würden Änderungen anderer zurückdrehen
         Reachability?.Invalidate();
     }
 

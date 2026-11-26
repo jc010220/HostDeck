@@ -299,6 +299,7 @@ public sealed partial class MainViewModel : ObservableObject
         yield return ("Layout: two panes – vertical  (Ctrl+Shift+2)", "split vertical columns side by side 2", () => Workspace.SetLayout(WorkspaceLayout.TwoColumns));
         yield return ("Layout: two panes – horizontal  (Ctrl+Shift+3)", "split horizontal rows stacked 2", () => Workspace.SetLayout(WorkspaceLayout.TwoRows));
         yield return ("Layout: four panes  (Ctrl+Shift+4)", "grid quad four 2x2 4", () => Workspace.SetLayout(WorkspaceLayout.Grid));
+        if (CanUndo) yield return ("Undo last change in the tree  (Ctrl+Z)", "undo rückgängig zurück", () => UndoCommand.Execute(null));
         yield return ("Toggle multi-execution", "multiexec broadcast", () => IsMultiExecutionEnabled = !IsMultiExecutionEnabled);
         if (FocusedWorkspace.ActiveTab is { } current)
             yield return ($"Duplicate session in split view: {current.Connection.Name}  (Ctrl+Shift+D)", "duplicate split side by side nebeneinander kopie", () => DuplicateInSplitView(current));
@@ -306,6 +307,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             yield return ("Sync libraries  (Ctrl+S)", "team library sync synchronisieren speichern share laufwerk", () => SyncTeamCommand.Execute(null));
             yield return ("Disconnect library …", "team library bibliothek trennen disconnect", () => DisconnectTeamLibraryCommand.Execute(null));
+            yield return ("Discard unsaved library changes …", "team library verwerfen discard revert reset rückgängig", () => DiscardTeamChangesCommand.Execute(null));
             yield return ("Set library password …", "team library password passwort schützen protect master", () => SetTeamPasswordCommand.Execute(null));
             yield return ("Remove library password …", "team library password passwort entfernen remove unprotect", () => RemoveTeamPasswordCommand.Execute(null));
         }
@@ -493,6 +495,7 @@ public sealed partial class MainViewModel : ObservableObject
         {
             SessionTree.Load(_store.Load());
             _loadSucceeded = true;
+            ResetUndo();
             AppLog.Info($"Database loaded: {SessionTree.Tree.Connections.Count()} connections, {SessionTree.Tree.Folders.Count()} folders, {sw.ElapsedMilliseconds} ms");
         }
         catch (Exception ex)
@@ -563,6 +566,7 @@ public sealed partial class MainViewModel : ObservableObject
             _store.Save(SessionTree.Tree);
             _treeVersion++;
             if (HasTeamLibrary) RefreshTeamPending();
+            RecordUndoStep();
             return true;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or InvalidOperationException

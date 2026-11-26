@@ -46,6 +46,14 @@
 
   // MobaXterm-Verhalten: Markieren kopiert, Rechtsklick fügt ein
   term.onSelectionChange(() => { const s = term.getSelection(); if (s) send({ t: 'copy', d: s }); });
+  // Doppelklick: Satzzeichen am Wortende nicht mitnehmen („enp10s0f0:“ ⇒ „enp10s0f0“). Der Doppelpunkt trennt sonst
+  // bewusst nicht – MAC-Adressen, IPv6 und host:port bleiben beim Doppelklick ganz.
+  container.addEventListener('dblclick', () => setTimeout(() => {
+    const pos = term.getSelectionPosition(), text = term.getSelection();
+    if (!pos || !text || pos.start.y !== pos.end.y) return;
+    const trimmed = text.replace(/[:.,!?]+$/, '');
+    if (trimmed.length > 0 && trimmed.length < text.length) term.select(pos.start.x, pos.start.y, trimmed.length);
+  }, 0));
   // Einfügen läuft IMMER über C# (Rückfrage bei mehreren Zeilen) – auch Strg+V, Umschalt+Einfg und Browser-Paste
   let lastPasteRequest = 0;
   const requestPaste = (src) => { const now = Date.now(); if (now - lastPasteRequest < 400) return; lastPasteRequest = now; send({ t: 'paste-request', src: src || 'key' }); };

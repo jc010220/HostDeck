@@ -271,6 +271,13 @@ public partial class MainWindow : FluentWindow
             if (Keyboard.FocusedElement is System.Windows.Controls.Primitives.TextBoxBase or System.Windows.Controls.PasswordBox or System.Windows.Controls.ComboBox) return;
             _vm.UndoCommand.Execute(null);
         });
+        void RedoInTree()
+        {
+            if (Keyboard.FocusedElement is System.Windows.Controls.Primitives.TextBoxBase or System.Windows.Controls.PasswordBox or System.Windows.Controls.ComboBox) return;
+            _vm.RedoCommand.Execute(null);
+        }
+        Bind(Key.Y, ModifierKeys.Control, RedoInTree);
+        Bind(Key.Z, ModifierKeys.Control | ModifierKeys.Shift, RedoInTree);
         Bind(Key.D, ModifierKeys.Control | ModifierKeys.Shift, () => _vm.DuplicateInSplitView(_vm.FocusedWorkspace.ActiveTab));
         Bind(Key.O, ModifierKeys.Control, () => _vm.ImportMRemoteNGCommand.Execute(null));
         Bind(Key.N, ModifierKeys.Control, () => _vm.NewConnectionCommand.Execute(null));

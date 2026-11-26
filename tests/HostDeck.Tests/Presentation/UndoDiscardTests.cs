@@ -34,6 +34,14 @@ public sealed class UndoDiscardTests : IDisposable
         vm.UndoCommand.Execute(null);                  // Hinzufügen zurück
         Assert.Empty(vm.SessionTree.Tree.Connections);
         Assert.False(vm.CanUndo);
+
+        vm.RedoCommand.Execute(null);                  // Hinzufügen wieder da
+        Assert.Equal("srv-a", vm.SessionTree.Tree.Connections.Single().Name);
+        vm.RedoCommand.Execute(null);
+        Assert.Equal("renamed", vm.SessionTree.Tree.Connections.Single().Name);
+        vm.SessionTree.Tree.Connections.Single().Name = "new change";
+        vm.Persist();
+        Assert.False(vm.CanRedo);                      // neue Änderung ⇒ Wiederholen verfällt
     }
 
     [Fact]

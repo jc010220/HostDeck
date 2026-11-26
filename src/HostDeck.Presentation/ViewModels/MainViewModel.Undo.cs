@@ -13,10 +13,12 @@ public sealed partial class MainViewModel
 {
     private const int MaxUndo = 30;
     private readonly List<(List<TreeNode> Nodes, string Signature)> _undo = [];
+    private readonly List<(List<TreeNode> Nodes, string Signature)> _redo = [];
     private (List<TreeNode> Nodes, string Signature)? _lastState;
     private bool _restoringUndo;
 
     public bool CanUndo => _undo.Count > 0;
+    public bool CanRedo => _redo.Count > 0;
 
     private static string Signature(ConnectionTree tree)
     {
@@ -41,8 +43,10 @@ public sealed partial class MainViewModel
     private void ResetUndo()
     {
         _undo.Clear();
+        _redo.Clear();
         _lastState = _loadSucceeded ? CaptureState() : null;
         OnPropertyChanged(nameof(CanUndo));
+        OnPropertyChanged(nameof(CanRedo));
     }
 
     /// <summary>Nach jedem erfolgreichen Speichern: vorherigen Stand merken, falls sich der Baum wirklich geändert hat.</summary>
@@ -54,7 +58,9 @@ public sealed partial class MainViewModel
         {
             _undo.Add(last);
             if (_undo.Count > MaxUndo) _undo.RemoveAt(0);
+            _redo.Clear(); // neue Änderung ⇒ „Wiederholen“ verfällt (wie in jedem Editor)
             OnPropertyChanged(nameof(CanUndo));
+            OnPropertyChanged(nameof(CanRedo));
         }
         _lastState = current;
     }
@@ -69,6 +75,29 @@ public sealed partial class MainViewModel
         }
         var (nodes, _) = _undo[^1];
         _undo.RemoveAt(_undo.Count - 1);
+        if (_lastState is { } now) _redo.Add(now);
+        Restore(nodes);
+        StatusText = _undo.Count > 0 ? $"Undone ({_undo.Count} more step(s) possible – Ctrl+Z, redo with Ctrl+Y)" : "Undone (redo with Ctrl+Y)";
+    }
+
+    /// <summary>Strg+Y: zuletzt Rückgängig Gemachtes wiederherstellen.</summary>
+    [RelayCommand]
+    private void Redo()
+    {
+        if (_redo.Count == 0)
+        {
+            StatusText = "Nothing to redo.";
+            return;
+        }
+        var (nodes, _) = _redo[^1];
+        _redo.RemoveAt(_redo.Count - 1);
+        if (_lastState is { } now) _undo.Add(now);
+        Restore(nodes);
+        StatusText = "Redone";
+    }
+
+    private void Restore(List<TreeNode> nodes)
+    {
         var root = SessionTree.Tree.Root;
         foreach (var child in root.Children.ToList()) root.Remove(child);
         foreach (var node in nodes) root.Add(TreeMerge.CopyWithIds(node, includePersonal: true));
@@ -81,7 +110,7 @@ public sealed partial class MainViewModel
         finally { _restoringUndo = false; }
         _lastState = CaptureState();
         OnPropertyChanged(nameof(CanUndo));
+        OnPropertyChanged(nameof(CanRedo));
         Reachability?.Invalidate();
-        StatusText = _undo.Count > 0 ? $"Undone ({_undo.Count} more step(s) possible – Ctrl+Z)" : "Undone";
     }
 }

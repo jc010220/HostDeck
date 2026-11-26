@@ -300,6 +300,7 @@ public sealed partial class MainViewModel : ObservableObject
         yield return ("Layout: two panes – horizontal  (Ctrl+Shift+3)", "split horizontal rows stacked 2", () => Workspace.SetLayout(WorkspaceLayout.TwoRows));
         yield return ("Layout: four panes  (Ctrl+Shift+4)", "grid quad four 2x2 4", () => Workspace.SetLayout(WorkspaceLayout.Grid));
         if (CanUndo) yield return ("Undo last change in the tree  (Ctrl+Z)", "undo rückgängig zurück", () => UndoCommand.Execute(null));
+        if (CanRedo) yield return ("Redo  (Ctrl+Y)", "redo wiederholen wiederherstellen", () => RedoCommand.Execute(null));
         yield return ("Toggle multi-execution", "multiexec broadcast", () => IsMultiExecutionEnabled = !IsMultiExecutionEnabled);
         if (FocusedWorkspace.ActiveTab is { } current)
             yield return ($"Duplicate session in split view: {current.Connection.Name}  (Ctrl+Shift+D)", "duplicate split side by side nebeneinander kopie", () => DuplicateInSplitView(current));

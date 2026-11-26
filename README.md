@@ -61,7 +61,7 @@ If mRemoteNG is installed, HostDeck offers to import `%APPDATA%\mRemoteNG\confCo
 | Ctrl+L / Ctrl+F | Quick connect / filter the tree |
 | F2 / F4 / Del | Rename / properties / delete |
 | Ctrl+S | Sync all libraries |
-| Ctrl+Z (in the tree) | Undo the last change (delete, move, rename, properties …; up to 30 steps) |
+| Ctrl+Z / Ctrl+Y (in the tree) | Undo / redo the last change (delete, move, rename, properties …; up to 30 steps) |
 | Ctrl+D (in the tree) | Duplicate connection: properties open right away so you only adjust name and host |
 | Ctrl+N / Ctrl+Shift+N | New connection / new folder |
 | Ctrl+Tab, Ctrl+Shift+W | Switch / close tab (Ctrl+W stays "delete word" in the shell) |

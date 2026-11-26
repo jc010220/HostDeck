@@ -8,10 +8,11 @@
   const send = (m) => { if (bridge) bridge.postMessage(m); else (window.__hostdeckOutbox = window.__hostdeckOutbox || []).push(m); };
 
   const themes = {
-    dark: { background: '#1e1e1e', foreground: '#d4d4d4', cursor: '#aeafad', selectionBackground: '#264f78',
+    // Markierung wie unter Linux (GNOME/Adwaita): kräftiges Blau mit weißer Schrift – auch farbige Ausgaben bleiben lesbar
+    dark: { background: '#1e1e1e', foreground: '#d4d4d4', cursor: '#aeafad', selectionBackground: '#3584e4', selectionForeground: '#ffffff', selectionInactiveBackground: '#3584e499',
             black: '#000000', red: '#cd3131', green: '#0dbc79', yellow: '#e5e510', blue: '#2472c8', magenta: '#bc3fbc', cyan: '#11a8cd', white: '#e5e5e5',
             brightBlack: '#666666', brightRed: '#f14c4c', brightGreen: '#23d18b', brightYellow: '#f5f543', brightBlue: '#3b8eea', brightMagenta: '#d670d6', brightCyan: '#29b8db', brightWhite: '#e5e5e5' },
-    light: { background: '#fbfbfb', foreground: '#1e1e1e', cursor: '#1e1e1e', selectionBackground: '#add6ff',
+    light: { background: '#fbfbfb', foreground: '#1e1e1e', cursor: '#1e1e1e', selectionBackground: '#3584e4', selectionForeground: '#ffffff', selectionInactiveBackground: '#3584e499',
              black: '#000000', red: '#cd3131', green: '#107c10', yellow: '#946c00', blue: '#0451a5', magenta: '#bc05bc', cyan: '#0598bc', white: '#555555',
              brightBlack: '#666666', brightRed: '#e51400', brightGreen: '#14ce14', brightYellow: '#b5a000', brightBlue: '#0451a5', brightMagenta: '#bc05bc', brightCyan: '#0598bc', brightWhite: '#a5a5a5' },
   };

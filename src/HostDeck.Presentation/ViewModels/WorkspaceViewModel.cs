@@ -326,13 +326,28 @@ public sealed partial class WorkspaceViewModel : ObservableObject
     }
 
     /// <summary>Strg+Tab / Strg+Shift+Tab innerhalb des aktiven Bereichs.</summary>
+    /// <summary>
+    /// Strg+Tab / Strg+Umschalt+Tab: In der geteilten Ansicht zwischen den sichtbaren Sitzungen (Bereichen) wechseln,
+    /// sonst zwischen den Tabs. Die neue Sitzung bekommt gleich die Tastatur.
+    /// </summary>
     public void SelectNextTab(bool backwards = false)
     {
-        var tabs = ActivePane.Tabs;
-        if (tabs.Count < 2 || ActivePane.SelectedTab is null) return;
-        var i = tabs.IndexOf(ActivePane.SelectedTab);
-        ActivePane.SelectedTab = tabs[(i + (backwards ? -1 : 1) + tabs.Count) % tabs.Count];
+        var step = backwards ? -1 : 1;
+        var panes = Panes.Where(p => p.SelectedTab is not null).ToList();
+        if (panes.Count > 1)
+        {
+            var i = Math.Max(0, panes.IndexOf(ActivePane));
+            ActivePane = panes[(i + step + panes.Count) % panes.Count];
+        }
+        else
+        {
+            var tabs = ActivePane.Tabs;
+            if (tabs.Count < 2 || ActivePane.SelectedTab is null) return;
+            var i = tabs.IndexOf(ActivePane.SelectedTab);
+            ActivePane.SelectedTab = tabs[(i + step + tabs.Count) % tabs.Count];
+        }
         OnPropertyChanged(nameof(ActiveTab));
+        ActiveTab?.RequestFocus();
     }
 
     /// <summary>Strg+Alt+Pfeil: nächsten Bereich aktivieren.</summary>

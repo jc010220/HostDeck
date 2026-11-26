@@ -86,6 +86,11 @@ public sealed class RdpView : Grid
         vm.DisconnectRequested += (_, _) => Disconnect();
         vm.CancelRequested += (_, _) => Safe("Cancel", CancelConnect);
         vm.FullScreenRequested += (_, _) => { if (_host is not null && _connected) Dispatch.TrySet(_host.Ocx, "FullScreen", true); };
+        // Strg+Tab / neu geöffnet: Tastatur in die RDP-Sitzung
+        tab.FocusRequested += (_, _) => Dispatcher.BeginInvoke(DispatcherPriority.Input, () =>
+        {
+            if (_host is not null && _connected && IsVisible && Window.GetWindow(this) is { IsActive: true }) { _host.Focus(); tab.FocusPending = false; }
+        });
         tab.Closed += (_, _) => Teardown();
     }
 

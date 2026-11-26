@@ -69,3 +69,20 @@ public sealed class UndoDiscardTests : IDisposable
         Assert.Equal(radius.Id, restored.Settings.CredentialId);
     }
 }
+
+public sealed class SplitViewCycleTests
+{
+    [Fact]
+    public void Ctrl_tab_cycles_visible_sessions_in_split_view()
+    {
+        var ws = new WorkspaceViewModel();
+        ws.SetLayout(WorkspaceLayout.TwoColumns);
+        var left = ws.Open(new SessionTabViewModel(new ConnectionNode("left") { Hostname = "l" }, new CredentialVault(), isTransient: false), ws.Panes[0]);
+        var right = ws.Open(new SessionTabViewModel(new ConnectionNode("right") { Hostname = "r" }, new CredentialVault(), isTransient: false), ws.Panes[1]);
+        Assert.Same(right, ws.ActiveTab);
+        ws.SelectNextTab();
+        Assert.Same(left, ws.ActiveTab);
+        ws.SelectNextTab(backwards: true);
+        Assert.Same(right, ws.ActiveTab);
+    }
+}

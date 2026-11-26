@@ -55,7 +55,7 @@
                         <ui:TextBox Text="{Binding Description, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="{Binding DescriptionPlaceholder}" />
                         <TextBlock Style="{StaticResource Label}" Text="Tags (found by quick search, e.g. “prod, linux, dmz”)" />
                         <ui:TextBox Text="{Binding Tags, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="{Binding TagsPlaceholder}" />
-                        <CheckBox Content="Favorite (shown first in quick search)" IsChecked="{Binding Favorite}" Margin="0,14,0,0" />
+                        <CheckBox Content="Favorite (shown first in quick search)" IsChecked="{Binding IsFavorite}" Margin="0,14,0,0" />
                         <!-- Ordner: weitere (meist aus mRemoteNG übernommene) vererbte Werte anzeigen und entfernen -->
                         <Border Margin="0,16,0,0" Padding="10" CornerRadius="6" Background="{DynamicResource ControlFillColorDefaultBrush}"
                                 Visibility="{Binding HiddenFolderValues, Converter={StaticResource NullToVisibility}}">
@@ -107,13 +107,13 @@
                         <TextBlock Style="{StaticResource Label}" Text="Server certificate" />
                         <ComboBox ItemsSource="{Binding AuthLevelOptions}" SelectedItem="{Binding AuthLevel}" />
                         <StackPanel Visibility="{Binding IsConnection, Converter={StaticResource BoolToVisibility}}">
-                        <CheckBox Content="Network Level Authentication (NLA / CredSSP)" IsChecked="{Binding UseCredSsp}" />
-                        <CheckBox Content="Restricted Admin (no credentials on the server)" IsChecked="{Binding RestrictedAdmin}" />
-                        <CheckBox Content="Connect to console session (/admin)" IsChecked="{Binding ConsoleSession}" />
+                        <CheckBox Content="Network Level Authentication (NLA / CredSSP)" IsChecked="{Binding IsCredSsp}" />
+                        <CheckBox Content="Restricted Admin (no credentials on the server)" IsChecked="{Binding IsRestrictedAdmin}" />
+                        <CheckBox Content="Connect to console session (/admin)" IsChecked="{Binding IsConsoleSession}" />
                         <TextBlock Style="{StaticResource Label}" Text="Redirection" FontWeight="SemiBold" />
-                        <CheckBox Content="Clipboard" IsChecked="{Binding RedirectClipboard}" />
-                        <CheckBox Content="Printers" IsChecked="{Binding RedirectPrinters}" />
-                        <CheckBox Content="Send Windows key combinations to the server (Alt+Tab, Win)" IsChecked="{Binding RedirectKeys}" />
+                        <CheckBox Content="Clipboard" IsChecked="{Binding IsRedirectClipboard}" />
+                        <CheckBox Content="Printers" IsChecked="{Binding IsRedirectPrinters}" />
+                        <CheckBox Content="Send Windows key combinations to the server (Alt+Tab, Win)" IsChecked="{Binding IsRedirectKeys}" />
                         </StackPanel>
                         <TextBlock Style="{StaticResource Label}" Text="Drives" />
                         <ComboBox ItemsSource="{Binding DriveOptions}" SelectedItem="{Binding Drives}" />

@@ -158,3 +158,25 @@ public sealed class VaultCleanupTests
         Assert.Contains(tree.Vault.Items, c => c.Id == other.Id);
     }
 }
+
+public sealed class EditorTwoStateTests
+{
+    [Fact]
+    public void Checkboxes_show_effective_value_and_store_only_deviations()
+    {
+        var folder = new FolderNode("f") { Settings = { Favorite = true } };
+        var c = new ConnectionNode("srv") { Hostname = "h" };
+        folder.Add(c);
+        new ConnectionTree().Root.Add(folder);
+        var e = new ConnectionEditorViewModel(c, new CredentialVault());
+        Assert.True(e.IsFavorite);                 // vom Ordner geerbt
+        e.IsFavorite = false;
+        Assert.Null(e.Apply());
+        Assert.False(c.Settings.Favorite);         // Abweichung gespeichert
+        var e2 = new ConnectionEditorViewModel(c, new CredentialVault());
+        e2.IsFavorite = true;                      // wieder wie der Ordner ⇒ erben
+        Assert.Null(e2.Apply());
+        Assert.Null(c.Settings.Favorite);
+        Assert.True(e2.IsCredSsp);                 // Standard: NLA an
+    }
+}

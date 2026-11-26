@@ -212,7 +212,7 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
         : (UseCredSsp ?? _inherited.Rdp.UseCredSsp) == false ? "Insecure: NLA/CredSSP is disabled." : null;
 
     partial void OnAuthLevelChanged(Option<RdpAuthenticationLevel> value) => OnPropertyChanged(nameof(SecurityWarning));
-    partial void OnUseCredSspChanged(bool? value) => OnPropertyChanged(nameof(SecurityWarning));
+    partial void OnUseCredSspChanged(bool? value) { OnPropertyChanged(nameof(SecurityWarning)); OnPropertyChanged(nameof(IsCredSsp)); }
 
     // ---- Ordner: nur sinnvolle Vorgaben -----------------------------------------------------------
     // Ein Ordner gibt nur noch weiter, was viele Einträge wirklich gemeinsam haben: Login aus dem Vault (z. B. RADIUS
@@ -261,6 +261,61 @@ public sealed partial class ConnectionEditorViewModel : ObservableObject
         ConsoleSession = null;
         if (RestrictedAdmin == false) RestrictedAdmin = null;
         OnPropertyChanged(nameof(HiddenFolderValues));
+    }
+
+    // ---- Ja/Nein-Optionen ohne dritten Zustand --------------------------------------------------------
+    // Ein Häkchen zeigt immer den wirksamen Wert (eigener oder geerbter). Gespeichert wird nur eine Abweichung vom
+    // geerbten Wert – stimmt die Wahl mit dem Ordner überein, erbt der Eintrag wieder. So gibt es kein unklares „■“ mehr.
+
+    private static bool? Own(bool value, bool inherited) => value == inherited ? null : value;
+
+    partial void OnFavoriteChanged(bool? value) => OnPropertyChanged(nameof(IsFavorite));
+    partial void OnRestrictedAdminChanged(bool? value) => OnPropertyChanged(nameof(IsRestrictedAdmin));
+    partial void OnConsoleSessionChanged(bool? value) => OnPropertyChanged(nameof(IsConsoleSession));
+    partial void OnRedirectClipboardChanged(bool? value) => OnPropertyChanged(nameof(IsRedirectClipboard));
+    partial void OnRedirectPrintersChanged(bool? value) => OnPropertyChanged(nameof(IsRedirectPrinters));
+    partial void OnRedirectKeysChanged(bool? value) => OnPropertyChanged(nameof(IsRedirectKeys));
+
+    public bool IsFavorite
+    {
+        get => Favorite ?? _inherited.Favorite ?? false;
+        set { Favorite = Own(value, _inherited.Favorite ?? false); OnPropertyChanged(); }
+    }
+
+    public bool IsCredSsp
+    {
+        get => UseCredSsp ?? _inherited.Rdp.UseCredSsp ?? true;
+        set { UseCredSsp = Own(value, _inherited.Rdp.UseCredSsp ?? true); OnPropertyChanged(); }
+    }
+
+    public bool IsRestrictedAdmin
+    {
+        get => RestrictedAdmin ?? _inherited.Rdp.UseRestrictedAdmin ?? false;
+        set { RestrictedAdmin = Own(value, _inherited.Rdp.UseRestrictedAdmin ?? false); OnPropertyChanged(); }
+    }
+
+    public bool IsConsoleSession
+    {
+        get => ConsoleSession ?? _inherited.Rdp.UseConsoleSession ?? false;
+        set { ConsoleSession = Own(value, _inherited.Rdp.UseConsoleSession ?? false); OnPropertyChanged(); }
+    }
+
+    public bool IsRedirectClipboard
+    {
+        get => RedirectClipboard ?? _inherited.Rdp.RedirectClipboard ?? true;
+        set { RedirectClipboard = Own(value, _inherited.Rdp.RedirectClipboard ?? true); OnPropertyChanged(); }
+    }
+
+    public bool IsRedirectPrinters
+    {
+        get => RedirectPrinters ?? _inherited.Rdp.RedirectPrinters ?? false;
+        set { RedirectPrinters = Own(value, _inherited.Rdp.RedirectPrinters ?? false); OnPropertyChanged(); }
+    }
+
+    public bool IsRedirectKeys
+    {
+        get => RedirectKeys ?? _inherited.Rdp.RedirectKeys ?? false;
+        set { RedirectKeys = Own(value, _inherited.Rdp.RedirectKeys ?? false); OnPropertyChanged(); }
     }
 
     // ---- Übernehmen -------------------------------------------------------------------------------

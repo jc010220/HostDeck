@@ -309,7 +309,7 @@ public sealed partial class MainViewModel : ObservableObject
             yield return ("Set library password …", "team library password passwort schützen protect master", () => SetTeamPasswordCommand.Execute(null));
             yield return ("Remove library password …", "team library password passwort entfernen remove unprotect", () => RemoveTeamPasswordCommand.Execute(null));
         }
-        yield return (HasTeamLibrary ? "Connect another library (confCons.xml) …" : "Connect library (shared confCons.xml) …",
+        yield return (HasTeamLibrary ? "Connect another library …" : "Connect library (shared mRemoteNG file) …",
             "team bibliothek library share laufwerk gemeinsam confcons keepass onedrive", () => ConnectTeamLibraryCommand.Execute(null));
         yield return ("Create new library file (e.g. on OneDrive) …", "team bibliothek library neu new create onedrive personal persönlich", () => CreateLibraryCommand.Execute(null));
         yield return ("Import mRemoteNG file", "import confcons", () => ImportMRemoteNGCommand.Execute(null));
@@ -980,7 +980,7 @@ public sealed partial class MainViewModel : ObservableObject
     [RelayCommand]
     private async Task ImportMRemoteNG()
     {
-        var path = _dialogs.OpenFile("Import mRemoteNG connections", "mRemoteNG (confCons.xml)|*.xml|All files|*.*");
+        var path = _dialogs.OpenFile("Import mRemoteNG connections", "mRemoteNG connection file (*.xml)|*.xml|All files|*.*");
         if (path is not null) await TryImportAsync(path);
     }
 
@@ -1150,7 +1150,7 @@ public sealed partial class MainViewModel : ObservableObject
                 return;
             }
         }
-        var path = _dialogs.SaveFile("Export as mRemoteNG file", "mRemoteNG (confCons.xml)|*.xml", "confCons.xml");
+        var path = _dialogs.SaveFile("Export as mRemoteNG file", "mRemoteNG connection file (*.xml)|*.xml", "Connections.xml");
         if (path is null) return;
         try
         {

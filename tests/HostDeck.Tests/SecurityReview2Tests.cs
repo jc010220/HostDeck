@@ -79,6 +79,20 @@ public sealed class SecurityReview2Tests : IDisposable
         Assert.NotEqual(secure, MainViewModel.TargetKey(c));
     }
 
+    [Fact]
+    public void Turning_off_restricted_admin_or_credential_guard_changes_the_bound_target()
+    {
+        var c = new ConnectionNode("dc01") { Hostname = "10.0.0.1", Settings = { Protocol = ProtocolKind.Rdp } };
+        c.Settings.Rdp.UseRestrictedAdmin = true;
+        var protectedKey = MainViewModel.TargetKey(c);
+        c.Settings.Rdp.UseRestrictedAdmin = false;               // Kollege schaltet den Schutz ab
+        Assert.NotEqual(protectedKey, MainViewModel.TargetKey(c));
+        c.Settings.Rdp.UseRemoteCredentialGuard = true;
+        var rcg = MainViewModel.TargetKey(c);
+        c.Settings.Rdp.UseRemoteCredentialGuard = null;
+        Assert.NotEqual(rcg, MainViewModel.TargetKey(c));
+    }
+
     // ---- M3: Passwortschutz darf nicht still verschwinden -------------------------------------------
 
     [Fact]

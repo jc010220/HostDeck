@@ -54,7 +54,7 @@
                     <ui:SymbolIcon Symbol="{x:Static app:Icons.Sidebar}" />
                 </ToggleButton>
                 <Separator />
-                <ui:Button Command="{Binding ImportMRemoteNGCommand}" ToolTip="Import mRemoteNG file (confCons.xml)  (Ctrl+O)">
+                <ui:Button Command="{Binding ImportMRemoteNGCommand}" ToolTip="Import mRemoteNG file (.xml)  (Ctrl+O)">
                     <StackPanel Orientation="Horizontal">
                         <ui:SymbolIcon Symbol="{x:Static app:Icons.Import}" Margin="0,0,6,0" />
                         <TextBlock Text="Import" />
@@ -131,7 +131,7 @@
                                       IsChecked="{Binding IsDeviceUnlockEnabled}"
                                       Visibility="{Binding DeviceUnlockSupported, Converter={StaticResource BoolToVisibility}}" />
                             <Separator />
-                            <MenuItem Header="Connect library (confCons.xml) …" Command="{Binding ConnectTeamLibraryCommand}" />
+                            <MenuItem Header="Connect library …" Command="{Binding ConnectTeamLibraryCommand}" />
                             <MenuItem Header="Create new library file (e.g. on OneDrive) …" Command="{Binding CreateLibraryCommand}" />
                             <MenuItem Header="Sync libraries" InputGestureText="Ctrl+S" Command="{Binding SyncTeamCommand}"
                                       Visibility="{Binding HasTeamLibrary, Converter={StaticResource BoolToVisibility}}" />

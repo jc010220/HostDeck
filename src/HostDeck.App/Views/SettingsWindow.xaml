@@ -89,7 +89,7 @@
             <StackPanel x:Name="SecTeam" Visibility="Hidden">
                 <TextBlock Text="Libraries" FontSize="20" FontWeight="SemiBold" Margin="0,0,0,4" />
             <TextBlock Margin="0,0,0,8" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                       Text="Each library is a confCons.xml (stays compatible with mRemoteNG) and appears as its own folder in the tree – e.g. one per team, or your own file on OneDrive. Changes by others appear automatically, save your own with Ctrl+S. Folder instead of file: the newest .xml in it is used. A file that does not exist yet is created when you click OK." />
+                       Text="Each library is an mRemoteNG connection file (.xml, any name – stays compatible with mRemoteNG) and appears as its own folder in the tree – e.g. one per team, or your own file on OneDrive. Changes by others appear automatically, save your own with Ctrl+S. Folder instead of file: the newest .xml in it is used. A file that does not exist yet is created when you click OK." />
             <ItemsControl ItemsSource="{Binding Libraries}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
@@ -101,7 +101,7 @@
                             <Grid.RowDefinitions><RowDefinition /><RowDefinition Height="Auto" /></Grid.RowDefinitions>
                             <ui:TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Folder name" ToolTip="Name of the folder in your tree" />
                             <ui:TextBox Grid.Column="2" Text="{Binding Path, UpdateSourceTrigger=PropertyChanged}"
-                                        PlaceholderText="\\server\team\confCons.xml  ·  OneDrive\HostDeck\confCons.xml" />
+                                        PlaceholderText="\\server\team\Connections.xml  ·  OneDrive\HostDeck\Personal.xml" />
                             <ui:Button Grid.Column="3" Content="Browse …" Margin="8,0,0,0" CommandParameter="{Binding}"
                                        Command="{Binding DataContext.BrowseLibraryCommand, RelativeSource={RelativeSource AncestorType=Window}}" />
                             <ui:Button Grid.Column="4" Margin="6,0,0,0" ToolTip="Disconnect this library (the file itself is not changed)" CommandParameter="{Binding}"

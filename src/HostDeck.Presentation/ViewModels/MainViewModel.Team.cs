@@ -214,7 +214,7 @@ public sealed partial class MainViewModel
     [RelayCommand]
     private async Task ConnectTeamLibrary()
     {
-        var path = _dialogs.OpenFile("Choose library (shared confCons.xml)", "mRemoteNG (confCons.xml)|*.xml|All files|*.*");
+        var path = _dialogs.OpenFile("Choose library file (mRemoteNG .xml)", "mRemoteNG connection file (*.xml)|*.xml|All files|*.*");
         if (path is null) return;
         string? name = null;
         if (HasTeamLibrary && !Libraries.Any(l => SamePath(l.Path, path)))
@@ -230,7 +230,7 @@ public sealed partial class MainViewModel
     [RelayCommand]
     private async Task CreateLibrary()
     {
-        var path = _dialogs.SaveFile("Create new library file", "mRemoteNG (confCons.xml)|*.xml", "confCons.xml");
+        var path = _dialogs.SaveFile("Create new library file", "mRemoteNG connection file (*.xml)|*.xml", "Library.xml");
         if (path is null) return;
         if (File.Exists(path))
         {
@@ -912,6 +912,10 @@ public sealed partial class MainViewModel
             var weak = new List<string>();
             if ((s.Rdp.AuthenticationLevel ?? RdpAuthenticationLevel.WarnOnFailedAuth) == RdpAuthenticationLevel.NoAuth) weak.Add("noauth");
             if (s.Rdp.UseCredSsp == false) weak.Add("nocredssp");
+            // Eingeschaltete Schutzmechanismen gehören ebenfalls dazu: Schaltet ein Kollege Restricted Admin bzw. Remote
+            // Credential Guard ab, würde das Login sonst ohne Rückfrage an den Server delegiert.
+            if (s.Rdp.UseRestrictedAdmin == true) weak.Add("ra");
+            if (s.Rdp.UseRemoteCredentialGuard == true) weak.Add("rcg");
             if (weak.Count > 0) key += "|" + string.Join(',', weak);
         }
         return key;
@@ -931,6 +935,9 @@ public sealed partial class MainViewModel
         {
             if (parts[4].Contains("noauth")) text += " – SERVER AUTHENTICATION OFF";
             if (parts[4].Contains("nocredssp")) text += " – NLA/CredSSP OFF";
+            var flags = parts[4].Split(',');
+            if (flags.Contains("ra")) text += " – Restricted Admin";
+            if (flags.Contains("rcg")) text += " – Remote Credential Guard";
         }
         return text;
     }

@@ -80,10 +80,10 @@ public partial class SettingsWindow : FluentWindow
     {
         var dialog = new Microsoft.Win32.OpenFileDialog
         {
-            Title = "Choose library file (confCons.xml) – or type the name of a new file",
-            Filter = "mRemoteNG (confCons.xml)|*.xml|All files|*.*",
+            Title = "Choose library file (.xml) – or type the name of a new file",
+            Filter = "mRemoteNG connection file (*.xml)|*.xml|All files|*.*",
             CheckFileExists = false,
-            FileName = "confCons.xml",
+            FileName = "",
         };
         try
         {

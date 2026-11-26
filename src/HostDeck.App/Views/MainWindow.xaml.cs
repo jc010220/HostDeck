@@ -41,6 +41,7 @@ public partial class MainWindow : FluentWindow
             Dispatcher.BeginInvoke(() => TerminalView.BroadcastTheme(theme == Wpf.Ui.Appearance.ApplicationTheme.Light ? "light" : "dark"));
         TerminalView.CurrentTheme = () => Wpf.Ui.Appearance.ApplicationThemeManager.GetAppTheme() == Wpf.Ui.Appearance.ApplicationTheme.Light ? "light" : "dark";
         TerminalView.ShortcutHandler = OnTerminalShortcut;
+        TerminalView.TabActivated = tab => _vm.ActivateTab(tab);
         // Kürzel auch aus einer RDP-Sitzung heraus (dort gehen sonst alle Tasten an den entfernten Rechner)
         SourceInitialized += (_, _) =>
         {

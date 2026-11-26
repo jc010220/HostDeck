@@ -46,6 +46,8 @@ public sealed class RdpView : Grid
     {
         lock (Instances) Instances.Add(new WeakReference<RdpView>(this));
         _formsHost.Child = _panel;
+        // Klick in die RDP-Sitzung ⇒ Bereich aktivieren (WPF bekommt Klicks im ActiveX-Fenster nicht mit)
+        _panel.Enter += (_, _) => { if (_vm is { } vm) Views.TerminalView.TabActivated?.Invoke(vm.Tab); };
         var connectButton = new Wpf.Ui.Controls.Button { Content = "Connect", Appearance = Wpf.Ui.Controls.ControlAppearance.Primary, HorizontalAlignment = HorizontalAlignment.Center };
         connectButton.Click += (_, _) => Connect();
         _statusPanel = new Border

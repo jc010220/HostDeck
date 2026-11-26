@@ -45,6 +45,9 @@ public sealed class TerminalView : Border
     /// <summary>Rechtsklick öffnet ein Menü (Einstellung, Standard: an) statt sofort einzufügen.</summary>
     public static Func<bool> RightClickMenu { get; set; } = () => true;
 
+    /// <summary>In eine eingebettete Sitzung geklickt (Terminal, RDP) ⇒ deren Bereich aktivieren (von der App gesetzt).</summary>
+    public static Action<SessionTabViewModel>? TabActivated { get; set; }
+
     /// <summary>Mehrzeiliges Einfügen per Tastatur bestätigen (Einstellung, Standard: an).</summary>
     public static Func<bool> ConfirmMultiLinePaste { get; set; } = () => true;
     /// <summary>„Nicht mehr fragen“ im Dialog gewählt (App speichert die Einstellung).</summary>
@@ -230,6 +233,9 @@ public sealed class TerminalView : Border
                 break;
             case "paste-request":
                 Paste();
+                break;
+            case "activate":
+                if (_tab is not null) TabActivated?.Invoke(_tab);
                 break;
             case "menu":
                 if (RightClickMenu()) ShowContextMenu(m.TryGetProperty("sel", out var sel) ? sel.GetString() ?? "" : "");

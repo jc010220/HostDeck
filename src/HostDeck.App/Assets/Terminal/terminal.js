@@ -59,6 +59,8 @@
   const requestPaste = (src) => { const now = Date.now(); if (now - lastPasteRequest < 400) return; lastPasteRequest = now; send({ t: 'paste-request', src: src || 'key' }); };
   // Rechtsklick: Menü in HostDeck (Kopieren, Einfügen, Suchen …) – bzw. direkt einfügen, wenn so eingestellt
   container.addEventListener('contextmenu', (e) => { e.preventDefault(); send({ t: 'menu', sel: term.getSelection() || '' }); });
+  // Klick ins Terminal ⇒ dieser Bereich wird aktiv (blauer Rahmen) – WPF bekommt Mausklicks im WebView2 nicht mit
+  container.addEventListener('mousedown', () => send({ t: 'activate' }), true);
   container.addEventListener('paste', (e) => { e.preventDefault(); e.stopPropagation(); requestPaste(); }, true);
   container.addEventListener('drop', (e) => { e.preventDefault(); e.stopPropagation(); }, true); // kein Text per Drag & Drop
 

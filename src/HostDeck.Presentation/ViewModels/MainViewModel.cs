@@ -113,6 +113,16 @@ public sealed partial class MainViewModel : ObservableObject
         return CreateTab(tab.Connection, transient ? new CredentialVault() : SessionTree.Tree.Vault, transient);
     }
 
+    /// <summary>Bereich (und Fenster) einer angeklickten Sitzung aktivieren – für den blauen Rahmen und Tastenkürzel.</summary>
+    public void ActivateTab(SessionTabViewModel tab)
+    {
+        var owner = AllWorkspaces.FirstOrDefault(w => w.AllTabs.Contains(tab));
+        if (owner?.Panes.FirstOrDefault(p => p.Tabs.Contains(tab)) is not { } pane) return;
+        if (owner.ActivePane != pane) owner.ActivePane = pane;
+        if (pane.SelectedTab != tab) pane.SelectedTab = tab;
+        FocusedWorkspace = owner;
+    }
+
     public void DuplicateInSplitView(SessionTabViewModel? tab)
     {
         if (tab is null) return;

@@ -62,6 +62,8 @@ public sealed class WebView : DockPanel
         tab.Closed += (_, _) => Release();
         vm.CancelRequested += (_, _) => _web?.CoreWebView2?.Stop();
         _web = new WebView2Control();
+        // Klick in die Webseite ⇒ Bereich aktivieren (WPF sieht Klicks im WebView2-Fenster nicht)
+        _web.GotFocus += (_, _) => HostDeck.App.Views.TerminalView.TabActivated?.Invoke(tab);
         Children.Add(_web);
         try
         {

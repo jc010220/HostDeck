@@ -208,7 +208,7 @@ SftpSession ── separate connection, same (already confirmed) host key
   on network devices (switch CLIs).
 * **Highlighting:** errors (red), warnings (yellow), success (green), IPv4 (cyan), only on text the program does not color
   itself; full-screen programs (vim, htop) are left alone.
-* **Terminal usage:** select = copy, right-click menu like PuTTY (copy, paste, find, copy all, clear scrollback, reset, reconnect, duplicate session; or direct paste if turned off in Settings → Behavior), Ctrl+Shift+C/V, Ctrl+Shift+F search,
+* **Terminal usage:** select = copy, right-click menu like PuTTY (copy, paste, find, copy all, clear scrollback, reset, reconnect, duplicate session; or direct paste if turned off in Settings → Behavior), Ctrl+Shift+C copy, Ctrl+V / Ctrl+Shift+V / Shift+Insert paste, Ctrl+Shift+F search,
   Ctrl+mouse wheel font size, clickable links, Enter in a disconnected session reconnects. App shortcuts inside the terminal:
   Ctrl+Tab, Ctrl+Shift+W (close tab; Ctrl+W stays "delete word" in the shell), Ctrl+Shift+M, Ctrl+Shift+L, Ctrl+Shift+B, Ctrl+Shift+1…4.
 * **Integration tests** run against a real OpenSSH server when `HOSTDECK_TEST_SSH`, `HOSTDECK_TEST_SSH_USER`,

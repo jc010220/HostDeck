@@ -71,7 +71,7 @@ If mRemoteNG is installed, HostDeck offers to import `%APPDATA%\mRemoteNG\confCo
 | Ctrl+Shift+M | Multi-execution |
 | Ctrl+Shift+B | Show/hide the sidebar (also via the leftmost toolbar button) |
 | Esc / Ctrl+C (terminal), "Cancel" in the status bar | Cancel a connection attempt |
-| Terminal: Ctrl+Shift+C/V/F, Ctrl+mouse wheel | Copy / paste / search / zoom |
+| Terminal: Ctrl+Shift+C, Ctrl+V / Ctrl+Shift+V / Shift+Insert, Ctrl+Shift+F, Ctrl+mouse wheel | Copy / paste / search / zoom |
 | Vault: Ctrl+F | Search credentials |
 
 ## Team library (shared confCons.xml)

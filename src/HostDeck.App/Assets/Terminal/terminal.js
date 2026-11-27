@@ -82,7 +82,11 @@
     // Layout: Strg+Umschalt+1…4 (e.key wäre mit Umschalt „!“, „"“ … ⇒ physische Taste)
     if (e.ctrlKey && e.shiftKey && !e.altKey && /^Digit[1-4]$/.test(e.code)) { e.preventDefault(); send({ t: 'shortcut', key: 'ctrl+shift+' + e.code.slice(5) }); return false; }
     if (key === 'ctrl+shift+c') { const s = term.getSelection(); if (s) send({ t: 'copy', d: s }); return false; }
-    if (key === 'ctrl+shift+v') { e.preventDefault(); requestPaste(); return false; }
+    // Einfügen wie im Windows Terminal: Strg+V, Strg+Umschalt+V und Umschalt+Einfg (xterm.js würde Strg+V sonst als
+    // Steuerzeichen ^V an den Server schicken und Umschalt+Einfg als Escape-Folge – dann ginge nur die Maus)
+    if ((e.ctrlKey && !e.altKey && e.code === 'KeyV') || (e.shiftKey && !e.ctrlKey && !e.altKey && e.code === 'Insert')) {
+      e.preventDefault(); requestPaste(); return false;
+    }
     if (key === 'ctrl+shift+f') { openSearch(); return false; }
     if (appShortcuts.has(key)) { e.preventDefault(); send({ t: 'shortcut', key }); return false; }
     return true;

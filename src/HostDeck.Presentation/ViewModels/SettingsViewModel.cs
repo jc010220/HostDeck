@@ -176,7 +176,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     {
         // Eingaben der bisher gewählten Datei merken (geschrieben wird erst mit OK)
         if (SelectedTeamFile is { } old)
-            _editedPolicies[old.File] = new Team.TeamBackupPolicy { Enabled = TeamBackupEnabled, KeepDaily = TeamKeepDaily, KeepWeekly = TeamKeepWeekly, KeepMonthly = TeamKeepMonthly };
+            _editedPolicies[old.File] = new Team.TeamBackupPolicy { Enabled = TeamBackupEnabled, KeepDaily = TeamKeepDaily, KeepWeekly = TeamKeepWeekly, KeepMonthly = TeamKeepMonthly, KeepVersionsDays = TeamKeepVersionsDays };
     }
 
     partial void OnSelectedTeamFileChanged(TeamFileOption? value)
@@ -191,6 +191,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         TeamKeepDaily = shown.KeepDaily;
         TeamKeepWeekly = shown.KeepWeekly;
         TeamKeepMonthly = shown.KeepMonthly;
+        TeamKeepVersionsDays = shown.KeepVersionsDays;
         RefreshTeamBackupSummary();
     }
 
@@ -201,6 +202,8 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private int _teamKeepDaily = 14;
     [ObservableProperty] private int _teamKeepWeekly = 8;
     [ObservableProperty] private int _teamKeepMonthly = 12;
+    [ObservableProperty] private int _teamKeepVersionsDays = 30;
+    public IReadOnlyList<int> VersionDayOptions { get; } = [0, 7, 14, 30, 60, 90, 180];
     [ObservableProperty] private string _teamBackupSummary = "Connect a team library to use team backups.";
 
     public void RefreshTeamBackupSummary()
@@ -214,17 +217,18 @@ public sealed partial class SettingsViewModel : ObservableObject
     public bool ApplyTeamBackupPolicy()
     {
         if (SelectedTeamFile is { } current)
-            _editedPolicies[current.File] = new Team.TeamBackupPolicy { Enabled = TeamBackupEnabled, KeepDaily = TeamKeepDaily, KeepWeekly = TeamKeepWeekly, KeepMonthly = TeamKeepMonthly };
+            _editedPolicies[current.File] = new Team.TeamBackupPolicy { Enabled = TeamBackupEnabled, KeepDaily = TeamKeepDaily, KeepWeekly = TeamKeepWeekly, KeepMonthly = TeamKeepMonthly, KeepVersionsDays = TeamKeepVersionsDays };
         var changed = false;
         foreach (var (file, edited) in _editedPolicies)
         {
             if (!_loadedPolicies.TryGetValue(file, out var loaded)) continue;
-            if ((loaded.Enabled, loaded.KeepDaily, loaded.KeepWeekly, loaded.KeepMonthly)
-                == (edited.Enabled, edited.KeepDaily, edited.KeepWeekly, edited.KeepMonthly)) continue;
+            if ((loaded.Enabled, loaded.KeepDaily, loaded.KeepWeekly, loaded.KeepMonthly, loaded.KeepVersionsDays)
+                == (edited.Enabled, edited.KeepDaily, edited.KeepWeekly, edited.KeepMonthly, edited.KeepVersionsDays)) continue;
             loaded.Enabled = edited.Enabled;
             loaded.KeepDaily = edited.KeepDaily;
             loaded.KeepWeekly = edited.KeepWeekly;
             loaded.KeepMonthly = edited.KeepMonthly;
+            loaded.KeepVersionsDays = edited.KeepVersionsDays;
             Team.TeamBackup.WritePolicy(file, loaded);
             changed = true;
         }

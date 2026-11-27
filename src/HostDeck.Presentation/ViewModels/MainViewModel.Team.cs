@@ -774,7 +774,9 @@ public sealed partial class MainViewModel
                             : remote.Info with { KdfIterations = Math.Max(remote.Info.KdfIterations ?? 1000, TeamKdfIterations) };
                         var password = newPassword ?? remote.Password;
                         var merged = children;
-                        (newHash, var written) = await Io(() => TeamLibraryFile.Write(path, merged, format, password, remote.Hash, c => BackupTeamFile(lib, c)));
+                        byte[]? previous = null;
+                        (newHash, var written) = await Io(() => TeamLibraryFile.Write(path, merged, format, password, remote.Hash, c => { previous = c; BackupTeamFile(lib, c); }));
+                        _ = SaveTeamVersionAsync(path, previous);
                         children = TreeMerge.WithPersonalFrom(written, merged);
                         newBase = TreeMerge.Snapshot(children);
                         wrote = true;
@@ -1104,6 +1106,20 @@ public sealed partial class MainViewModel
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or TeamFileLockedException or ConfConsFormatException)
         {
             AppLog.Info($"Library backup skipped: {ex.Message}");
+        }
+    }
+
+    /// <summary>Versionsverlauf neben der Datei (falls die Regel es vorsieht) – Fehler verhindern das Speichern nie.</summary>
+    private async Task SaveTeamVersionAsync(string file, byte[]? previous)
+    {
+        try
+        {
+            if (await Io(() => HostDeck.Presentation.Team.TeamBackup.SaveVersion(file, previous, DateTime.Now)) is { } version)
+                AppLog.Info($"Library version saved: {Path.GetFileName(version)}");
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException or ConfConsFormatException)
+        {
+            AppLog.Info($"Library version not saved: {ex.Message}");
         }
     }
 

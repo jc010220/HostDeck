@@ -74,8 +74,8 @@
             <CheckBox Content="SFTP browser follows the terminal directory" IsChecked="{Binding SftpFollows}" Margin="0,4,0,0" />
             <CheckBox Content="Close the tab when the session ends (exit, logout, RDP sign-out)" IsChecked="{Binding CloseTabOnSessionEnd}" Margin="0,4,0,0"
                       ToolTip="Like PuTTY “close window on clean exit”. Lost connections and errors keep the tab open so you can reconnect." />
-            <CheckBox Content="Ask before pasting several lines with the keyboard (Ctrl+V / Ctrl+Shift+V)" IsChecked="{Binding ConfirmMultiLinePaste}" Margin="0,4,0,0"
-                      ToolTip="Each line is executed immediately – protects against accidental pastes. “Paste” from the right-click menu never asks." />
+            <CheckBox Content="Ask before pasting several lines into the terminal" IsChecked="{Binding ConfirmMultiLinePaste}" Margin="0,4,0,0"
+                      ToolTip="Each line is executed immediately – protects against accidental pastes. Applies to keyboard, right-click and menu. With multi-exec or hidden control characters HostDeck always asks." />
             <CheckBox Content="Ctrl+V pastes in the terminal (like Windows Terminal)" IsChecked="{Binding CtrlVPaste}" Margin="0,4,0,0"
                       ToolTip="Off: Ctrl+V goes to the server like in Linux terminals (bash: insert next key literally, nano: page down, vim: block selection). Ctrl+Shift+V and Shift+Insert always paste." />
             <CheckBox Content="Right-click in the terminal opens a menu (otherwise it pastes directly)" IsChecked="{Binding RightClickMenu}" Margin="0,4,0,0"
@@ -120,7 +120,7 @@
 
             <TextBlock Text="Library backups" FontWeight="SemiBold" Margin="0,20,0,2" />
             <TextBlock Margin="0,0,0,6" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}"
-                       Text="Daily copies of the library file (and its snippets) in the folder “HostDeck-Backups” next to it, with subfolders daily / weekly / monthly. The rule applies to everyone using that file and is stored in that folder; the first person who opens HostDeck each day creates the backup." />
+                       Text="Every save (Ctrl+S) is kept as a version in “versions” (with time and user), plus daily copies of the library file (and its snippets) in the folder “HostDeck-Backups” next to it, with subfolders daily / weekly / monthly. The rule applies to everyone using that file and is stored in that folder; the first person who opens HostDeck each day creates the backup." />
             <StackPanel IsEnabled="{Binding TeamBackupAvailable}">
                 <Grid Margin="0,0,0,8" Visibility="{Binding HasSeveralTeamFiles, Converter={StaticResource BoolToVisibility}}">
                     <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition /></Grid.ColumnDefinitions>
@@ -146,6 +146,13 @@
                     <ComboBox Grid.Column="4" ItemsSource="{Binding WeeklyOptions}" SelectedItem="{Binding TeamKeepWeekly}" />
                     <TextBlock Grid.Column="6" Text="monthly" VerticalAlignment="Center" Margin="0,0,8,0" />
                     <ComboBox Grid.Column="7" ItemsSource="{Binding MonthlyOptions}" SelectedItem="{Binding TeamKeepMonthly}" />
+                </Grid>
+                <Grid Margin="0,8,0,0">
+                    <Grid.ColumnDefinitions><ColumnDefinition Width="Auto" /><ColumnDefinition Width="72" /><ColumnDefinition /></Grid.ColumnDefinitions>
+                    <TextBlock Text="Keep every saved version for" VerticalAlignment="Center" Margin="0,0,8,0" />
+                    <ComboBox Grid.Column="1" ItemsSource="{Binding VersionDayOptions}" SelectedItem="{Binding TeamKeepVersionsDays}"
+                              ToolTip="0 = off. Every Ctrl+S saves a version (folder “versions”, with time and user) – at least the last 20 are always kept." />
+                    <TextBlock Grid.Column="2" Text="days" VerticalAlignment="Center" Margin="8,0,0,0" />
                 </Grid>
             </StackPanel>
             <TextBlock Margin="0,4,0,0" FontSize="11" TextWrapping="Wrap" Foreground="{DynamicResource TextFillColorTertiaryBrush}" Text="{Binding TeamBackupSummary}" />

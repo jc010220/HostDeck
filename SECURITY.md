@@ -104,9 +104,9 @@ Honest status – .NET and the protocol libraries limit what is possible:
 * **Terminal (WebView2):** own WebView2 profile; navigation is locked to the embedded page, messages are only accepted
   from that origin, no host objects, links open only `http(s)` in the default browser. Every paste (Ctrl+V, Shift+Insert,
   Ctrl+Shift+V, right-click menu) goes through HostDeck: bracketed-paste markers are removed and dropping text is blocked.
-  Multi-line text pasted with the keyboard asks first (can be turned off); "Paste" from the right-click menu is a deliberate
-  choice and does not ask – **except** when multi-exec is on (the text would reach all sessions) or the text contains hidden
-  control characters (e.g. ^O, ESC), which always ask and show them visibly.
+  Multi-line text asks first, whichever way it is pasted (can be turned off in Settings → Behavior); when multi-exec is on
+  (the text would reach all sessions) or the text contains hidden control characters (e.g. ^O, ESC), HostDeck always asks
+  and shows them visibly.
 * **Global hotkeys:** while a HostDeck window is active, Ctrl+Shift+K/W, Ctrl+Alt+L and Ctrl+Alt+→ are registered with
   Windows, and a low-level keyboard hook watches only the left Ctrl/Alt keys (press and release alone = release the keyboard
   from a session). Nothing is logged or stored, every key is passed on unchanged, both are removed when HostDeck is not

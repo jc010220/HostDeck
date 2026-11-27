@@ -65,7 +65,8 @@ public sealed class TerminalView : Border
         if (!Clipboard.ContainsText()) return;
         var raw = CleanPaste(Clipboard.GetText());
         var mustAsk = HasHiddenControlCharacters(raw) || MultiExecActive() && LineCount(raw) > 1;
-        var text = mustAsk || (!fromMenu && ConfirmMultiLinePaste()) ? ConfirmPaste(raw, force: mustAsk) : raw;
+        // Einstellung „Vor dem Einfügen mehrerer Zeilen fragen“ gilt für jeden Weg (Tastatur, Menü, Rechtsklick)
+        var text = mustAsk || ConfirmMultiLinePaste() ? ConfirmPaste(raw, force: mustAsk) : raw;
         if (text is not null) Post(new { t = "paste", d = text.Replace("\r\n", "\r") });
     }
 

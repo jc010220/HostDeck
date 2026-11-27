@@ -131,6 +131,12 @@ public sealed class TerminalView : Border
 
     private void ApplyFontSize(int size) => Post(new { t = "font", size });
 
+    /// <summary>Strg+V fügt im Terminal ein (Einstellung, Standard: aus).</summary>
+    public static Func<bool> CtrlVPaste { get; set; } = () => false;
+    private static event Action? OptionsBroadcast;
+    public static void BroadcastOptions() => OptionsBroadcast?.Invoke();
+    private void PostOptions() => Post(new { t = "opts", options = new { ctrlVPaste = CtrlVPaste() } });
+
     private bool _ready;
 
     private void OnFocusRequested(object? sender, EventArgs e) => Dispatcher.BeginInvoke(DispatcherPriority.Input, FocusTerminal);
@@ -156,6 +162,7 @@ public sealed class TerminalView : Border
         _tab.Closed += OnTabClosed;
         ThemeChanged += ApplyTheme;
         FontSizeBroadcast += ApplyFontSize;
+        OptionsBroadcast += PostOptions;
         _tab.FocusRequested += OnFocusRequested;
 
         _webView = new WebView2 { DefaultBackgroundColor = System.Drawing.Color.FromArgb(0x1e, 0x1e, 0x1e) };
@@ -217,6 +224,7 @@ public sealed class TerminalView : Border
             case "ready":
                 Post(new { t = "theme", theme = CurrentTheme?.Invoke() ?? "dark" });
                 Post(new { t = "font", size = FontSize });
+                PostOptions();
                 _terminal!.Resize((uint)m.GetProperty("cols").GetInt32(), (uint)m.GetProperty("rows").GetInt32());
                 _subscription ??= _terminal.Subscribe(Enqueue); // liefert den bisherigen Verlauf nach
                 _ready = true;
@@ -322,6 +330,7 @@ public sealed class TerminalView : Border
         if (_tab is not null) _tab.Closed -= OnTabClosed;
         ThemeChanged -= ApplyTheme;
         FontSizeBroadcast -= ApplyFontSize;
+        OptionsBroadcast -= PostOptions;
         if (_tab is not null) _tab.FocusRequested -= OnFocusRequested;
         _ready = false;
         // Hatte das Terminal den Tastaturfokus, läge er nach dem Schließen „nirgends“ ⇒ Kürzel gingen nicht mehr

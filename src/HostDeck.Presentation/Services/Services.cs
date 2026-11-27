@@ -93,6 +93,8 @@ public sealed class AppSettings
     public bool SftpFollowsTerminal { get; set; } = true;
     /// <summary>Rechtsklick ins Terminal öffnet ein Menü (Kopieren, Einfügen, Suchen …); aus = sofort einfügen wie MobaXterm.</summary>
     public bool TerminalRightClickMenu { get; set; } = true;
+    /// <summary>Strg+V fügt im Terminal ein (wie Windows Terminal). Standard aus: ^V geht an den Server.</summary>
+    public bool TerminalCtrlVPaste { get; set; }
     /// <summary>Tab schließen, wenn die Sitzung regulär beendet wird (exit/logout, RDP-Abmeldung) – nicht bei Verbindungsabbruch.</summary>
     public bool CloseTabOnSessionEnd { get; set; } = true;
     /// <summary>Mehrzeiliges Einfügen per Tastatur (Strg+V, Strg+Umschalt+V) bestätigen. Über das Rechtsklick-Menü nie.</summary>

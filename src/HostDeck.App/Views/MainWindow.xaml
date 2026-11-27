@@ -289,6 +289,17 @@
                             </DockPanel>
                             <ui:ToggleSwitch DockPanel.Dock="Top" Margin="4,2,0,8" Content="Follow terminal" IsChecked="{Binding FollowTerminal}"
                                              ToolTip="The folder follows “cd” in the terminal" />
+                            <!-- Filter: Name/Muster, Änderungsdatum, Sortierung -->
+                            <Grid DockPanel.Dock="Top" Margin="0,0,0,6">
+                                <Grid.ColumnDefinitions><ColumnDefinition /><ColumnDefinition Width="4" /><ColumnDefinition Width="Auto" /></Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions><RowDefinition /><RowDefinition Height="4" /><RowDefinition /></Grid.RowDefinitions>
+                                <ui:TextBox Grid.ColumnSpan="3" Text="{Binding NameFilter, UpdateSourceTrigger=PropertyChanged}" PlaceholderText="Filter name  (e.g. *.log)"
+                                            ClearButtonEnabled="True" FontSize="12" />
+                                <ComboBox Grid.Row="2" ItemsSource="{Binding DateFilters}" SelectedItem="{Binding DateFilter}" DisplayMemberPath="Label"
+                                          ToolTip="Show only files modified in this period (folders stay visible)" FontSize="12" />
+                                <ComboBox Grid.Row="2" Grid.Column="2" ItemsSource="{Binding SortOptions}" SelectedItem="{Binding Sort}" MinWidth="110"
+                                          ToolTip="Sort" FontSize="12" />
+                            </Grid>
                             <!-- Fußzeile: Übertragung + Status -->
                             <StackPanel DockPanel.Dock="Bottom" Margin="4,6,0,0">
                                 <ProgressBar Height="3" Value="{Binding TransferPercent}" Margin="0,0,0,4"
@@ -328,6 +339,9 @@
                                                     </Style>
                                                 </ui:SymbolIcon.Style>
                                             </ui:SymbolIcon>
+                                            <TextBlock DockPanel.Dock="Right" FontSize="11" Margin="8,0,2,0" VerticalAlignment="Center"
+                                                       Foreground="{DynamicResource TextFillColorTertiaryBrush}"
+                                                       Text="{Binding LastWriteTime, StringFormat='{}{0:dd.MM.yy HH:mm}'}" />
                                             <TextBlock x:Name="SizeText" DockPanel.Dock="Right" FontSize="11" Margin="8,0,2,0" VerticalAlignment="Center"
                                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                                        Text="{Binding Size, Converter={StaticResource FileSize}}" />

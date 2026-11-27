@@ -17,6 +17,9 @@
              brightBlack: '#666666', brightRed: '#e51400', brightGreen: '#14ce14', brightYellow: '#b5a000', brightBlue: '#0451a5', brightMagenta: '#bc05bc', brightCyan: '#0598bc', brightWhite: '#a5a5a5' },
   };
 
+  // Einstellungen aus HostDeck (z. B. Strg+V = Einfügen, Standard: aus ⇒ ^V geht an den Server)
+  const options = { ctrlVPaste: false };
+
   const term = new Terminal({
     fontFamily: '"Cascadia Mono", "Cascadia Code", Consolas, "Courier New", monospace',
     fontSize: 14,
@@ -82,9 +85,10 @@
     // Layout: Strg+Umschalt+1…4 (e.key wäre mit Umschalt „!“, „"“ … ⇒ physische Taste)
     if (e.ctrlKey && e.shiftKey && !e.altKey && /^Digit[1-4]$/.test(e.code)) { e.preventDefault(); send({ t: 'shortcut', key: 'ctrl+shift+' + e.code.slice(5) }); return false; }
     if (key === 'ctrl+shift+c') { const s = term.getSelection(); if (s) send({ t: 'copy', d: s }); return false; }
-    // Einfügen wie im Windows Terminal: Strg+V, Strg+Umschalt+V und Umschalt+Einfg (xterm.js würde Strg+V sonst als
-    // Steuerzeichen ^V an den Server schicken und Umschalt+Einfg als Escape-Folge – dann ginge nur die Maus)
-    if ((e.ctrlKey && !e.altKey && e.code === 'KeyV') || (e.shiftKey && !e.ctrlKey && !e.altKey && e.code === 'Insert')) {
+    // Einfügen: Strg+Umschalt+V und Umschalt+Einfg immer, Strg+V nur wenn in den Einstellungen eingeschaltet
+    // (sonst geht ^V wie in Linux-Terminals an den Server: bash „wörtlich einfügen“, nano „Seite runter“, vim „Block“)
+    const ctrlV = e.ctrlKey && !e.altKey && e.code === 'KeyV' && (e.shiftKey || options.ctrlVPaste);
+    if (ctrlV || (e.shiftKey && !e.ctrlKey && !e.altKey && e.code === 'Insert')) {
       e.preventDefault(); requestPaste(); return false;
     }
     if (key === 'ctrl+shift+f') { openSearch(); return false; }
@@ -113,6 +117,7 @@
       case 'theme': term.options.theme = themes[m.theme] || themes.dark; document.body.style.background = term.options.theme.background; break;
       case 'font': term.options.fontSize = m.size; doFit(); break;
       case 'focus': term.focus(); break;
+      case 'opts': Object.assign(options, m.options || {}); break;
       case 'search': openSearch(); break;
       case 'clear': term.clear(); term.focus(); break;              // Verlauf leeren, aktuelle Zeile bleibt
       case 'reset': term.reset(); term.focus(); break;

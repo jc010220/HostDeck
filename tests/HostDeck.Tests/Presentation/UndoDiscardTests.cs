@@ -86,3 +86,14 @@ public sealed class SplitViewCycleTests
         Assert.Same(right, ws.ActiveTab);
     }
 }
+
+public sealed class SftpFilterTests
+{
+    [Theory]
+    [InlineData("syslog.1", "*.1", true)]
+    [InlineData("syslog.1", "*.log", false)]
+    [InlineData("app.log", "APP", true)]
+    [InlineData("a.txt", "", true)]
+    public void Name_filter_supports_text_and_wildcards(string name, string filter, bool expected) =>
+        Assert.Equal(expected, SftpBrowserViewModel.NameMatches(name, filter));
+}

@@ -344,9 +344,81 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
         _terminal = terminal;
         _dialogs = dialogs;
         _ui = ui;
+        _dateFilter = DateFilters[0];
     }
 
     public ObservableCollection<RemoteEntry> Entries { get; } = [];
+
+    // ---- Filter (Name, Änderungsdatum) und Sortierung ----
+    private List<RemoteEntry> _all = [];
+
+    public sealed record DateFilterOption(string Label, Func<DateTime, DateTime, bool> Matches)
+    {
+        public override string ToString() => Label;
+    }
+
+    public IReadOnlyList<DateFilterOption> DateFilters { get; } =
+    [
+        new("Any date", (_, _) => true),
+        new("Last hour", (t, now) => now - t <= TimeSpan.FromHours(1)),
+        new("Today", (t, now) => t.Date == now.Date),
+        new("Last 7 days", (t, now) => now - t <= TimeSpan.FromDays(7)),
+        new("Last 30 days", (t, now) => now - t <= TimeSpan.FromDays(30)),
+        new("Older than 30 days", (t, now) => now - t > TimeSpan.FromDays(30)),
+        new("Older than 1 year", (t, now) => now - t > TimeSpan.FromDays(365)),
+    ];
+
+    public IReadOnlyList<string> SortOptions { get; } = ["Name", "Newest first", "Oldest first", "Largest first"];
+
+    /// <summary>Name enthält (oder Muster mit * und ?, z. B. „*.log“).</summary>
+    [ObservableProperty] private string _nameFilter = "";
+    [ObservableProperty] private DateFilterOption? _dateFilter;
+    [ObservableProperty] private string _sort = "Name";
+
+    partial void OnNameFilterChanged(string value) => ApplyFilter();
+    partial void OnDateFilterChanged(DateFilterOption? value) => ApplyFilter();
+    partial void OnSortChanged(string value) => ApplyFilter();
+
+    public bool IsFiltered => NameFilter.Trim().Length > 0 || (DateFilter is { } d && d != DateFilters[0]);
+
+    [RelayCommand]
+    private void ClearFilter()
+    {
+        NameFilter = "";
+        DateFilter = DateFilters[0];
+    }
+
+    internal static bool NameMatches(string name, string filter)
+    {
+        filter = filter.Trim();
+        if (filter.Length == 0) return true;
+        if (filter.Contains('*') || filter.Contains('?'))
+        {
+            var pattern = "^" + System.Text.RegularExpressions.Regex.Escape(filter).Replace("\\*", ".*").Replace("\\?", ".") + "$";
+            return System.Text.RegularExpressions.Regex.IsMatch(name, pattern, System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        }
+        return name.Contains(filter, StringComparison.OrdinalIgnoreCase);
+    }
+
+    /// <summary>Liste neu aufbauen: Ordner bleiben zum Navigieren sichtbar (nur der Namensfilter gilt für sie).</summary>
+    private void ApplyFilter()
+    {
+        var now = DateTime.Now;
+        var date = DateFilter ?? DateFilters[0];
+        var visible = _all.Where(e => NameMatches(e.Name, NameFilter) && (e.IsDirectory || date.Matches(e.LastWriteTime, now)));
+        visible = Sort switch
+        {
+            "Newest first" => visible.OrderByDescending(e => e.IsDirectory).ThenByDescending(e => e.LastWriteTime),
+            "Oldest first" => visible.OrderByDescending(e => e.IsDirectory).ThenBy(e => e.LastWriteTime),
+            "Largest first" => visible.OrderByDescending(e => e.IsDirectory).ThenByDescending(e => e.Size),
+            _ => visible,
+        };
+        var list = visible.ToList();
+        Entries.Clear();
+        foreach (var e in list) Entries.Add(e);
+        Status = IsFiltered ? $"{list.Count} of {_all.Count} entries (filtered)" : $"{_all.Count} entries";
+        OnPropertyChanged(nameof(IsFiltered));
+    }
 
     [ObservableProperty] private string _path = "";
     [ObservableProperty] private bool _isBusy;
@@ -392,9 +464,8 @@ public sealed partial class SftpBrowserViewModel : ObservableObject, IAsyncDispo
             Post(() =>
             {
                 Path = path;
-                Entries.Clear();
-                foreach (var e in entries) Entries.Add(e);
-                Status = $"{entries.Count} entries";
+                _all = entries.ToList();
+                ApplyFilter();
             });
         }
         catch (OperationCanceledException) { }

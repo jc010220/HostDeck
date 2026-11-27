@@ -35,7 +35,8 @@ public partial class MainWindow : FluentWindow
         TerminalView.MultiExecActive = () => viewModel.IsMultiExecutionEnabled;
         TerminalView.MultiLinePasteConfirmationTurnedOff = () => { viewModel.Settings.ConfirmMultiLinePaste = false; viewModel.SaveSettings(); };
         TerminalView.FontSizeChanged = size => { viewModel.Settings.TerminalFontSize = size; viewModel.SaveSettings(); };
-        viewModel.SettingsApplied += () => TerminalView.BroadcastFontSize(viewModel.Settings.TerminalFontSize);
+        viewModel.SettingsApplied += () => { TerminalView.BroadcastFontSize(viewModel.Settings.TerminalFontSize); TerminalView.BroadcastOptions(); };
+        TerminalView.CtrlVPaste = () => viewModel.Settings.TerminalCtrlVPaste;
         // Windows wechselt hell/dunkel (Modus „System“) ⇒ Terminals sofort mitziehen
         Wpf.Ui.Appearance.ApplicationThemeManager.Changed += (theme, _) =>
             Dispatcher.BeginInvoke(() => TerminalView.BroadcastTheme(theme == Wpf.Ui.Appearance.ApplicationTheme.Light ? "light" : "dark"));

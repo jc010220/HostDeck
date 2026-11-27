@@ -24,6 +24,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _highlighting = settings.TerminalHighlighting;
         _sftpFollows = settings.SftpFollowsTerminal;
         _rightClickMenu = settings.TerminalRightClickMenu;
+        _ctrlVPaste = settings.TerminalCtrlVPaste;
         _closeTabOnSessionEnd = settings.CloseTabOnSessionEnd;
         _confirmMultiLinePaste = settings.ConfirmMultiLinePaste;
         _restoreWorkspace = settings.RestoreWorkspaceOnStart;
@@ -56,6 +57,7 @@ public sealed partial class SettingsViewModel : ObservableObject
     [ObservableProperty] private bool _highlighting;
     [ObservableProperty] private bool _sftpFollows;
     [ObservableProperty] private bool _rightClickMenu;
+    [ObservableProperty] private bool _ctrlVPaste;
     [ObservableProperty] private bool _closeTabOnSessionEnd;
     [ObservableProperty] private bool _confirmMultiLinePaste;
     [ObservableProperty] private bool _restoreWorkspace;
@@ -254,6 +256,7 @@ public sealed partial class SettingsViewModel : ObservableObject
         _settings.TerminalHighlighting = Highlighting;
         _settings.SftpFollowsTerminal = SftpFollows;
         _settings.TerminalRightClickMenu = RightClickMenu;
+        _settings.TerminalCtrlVPaste = CtrlVPaste;
         _settings.CloseTabOnSessionEnd = CloseTabOnSessionEnd;
         _settings.ConfirmMultiLinePaste = ConfirmMultiLinePaste;
         _settings.RestoreWorkspaceOnStart = RestoreWorkspace;

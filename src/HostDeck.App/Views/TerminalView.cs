@@ -276,11 +276,22 @@ public sealed class TerminalView : Border
         // Jede Art Zeilenumbruch zählt (auch einzelnes CR, U+2028/2029, U+0085) – sonst „ok\rrm -rf …“ als eine Zeile
         var lines = Normalize(text).TrimEnd('\n').Split('\n');
         if (lines.Length < 2 && !force) return text;
-        var preview = string.Join("\n", lines.Take(8).Select(l => Visible(l.Length > 100 ? l[..100] + "…" : l))) + (lines.Length > 8 ? $"\n… ({lines.Length - 8} more lines)" : "");
-        var dialog = new PasteConfirmDialog(lines.Length, preview, HasHiddenControlCharacters(text), MultiExecActive(), canSkip: !force) { Owner = Window.GetWindow(this) };
+        // Ganzer Text zum Prüfen und Bearbeiten; versteckte Steuerzeichen werden entfernt (und benannt)
+        var normalized = Normalize(text);
+        string? removed = null;
+        if (HasHiddenControlCharacters(normalized))
+        {
+            removed = string.Join(" ", normalized.Where(c => (c < 0x20 && c is not '\t' and not '\n') || c == 0x7F || c is >= '\u0080' and <= '\u009F')
+                .Distinct().Take(8).Select(c => Visible(c.ToString())));
+            normalized = new string(normalized.Where(c => !((c < 0x20 && c is not '\t' and not '\n') || c == 0x7F || c is >= '\u0080' and <= '\u009F')).ToArray());
+        }
+        var dialog = new PasteConfirmDialog(lines.Length, normalized.Replace("\n", System.Environment.NewLine), removed, MultiExecActive(), canSkip: !force)
+        {
+            Owner = Window.GetWindow(this),
+        };
         var ok = dialog.ShowDialog() == true;
         if (ok && dialog.DontAskAgain && !force) MultiLinePasteConfirmationTurnedOff?.Invoke();
-        return ok ? text : null;
+        return ok ? dialog.EditedText : null;
     }
 
     private static void TrySetClipboard(string? text)

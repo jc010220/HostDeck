@@ -11,11 +11,11 @@
         </Grid.RowDefinitions>
         <ui:TitleBar Title="Multi-line paste" ShowMinimize="False" ShowMaximize="False" />
         <TextBlock x:Name="Intro" Grid.Row="1" Margin="24,4,24,8" TextWrapping="Wrap" FontSize="14" />
-        <Border Grid.Row="2" Margin="24,0,24,12" Padding="10,8" CornerRadius="6" Background="{DynamicResource ControlFillColorDefaultBrush}">
-            <ScrollViewer MaxHeight="260" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto">
-                <TextBlock x:Name="Preview" FontFamily="Cascadia Mono, Consolas" FontSize="12" />
-            </ScrollViewer>
-        </Border>
+        <!-- Ganzer Inhalt, scroll- und bearbeitbar: eingefügt wird, was hier steht -->
+        <TextBox x:Name="Editor" Grid.Row="2" Margin="24,0,24,12" Padding="10,8" FontFamily="Cascadia Mono, Consolas" FontSize="12"
+                 AcceptsReturn="True" AcceptsTab="True" TextWrapping="NoWrap" MinHeight="80" MaxHeight="320"
+                 VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                 ToolTip="You can edit the text before pasting – what is shown here is pasted." />
         <DockPanel Grid.Row="3" Margin="24,0,24,0">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
                 <ui:Button Content="Paste" Appearance="Primary" MinWidth="96" Margin="0,0,8,0" Click="OnPaste" />
